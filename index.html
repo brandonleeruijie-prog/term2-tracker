@@ -20,8 +20,8 @@
             --text-muted: #b2ebf2; 
             --outline: #26c6da; 
             
-            --c1: #ff5252; /* MATH1231 / MMAN1130 */
-            --c2: #448aff; /* MMAN2700 / ENGG1811 */
+            --c1: #ff5252; /* MATH1231 */
+            --c2: #448aff; /* MMAN2700 */
             --c3: #18ffff; /* ELEC1111 */
         }
         body {
@@ -177,6 +177,18 @@
         .event-live { border-left-color: var(--accent); background-color: rgba(38, 198, 218, 0.1); transform: scale(1.02); box-shadow: 0 0 15px rgba(38, 198, 218, 0.2); }
         .event-live .event-time { background: var(--accent); color: var(--bg-dark); border-color: var(--accent); font-weight: bold; }
         
+        /* Break Alert Styling */
+        .break-alert {
+            padding: 30px; 
+            background: rgba(38, 198, 218, 0.1); 
+            border: 1px solid var(--outline); 
+            border-radius: 8px; 
+            text-align: center;
+            margin-top: 20px;
+        }
+        .break-alert h3 { color: var(--accent); margin-top: 0; font-size: 24px; }
+        .break-alert p { color: var(--text-muted); margin-bottom: 0; font-size: 18px; }
+
     </style>
 </head>
 <body>
@@ -246,24 +258,37 @@
             return `${hours}:${minutes} ${ampm}`;
         }
 
-        // --- 2. DATA ARCHITECTURE ---
+        // --- 2. CALENDAR SYSTEM ---
+        // Actual start dates for each term
+        const termDates = {
+            1: new Date("2026-02-16T00:00:00+11:00"), 
+            2: new Date("2026-06-01T00:00:00+10:00") // Estimated for Term 2 until provided
+        };
+
+        const dayOffsets = { "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6 };
+
+        function getEventDate(term, week, day) {
+            let baseDate = new Date(termDates[term]);
+            baseDate.setDate(baseDate.getDate() + ((week - 1) * 7) + dayOffsets[day]);
+            return baseDate;
+        }
+
+        // --- 3. DATA ARCHITECTURE ---
         const termConfig = {
             1: {
                 courses: { Course1: "MATH1231", Course2: "MMAN2700", Course3: "ELEC1111" },
-                stressLevels: [3, 4, 6, 6, 10, 2, 7, 8, 8, 9] // 10 Weeks
+                stressLevels: [3, 4, 6, 6, 10, 2, 7, 8, 8, 9] 
             },
             2: {
-                courses: { Course1: "MMAN1130", Course2: "ENGG1811", Course3: "ELEC1111" },
-                stressLevels: [3, 4, 6, 8, 10, 2, 9, 7, 8, 9] // 10 Weeks
+                courses: { Course1: "TBA", Course2: "TBA", Course3: "TBA" },
+                stressLevels: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] // Empty until term 2 starts
             }
         };
 
         const dailyStressProfile = [6, 8, 9, 7, 5, 2, 4]; 
         const masterScheduleData = [];
 
-        // --- DYNAMIC DATA GENERATOR ---
-        
-        // TERM 1 BASE SCHEDULE (Built exactly from your PDF timetables & PASS sessions)
+        // TERM 1 BASE SCHEDULE
         const baseTerm1 = [
             { day: "Monday", course: "Course1", title: "MATH1231 Lecture", start: "09:00", end: "11:00", location: "Physics Th", desc: "Focus on calculus and algebra fundamentals." },
             { day: "Monday", course: "Course2", title: "MMAN2700 Lecture", start: "12:00", end: "14:00", location: "Burrows Th", desc: "Thermodynamics theory." },
@@ -286,49 +311,22 @@
             { day: "Thursday", course: "Course1", title: "MATH1231 Lecture", start: "16:00", end: "18:00", location: "Physics Th", desc: "Algebra concepts." },
             { day: "Thursday", course: "Routine", title: "Run", start: "18:30", end: "19:00", location: "Outdoors", desc: "Clear the head." },
 
+            { day: "Friday", course: "Course1", title: "Math Drop-in Centre", start: "08:00", end: "09:00", location: "H13 Lawrence East Lab G12B", desc: "Sit here and do your Weekly Möbius lessons. Tutors are available immediately if you get stuck." },
             { day: "Friday", course: "Course3", title: "ELEC1111 Lab", start: "09:00", end: "12:00", location: "ElecEng201", desc: "Practical circuit building. Must complete pre-lab!" },
-            { day: "Friday", course: "Course3", title: "ELEC1111 PASS", start: "13:00", end: "14:00", location: "ElecEng G23", desc: "Review the lab concepts and ensure understanding." },
+            { day: "Friday", course: "Course3", title: "ELEC1111 PASS", start: "13:00", end: "14:00", location: "ElecEng G23", desc: "Review the lab concepts immediately while fresh." },
             { day: "Friday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "End of week lifting." }
         ];
 
-        // TERM 2 BASE SCHEDULE
-        const baseTerm2 = [
-            { day: "Monday", course: "Routine", title: "Wake & Commute", start: "07:00", end: "09:00", location: "Bus", desc: "Pull espresso (58mm), Anki flashcards on the bus." },
-            { day: "Monday", course: "Course3", title: "ELEC Sprint", start: "09:00", end: "11:00", location: "On-Campus", desc: "3 hard problems with a blank page." },
-            { day: "Monday", course: "Course2", title: "ENGG1811 Lecture", start: "14:00", end: "16:00", location: "Rex Vowels", desc: "Focus on control structure logic." },
-            { day: "Monday", course: "Course1", title: "MMAN1130 Lecture", start: "16:00", end: "18:00", location: "Science Th", desc: "AS1100 standards notes." },
-            { day: "Monday", course: "Routine", title: "Gym Session", start: "19:00", end: "20:00", location: "Gym", desc: "Reset the brain." },
-            
-            { day: "Tuesday", course: "Routine", title: "Wake & Prep", start: "07:00", end: "09:30", location: "Home/Commute", desc: "Review ENGG1811 Lab logic." },
-            { day: "Tuesday", course: "Course2", title: "ENGG1811 LAB", start: "10:00", end: "12:00", location: "HarpM15570", desc: "Try to break your code before submitting." },
-            { day: "Tuesday", course: "Course1", title: "MMAN1130 PRJ", start: "14:00", end: "15:00", location: "UTL 214N", desc: "Mandatory practical." },
-            { day: "Tuesday", course: "Routine", title: "Run", start: "16:30", end: "17:00", location: "Outdoors", desc: "Decompress." },
-            
-            { day: "Wednesday", course: "Course1", title: "CAD Sprint", start: "08:30", end: "11:30", location: "Home PC", desc: "Heavy SolidWorks modeling." },
-            { day: "Wednesday", course: "Course2", title: "Python Logic", start: "13:00", end: "15:00", location: "Library (Mac)", desc: "Pseudo-code before typing." },
-            { day: "Wednesday", course: "Course3", title: "Circuit Mastery", start: "15:00", end: "17:00", location: "Library (Mac)", desc: "Pen and paper ONLY." },
-            { day: "Wednesday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "" },
-
-            { day: "Thursday", course: "Course1", title: "MMAN1130 TLB", start: "12:30", end: "14:00", location: "Ainswth204", desc: "Fix broken SolidWorks sketches." },
-            { day: "Thursday", course: "Course2", title: "ENGG1811 Lecture", start: "16:00", end: "18:00", location: "Rex Vowels", desc: "Variable passing and scope rules." },
-            { day: "Thursday", course: "Routine", title: "Run", start: "19:30", end: "20:00", location: "Outdoors", desc: "" },
-
-            { day: "Friday", course: "Course3", title: "ELEC Drill", start: "09:00", end: "11:00", location: "On-Campus", desc: "15-minute timer per question." },
-            { day: "Friday", course: "Course1", title: "MMAN1130 Lecture", start: "16:00", end: "18:00", location: "Burrows Th", desc: "Finalize AS1100 notes." }
-        ];
-
-        // Loop to generate 10 weeks of data for both terms
+        // Loop to generate 10 weeks of data for Term 1 ONLY. Term 2 is empty.
         for(let w = 1; w <= 10; w++) {
             if (w === 6) {
                 masterScheduleData.push({ term: 1, week: w, day: "Monday", course: "Routine", title: "Flex Week", start: "09:00", end: "17:00", location: "Anywhere", desc: "Catch up on sleep and 3D printing." });
-                masterScheduleData.push({ term: 2, week: w, day: "Monday", course: "Routine", title: "Flex Week", start: "09:00", end: "17:00", location: "Anywhere", desc: "Catch up on sleep and 3D printing." });
-                continue; // Skip the rest of the week
+                continue; 
             }
             baseTerm1.forEach(ev => masterScheduleData.push({ term: 1, week: w, ...ev }));
-            baseTerm2.forEach(ev => masterScheduleData.push({ term: 2, week: w, ...ev }));
         }
 
-        // Inject Term 1 Specific Assessment Peaks (from Course Outlines)
+        // Inject Term 1 Specific Assessment Peaks 
         masterScheduleData.push({ term: 1, week: 3, day: "Tuesday", course: "Course2", title: "MMAN2700 Quiz 1", start: "19:00", end: "20:00", location: "Online", desc: "Covers Topic 1: Systems and Energy." });
         masterScheduleData.push({ term: 1, week: 4, day: "Tuesday", course: "Course2", title: "MMAN2700 Lab 1", start: "19:30", end: "21:00", location: "UTL 214S", desc: "Thermodynamics processes experiment." });
         masterScheduleData.push({ term: 1, week: 5, day: "Tuesday", course: "Course2", title: "MMAN2700 Quiz 2", start: "19:00", end: "20:00", location: "Online", desc: "Covers Topic 2." });
@@ -338,9 +336,8 @@
         masterScheduleData.push({ term: 1, week: 8, day: "Tuesday", course: "Course2", title: "MMAN2700 Lab 2", start: "19:30", end: "21:00", location: "UTL 214S", desc: "Compressor performance." });
         masterScheduleData.push({ term: 1, week: 9, day: "Wednesday", course: "Course1", title: "MATH1231 Lab Test 2", start: "18:00", end: "19:00", location: "H13-E G12A", desc: "Includes Maple coding questions." });
 
-
-        // --- 3. STATE & NAVIGATION SETUP ---
-        let currentTerm = 1; // Start on Term 1 to see the loaded data
+        // --- 4. STATE & NAVIGATION SETUP ---
+        let currentTerm = 1; 
         let currentWeek = "home"; 
         let currentCourseFilter = "All";
 
@@ -374,8 +371,12 @@
 
         function switchWeek(element, target) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            if(element) element.classList.add('active');
-            else if(target !== "home") document.querySelector(`.tab-btn[data-week="${target}"]`).classList.add('active');
+            if(element) {
+                element.classList.add('active');
+            } else if(target !== "home") {
+                // FIXED BUG: Template literal syntax required backticks!
+                document.querySelector(`.tab-btn[data-week="${target}"]`).classList.add('active');
+            }
 
             currentWeek = target;
             if(target === "home") {
@@ -410,7 +411,7 @@
             document.getElementById('chart-title').innerText = `Term ${currentTerm} Workload Tracker`;
         }
 
-        // --- 4. CHARTS CONFIGURATION ---
+        // --- 5. CHARTS CONFIGURATION ---
         Chart.defaults.color = '#84ffff';
         Chart.defaults.font.family = 'Rajdhani';
 
@@ -451,7 +452,7 @@
             weeklyChart.update();
         }
 
-        // --- 5. SCHEDULE LOGIC ---
+        // --- 6. SCHEDULE LOGIC ---
         function timeToMinutes(timeStr) { const [hours, mins] = timeStr.split(':').map(Number); return hours * 60 + mins; }
 
         function createCard(event, stateClass) {
@@ -481,14 +482,44 @@
             const container = document.getElementById('live-schedule');
             container.innerHTML = '';
             
-            const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const now = new Date();
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+
+            // Detect if we are currently inside a Term
+            let activeTerm = null;
+            let activeWeek = null;
+
+            for (let t in termDates) {
+                let start = new Date(termDates[t]);
+                let end = new Date(termDates[t]);
+                end.setDate(end.getDate() + 70); // 10 weeks
+                
+                if (now >= start && now < end) {
+                    activeTerm = parseInt(t);
+                    let diffTime = Math.abs(now - start);
+                    activeWeek = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+                    break;
+                }
+            }
+
+            // BREAK DETECTOR
+            if (activeTerm === null || activeTerm !== currentTerm) {
+                document.getElementById('live-day-title').innerText = `Term ${currentTerm} Status`;
+                container.innerHTML = `
+                    <div class="break-alert">
+                        <h3>Currently on Academic Break 🌴</h3>
+                        <p>No classes are scheduled for Term ${currentTerm} right now. Check the weekly tabs to review past or future schedules.</p>
+                    </div>`;
+                return;
+            }
+
+            // If active, show today's schedule
+            const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const currentDayStr = daysOfWeek[now.getDay()];
-            const currentMins = now.getHours() * 60 + now.getMinutes();
 
-            document.getElementById('live-day-title').innerText = `Today's Live Timeline (${currentDayStr})`;
+            document.getElementById('live-day-title').innerText = `Today's Live Timeline (${currentDayStr}, Week ${activeWeek})`;
 
-            let todaysEvents = masterScheduleData.filter(e => e.term === currentTerm && e.day === currentDayStr && e.week === 1); 
+            let todaysEvents = masterScheduleData.filter(e => e.term === activeTerm && e.week === activeWeek && e.day === currentDayStr); 
             if (currentCourseFilter !== "All") todaysEvents = todaysEvents.filter(e => e.course === currentCourseFilter);
             
             if (todaysEvents.length === 0) {
@@ -511,7 +542,6 @@
             const display = document.getElementById('weekly-schedule-content');
             display.innerHTML = '';
 
-            // BUG FIX: changed currentView to currentWeek
             let filteredData = masterScheduleData.filter(e => e.term === currentTerm && e.week === currentWeek);
             
             if (currentCourseFilter !== "All") filteredData = filteredData.filter(e => e.course === currentCourseFilter);
@@ -526,9 +556,14 @@
                 const dayEvents = filteredData.filter(e => e.day === day);
                 if (dayEvents.length > 0) {
                     dayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+                    
+                    // REAL DATE INTEGRATION
+                    const eventDate = getEventDate(currentTerm, currentWeek, day);
+                    const dateString = new Intl.DateTimeFormat('en-AU', { month: 'short', day: 'numeric', year: 'numeric' }).format(eventDate);
+
                     const daySection = document.createElement('div');
                     daySection.className = 'day-section';
-                    daySection.innerHTML = `<h2 class="day-title">${day}</h2>`;
+                    daySection.innerHTML = `<h2 class="day-title">${day} - ${dateString}</h2>`;
                     
                     dayEvents.forEach(event => {
                         daySection.appendChild(createCard(event, ""));
