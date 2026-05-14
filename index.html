@@ -88,7 +88,9 @@
             text-align: right;
         }
 
-        /* Builder Forms */
+        /* Buttons */
+        .btn-skip { background: transparent; border: none; font-size: 18px; cursor: pointer; opacity: 0.5; transition: 0.2s; padding: 0 5px; margin-left: 10px; }
+        .btn-skip:hover { opacity: 1; transform: scale(1.1); }
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
@@ -287,12 +289,13 @@
             termId: c.termId || currentTermId
         }));
         
-        // Fetch events and run a quick migration for older data schema without termId or weeks
+        // Fetch events and run migration for skippedWeeks
         let rawEvents = JSON.parse(localStorage.getItem('tp_events')) || [];
         let events = rawEvents.map(e => ({
             ...e,
             termId: e.termId || currentTermId,
-            weeks: e.weeks || "All" 
+            weeks: e.weeks || "All",
+            skippedWeeks: e.skippedWeeks || [] 
         }));
 
         function saveData() {
@@ -301,13 +304,36 @@
             localStorage.setItem('tp_courses', JSON.stringify(courses));
             localStorage.setItem('tp_events', JSON.stringify(events));
             refreshUI();
+            
+            // Auto re-render schedule if we are looking at a week
+            if(currentView !== "dashboard" && currentView !== "builder") {
+                renderSchedule(currentView);
+            }
+        }
+
+        // --- EXCLUSION LOGIC ---
+        function skipEventOccurrence(eventId, weekNum) {
+            const ev = events.find(e => e.id === eventId);
+            if(ev) {
+                if(!ev.skippedWeeks.includes(weekNum.toString())) {
+                    ev.skippedWeeks.push(weekNum.toString());
+                    saveData();
+                }
+            }
+        }
+
+        function restoreEvent(eventId) {
+            const ev = events.find(e => e.id === eventId);
+            if(ev) {
+                ev.skippedWeeks = [];
+                saveData();
+            }
         }
 
         // --- TERM LOGIC ---
         function switchTerm(newTermId) {
             currentTermId = newTermId;
             saveData();
-            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
         }
 
         function addTerm() {
@@ -404,12 +430,18 @@
             termEvents.forEach(e => {
                 const cColor = termCourses.find(c => c.id === e.courseId)?.color || "#fff";
                 const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
+                
+                // Show skipped weeks warning + restore link
+                const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) 
+                    ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` 
+                    : "";
+
                 const li = document.createElement('li');
                 li.className = "mgmt-item";
                 li.innerHTML = `
                     <div>
                         <strong style="color:${cColor}">${e.courseId}</strong> | ${e.title} <br>
-                        <small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText}</small>
+                        <small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small>
                     </div>
                     <button class="btn-delete" onclick="deleteEvent('${e.id}')">Delete</button>
                 `;
@@ -450,7 +482,8 @@
                 start: document.getElementById('inp-ev-start').value,
                 end: document.getElementById('inp-ev-end').value,
                 location: document.getElementById('inp-ev-location').value,
-                desc: document.getElementById('inp-ev-desc').value
+                desc: document.getElementById('inp-ev-desc').value,
+                skippedWeeks: [] // Initialize empty exclusions array
             };
             events.push(newEvent);
             saveData();
@@ -524,16 +557,23 @@
             // Step 2: Filter by specific course (if a filter is applied via Sidebar)
             if(currentFilter !== "All") filteredEvents = filteredEvents.filter(e => e.courseId === currentFilter);
 
-            // Step 3: Filter out events that do not apply to this week
-            filteredEvents = filteredEvents.filter(e => e.weeks === "All" || e.weeks == weekNum);
+            // Step 3: Filter by week applicability AND Exclusion check
+            filteredEvents = filteredEvents.filter(e => {
+                // Must belong to this week
+                if(e.weeks !== "All" && e.weeks != weekNum) return false;
+                // Exclude if this specific week was skipped
+                if(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())) return false;
+                
+                return true;
+            });
 
             // Flex Week Logic
-            if(weekNum == 6 && currentFilter === "All" && filteredEvents.filter(e => e.weeks === "All").length > 0) {
+            if(weekNum == 6 && currentFilter === "All" && events.filter(e => e.termId === currentTermId && e.weeks === "All").length > 0) {
                  const flexNotice = document.createElement('div');
                  flexNotice.className = "builder-section";
                  flexNotice.style.cssText = "text-align:center; background:rgba(38,198,218,0.1); padding: 15px; margin-bottom: 20px;";
                  flexNotice.innerHTML = `<h3 style="color:var(--accent); margin:0 0 5px 0;">Flexibility Week 🌴</h3>
-                                         <p style="color:var(--text-muted); margin:0; font-size:16px;">Standard recurring classes are shown below, but verify your course outline—they might be paused.</p>`;
+                                         <p style="color:var(--text-muted); margin:0; font-size:16px;">Hit the 🚫 icon on any standard recurring classes below to clear them off the board and replace them with high-yield blocks.</p>`;
                  container.appendChild(flexNotice);
             }
 
@@ -564,7 +604,10 @@
                         card.style.borderLeftColor = cColor;
                         card.innerHTML = `
                             <div class="event-info">
-                                <strong style="color:${cColor}">${ev.courseId} | ${ev.title} ${occurrenceBadge}</strong>
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <strong style="color:${cColor}">${ev.courseId} | ${ev.title} ${occurrenceBadge}</strong>
+                                    <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${weekNum}')" title="Skip this occurrence for Week ${weekNum}">🚫</button>
+                                </div>
                                 <span>📍 ${ev.location}</span>
                                 ${descHtml}
                             </div>
