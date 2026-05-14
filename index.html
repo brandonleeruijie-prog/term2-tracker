@@ -236,14 +236,13 @@
                                 <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204" required>
                             </div>
                             <div class="form-group">
-                                <label>Start Time (24H)</label>
-                                <input type="time" id="inp-ev-start" required>
+                                <label>Time Block (Start & End 24H)</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="time" id="inp-ev-start" required style="flex: 1;">
+                                    <input type="time" id="inp-ev-end" required style="flex: 1;">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>End Time (24H)</label>
-                                <input type="time" id="inp-ev-end" required>
-                            </div>
-                            <div class="form-group" style="grid-column: span 1;">
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label>Strategic Description</label>
                                 <input type="text" id="inp-ev-desc" placeholder="e.g. Deep work block. No AI allowed.">
                             </div>
