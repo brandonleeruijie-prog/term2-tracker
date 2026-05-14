@@ -19,568 +19,452 @@
             --text-main: #e0f7fa; 
             --text-muted: #b2ebf2; 
             --outline: #26c6da; 
-            
-            --c1: #ff5252; /* MATH1231 */
-            --c2: #448aff; /* MMAN2700 */
-            --c3: #18ffff; /* ELEC1111 */
         }
         body {
-            margin: 0;
-            font-family: 'Rajdhani', sans-serif; 
-            font-size: 18px;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+            margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 18px;
+            background-color: var(--bg-dark); color: var(--text-main);
+            display: flex; flex-direction: column; height: 100vh;
         }
         
-        /* Tier 1: Term Navigation */
+        /* Top Navigation */
         .topbar {
-            background-color: var(--bg-dark);
-            padding: 10px 20px;
-            display: flex;
-            gap: 15px;
-            border-bottom: 1px solid rgba(38, 198, 218, 0.3);
-            align-items: center;
+            background-color: var(--bg-dark); padding: 10px 20px; display: flex;
+            gap: 15px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); align-items: center;
         }
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--accent);
-            margin-right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .term-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 20px;
-            font-weight: 700;
-            cursor: pointer;
-            padding: 5px 10px;
-            font-family: 'Rajdhani', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 3px solid transparent;
-        }
-        .term-btn:hover { color: var(--accent); }
-        .term-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); }
-
-        #live-clock {
-            margin-left: auto;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 18px;
-            color: var(--accent);
-            background: rgba(0, 0, 0, 0.3);
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--outline);
-            white-space: nowrap;
-            box-shadow: inset 0 0 10px rgba(38, 198, 218, 0.1);
-        }
-
-        /* Tier 2: Week Navigation */
+        .logo { font-size: 24px; font-weight: 700; color: var(--accent); margin-right: 20px; }
+        
         .subbar {
-            background-color: var(--bg-panel);
-            padding: 10px 20px;
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            border-bottom: 1px solid var(--outline);
-            align-items: center;
+            background-color: var(--bg-panel); padding: 10px 20px; display: flex;
+            gap: 8px; overflow-x: auto; border-bottom: 1px solid var(--outline); align-items: center;
         }
         .tab-btn {
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--outline);
-            color: var(--text-muted);
-            padding: 6px 14px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 15px;
-            transition: 0.2s;
-            white-space: nowrap;
-            font-family: 'Rajdhani', sans-serif; 
-            letter-spacing: 1px;
+            background: rgba(0,0,0,0.2); border: 1px solid var(--outline); color: var(--text-muted);
+            padding: 6px 14px; border-radius: 15px; cursor: pointer; font-weight: 700; font-size: 15px;
+            transition: 0.2s; white-space: nowrap; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
         }
         .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
         .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
-        .home-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); margin-right: 10px; }
+        .action-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); margin-right: 10px; }
 
         /* Main Layout */
         .container { display: flex; flex: 1; overflow: hidden; }
 
+        /* Sidebar */
         .sidebar {
-            width: 250px;
-            background-color: var(--bg-panel);
-            padding: 20px;
-            border-right: 1px solid var(--outline);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            overflow-y: auto;
+            width: 250px; background-color: var(--bg-panel); padding: 20px;
+            border-right: 1px solid var(--outline); display: flex; flex-direction: column; gap: 15px; overflow-y: auto;
         }
         .sidebar h3 { margin-top: 0; color: var(--accent); font-size: 18px; text-transform: uppercase; border-bottom: 1px solid var(--outline); padding-bottom: 5px; letter-spacing: 2px;}
-        .course-btn {
+        .course-filter-btn {
             background: rgba(0,0,0,0.2); border: 1px solid transparent; color: var(--text-muted);
             padding: 12px; border-radius: 8px; cursor: pointer; text-align: left;
             font-weight: 600; font-size: 16px; border-left: 4px solid var(--outline); transition: 0.2s;
             font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
         }
-        .course-btn:hover { border-color: var(--outline); }
-        .course-btn[data-course="All"].active { border-left-color: var(--accent); background: rgba(38, 198, 218, 0.2); color: var(--text-main); }
-        .course-btn[data-course="Course1"].active { border-left-color: var(--c1); background: rgba(255, 82, 82, 0.15); color: var(--text-main); }
-        .course-btn[data-course="Course2"].active { border-left-color: var(--c2); background: rgba(68, 138, 255, 0.15); color: var(--text-main); }
-        .course-btn[data-course="Course3"].active { border-left-color: var(--c3); background: rgba(24, 255, 255, 0.15); color: var(--text-main); }
+        .course-filter-btn:hover { border-color: var(--outline); }
+        .course-filter-btn.active { border-left-color: var(--accent); background: rgba(38, 198, 218, 0.2); color: var(--text-main); }
 
+        /* Content */
         .content { flex: 1; padding: 30px; overflow-y: auto; }
         
-        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h2 { color: var(--accent); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin: 0 0 15px 0;}
-        .chart-container {
-            width: 100%; height: 250px; background: var(--bg-panel);
-            padding: 20px; border-radius: 8px; box-sizing: border-box; margin-bottom: 30px;
-            position: relative; border: 1px solid var(--outline);
-        }
-
         .day-section { margin-bottom: 30px; }
         .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
         .event-card {
             background-color: var(--bg-panel); padding: 15px; border-radius: 8px;
             margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; 
-            transition: all 0.3s ease; border-left: 4px solid var(--outline);
-            border-top: 1px solid rgba(38, 198, 218, 0.2);
-            border-right: 1px solid rgba(38, 198, 218, 0.2);
-            border-bottom: 1px solid rgba(38, 198, 218, 0.2);
+            border-left: 4px solid var(--outline); border-top: 1px solid rgba(38, 198, 218, 0.2);
+            border-right: 1px solid rgba(38, 198, 218, 0.2); border-bottom: 1px solid rgba(38, 198, 218, 0.2);
         }
         .event-info { flex: 1; padding-right: 15px; }
-        .event-info strong { display: block; font-size: 20px; font-weight: 700; margin-bottom: 5px; letter-spacing: 0.5px; }
+        .event-info strong { display: block; font-size: 20px; font-weight: 700; margin-bottom: 5px; }
         .event-info span { color: var(--text-muted); font-size: 16px; font-weight: 600; }
-        .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; font-weight: 400; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; }
+        .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; }
         
         .event-time { 
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 18px; background: rgba(0,0,0,0.4); padding: 6px 12px; 
-            border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); 
-            white-space: nowrap; 
+            font-family: 'Share Tech Mono', monospace; font-size: 18px; background: rgba(0,0,0,0.4); 
+            padding: 6px 12px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
         }
-        
-        .tag-Course1 { color: var(--c1) !important; }
-        .tag-Course2 { color: var(--c2) !important; }
-        .tag-Course3 { color: var(--c3) !important; }
-        .tag-Routine { color: var(--text-muted); }
 
-        .event-past { opacity: 0.35; filter: grayscale(80%); }
-        .event-live { border-left-color: var(--accent); background-color: rgba(38, 198, 218, 0.1); transform: scale(1.02); box-shadow: 0 0 15px rgba(38, 198, 218, 0.2); }
-        .event-live .event-time { background: var(--accent); color: var(--bg-dark); border-color: var(--accent); font-weight: bold; }
-        
-        /* Break Alert Styling */
-        .break-alert {
-            padding: 30px; 
-            background: rgba(38, 198, 218, 0.1); 
-            border: 1px solid var(--outline); 
-            border-radius: 8px; 
-            text-align: center;
-            margin-top: 20px;
+        /* Builder Forms */
+        .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
+        .builder-section h2 { margin-top: 0; color: var(--accent); }
+        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
+        .form-group input, .form-group select { 
+            background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; 
+            padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px; 
         }
-        .break-alert h3 { color: var(--accent); margin-top: 0; font-size: 24px; }
-        .break-alert p { color: var(--text-muted); margin-bottom: 0; font-size: 18px; }
+        .btn-submit { 
+            background: var(--accent); color: var(--bg-dark); border: none; padding: 10px 20px; 
+            font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;
+        }
+        .btn-delete { background: #ff5252; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; }
+
+        /* List styling in builder */
+        .mgmt-list { list-style: none; padding: 0; margin: 0; }
+        .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(38, 198, 218, 0.2); }
+        .color-swatch { display: inline-block; width: 15px; height: 15px; border-radius: 50%; margin-right: 10px; }
 
     </style>
 </head>
 <body>
 
-    <div class="topbar" id="term-tabs">
+    <div class="topbar">
         <div class="logo">🎯 <span>Tracker Pro</span></div>
-        <button class="term-btn active" data-term="1">Term 1</button>
-        <button class="term-btn" data-term="2">Term 2</button>
-        <div id="live-clock">Loading Time...</div>
+        <div style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono';">Term 2 Custom Builder</div>
     </div>
 
     <div class="subbar" id="week-tabs">
-        <button class="tab-btn home-btn active" data-week="home">Dashboard</button>
+        <button class="tab-btn action-btn active" data-view="dashboard">🏠 Dashboard</button>
+        <button class="tab-btn action-btn" data-view="builder">⚙️ Builder</button>
         </div>
 
     <div class="container">
-        <div class="sidebar" id="course-tabs">
+        <div class="sidebar" id="sidebar">
             <h3>Filters</h3>
-            <button class="course-btn active" data-course="All">All Subjects</button>
-            <button class="course-btn" id="filter-c1" data-course="Course1">Course 1</button>
-            <button class="course-btn" id="filter-c2" data-course="Course2">Course 2</button>
-            <button class="course-btn" id="filter-c3" data-course="Course3">Course 3</button>
+            <button class="course-filter-btn active" data-filter="All">All Subjects</button>
+            <div id="dynamic-filters"></div>
         </div>
 
         <div class="content" id="main-content">
-            <div id="view-home">
-                <div class="chart-header">
-                    <h2 id="chart-title">Term Workload Tracker</h2>
+            
+            <div id="view-dashboard">
+                <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Welcome to Term 2</h2>
+                <p style="color: var(--text-muted);">Use the <b>⚙️ Builder</b> tab to construct your schedule. It will automatically populate across all 10 weeks.</p>
+                <div class="builder-section" style="background: rgba(38, 198, 218, 0.1);">
+                    <h3 style="margin-top:0;">Your Saved Courses:</h3>
+                    <ul id="dash-course-list" class="mgmt-list" style="color: var(--text-muted);"></ul>
                 </div>
-                <div class="chart-container">
-                    <canvas id="termChart"></canvas>
-                </div>
-                <div id="live-timeline-container">
-                    <h2 class="day-title" id="live-day-title">Today's Live Timeline</h2>
-                    <div id="live-schedule"></div>
+                <div class="builder-section" style="background: rgba(38, 198, 218, 0.1);">
+                    <h3 style="margin-top:0;">Your Saved Weekly Events: <span id="event-count" style="color:var(--accent);">0</span></h3>
                 </div>
             </div>
 
             <div id="view-schedule" style="display: none;">
-                <h2 id="weekly-chart-title">Weekly Breakdown</h2>
-                <div class="chart-container">
-                    <canvas id="weeklyChart"></canvas>
-                </div>
+                <h2 id="weekly-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Weekly Schedule</h2>
                 <div id="weekly-schedule-content"></div>
+            </div>
+
+            <div id="view-builder" style="display: none;">
+                
+                <div class="builder-section">
+                    <h2>1. Define Your Courses / Routines</h2>
+                    <form id="form-course" style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>Course Code / Routine Name</label>
+                            <input type="text" id="inp-course-name" placeholder="e.g. MMAN1130 or Gym" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Color</label>
+                            <input type="color" id="inp-course-color" value="#84ffff" style="padding: 2px; height: 43px;">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn-submit">Add</button>
+                        </div>
+                    </form>
+                    <ul id="builder-course-list" class="mgmt-list"></ul>
+                </div>
+
+                <div class="builder-section">
+                    <h2>2. Add Schedule Component</h2>
+                    <form id="form-event">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Select Course</label>
+                                <select id="inp-ev-course" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Component Type & Title</label>
+                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Day of Week</label>
+                                <select id="inp-ev-day">
+                                    <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Location</label>
+                                <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Start Time (24H)</label>
+                                <input type="time" id="inp-ev-start" required>
+                            </div>
+                            <div class="form-group">
+                                <label>End Time (24H)</label>
+                                <input type="time" id="inp-ev-end" required>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Strategic Description</label>
+                                <input type="text" id="inp-ev-desc" placeholder="e.g. Deep work block. No AI allowed.">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-submit" style="margin-top: 15px; width: 100%;">Add to Schedule</button>
+                    </form>
+                </div>
+
+                <div class="builder-section">
+                    <h2>Current Active Components</h2>
+                    <ul id="builder-event-list" class="mgmt-list"></ul>
+                </div>
+
+                <button id="btn-hard-reset" style="background: transparent; border: 1px solid #ff5252; color: #ff5252; padding: 10px; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani';">⚠️ Hard Reset All Data (Clear Cache)</button>
+
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. CLOCK LOGIC ---
-        function updateClock() {
-            const now = new Date();
-            const options = { 
-                timeZone: 'Australia/Sydney', weekday: 'short', year: 'numeric', month: 'short', 
-                day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
-            };
-            document.getElementById('live-clock').innerText = new Intl.DateTimeFormat('en-AU', options).format(now);
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        function format12Hour(timeStr) {
-            let [hours, minutes] = timeStr.split(':');
-            hours = parseInt(hours, 10);
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12 || 12; 
-            return `${hours}:${minutes} ${ampm}`;
-        }
-
-        // --- 2. CALENDAR SYSTEM ---
-        // Actual start dates for each term
-        const termDates = {
-            1: new Date("2026-02-16T00:00:00+11:00"), 
-            2: new Date("2026-06-01T00:00:00+10:00") // Estimated for Term 2 until provided
-        };
-
-        const dayOffsets = { "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6 };
-
-        function getEventDate(term, week, day) {
-            let baseDate = new Date(termDates[term]);
-            baseDate.setDate(baseDate.getDate() + ((week - 1) * 7) + dayOffsets[day]);
-            return baseDate;
-        }
-
-        // --- 3. DATA ARCHITECTURE ---
-        const termConfig = {
-            1: {
-                courses: { Course1: "MATH1231", Course2: "MMAN2700", Course3: "ELEC1111" },
-                stressLevels: [3, 4, 6, 6, 10, 2, 7, 8, 8, 9] 
-            },
-            2: {
-                courses: { Course1: "TBA", Course2: "TBA", Course3: "TBA" },
-                stressLevels: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] // Empty until term 2 starts
-            }
-        };
-
-        const dailyStressProfile = [6, 8, 9, 7, 5, 2, 4]; 
-        const masterScheduleData = [];
-
-        // TERM 1 BASE SCHEDULE
-        const baseTerm1 = [
-            { day: "Monday", course: "Course1", title: "MATH1231 Lecture", start: "09:00", end: "11:00", location: "Physics Th", desc: "Focus on calculus and algebra fundamentals." },
-            { day: "Monday", course: "Course2", title: "MMAN2700 Lecture", start: "12:00", end: "14:00", location: "Burrows Th", desc: "Thermodynamics theory." },
-            { day: "Monday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "Heavy lifting to reset." },
-
-            { day: "Tuesday", course: "Course3", title: "ELEC1111 Lecture", start: "10:00", end: "12:00", location: "Clancy Aud", desc: "Circuit analysis theory." },
-            { day: "Tuesday", course: "Course2", title: "MMAN2700 Lecture", start: "13:00", end: "15:00", location: "Burrows Th", desc: "Open/Closed system calculations." },
-            { day: "Tuesday", course: "Course1", title: "MATH1231 PASS", start: "15:00", end: "16:00", location: "Online (Teams)", desc: "Free group study session led by seniors. Ask about the 'H' problems." },
-            { day: "Tuesday", course: "Routine", title: "Run", start: "17:00", end: "17:30", location: "Outdoors", desc: "Post-lecture sprint." },
-
-            { day: "Wednesday", course: "Course1", title: "MATH1231 Tutorial", start: "10:00", end: "11:00", location: "H13-E 2063", desc: "Work through the 'H' (Hard) problems." },
-            { day: "Wednesday", course: "Course2", title: "MMAN2700 Workshop", start: "12:00", end: "13:00", location: "Griff M10", desc: "Solve example problems." },
-            { day: "Wednesday", course: "Course3", title: "ELEC1111 Workshop", start: "14:00", end: "16:00", location: "Griff M17", desc: "Tutor-led problem solving." },
-            { day: "Wednesday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "Mid-week reset." },
-
-            { day: "Thursday", course: "Course1", title: "MATH1231 Lecture", start: "09:00", end: "10:00", location: "Physics Th", desc: "Calculus application." },
-            { day: "Thursday", course: "Course3", title: "ELEC1111 Lecture", start: "10:00", end: "12:00", location: "Clancy Aud", desc: "AC/DC and Transients." },
-            { day: "Thursday", course: "Course3", title: "ELEC1111 PASS", start: "12:00", end: "13:00", location: "Main Library 208", desc: "Collaborate on Nodal/Mesh analysis." },
-            { day: "Thursday", course: "Course1", title: "MATH1231 PASS", start: "14:00", end: "15:00", location: "Lawr. East 1043", desc: "Work through Maple logic with seniors." },
-            { day: "Thursday", course: "Course1", title: "MATH1231 Lecture", start: "16:00", end: "18:00", location: "Physics Th", desc: "Algebra concepts." },
-            { day: "Thursday", course: "Routine", title: "Run", start: "18:30", end: "19:00", location: "Outdoors", desc: "Clear the head." },
-
-            { day: "Friday", course: "Course1", title: "Math Drop-in Centre", start: "08:00", end: "09:00", location: "H13 Lawrence East Lab G12B", desc: "Sit here and do your Weekly Möbius lessons. Tutors are available immediately if you get stuck." },
-            { day: "Friday", course: "Course3", title: "ELEC1111 Lab", start: "09:00", end: "12:00", location: "ElecEng201", desc: "Practical circuit building. Must complete pre-lab!" },
-            { day: "Friday", course: "Course3", title: "ELEC1111 PASS", start: "13:00", end: "14:00", location: "ElecEng G23", desc: "Review the lab concepts immediately while fresh." },
-            { day: "Friday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "End of week lifting." }
+        // --- DATA MANAGEMENT (Local Storage) ---
+        // Initial Demo Data if empty
+        const defaultCourses = [
+            { id: "MMAN1130", color: "#ff5252" },
+            { id: "ENGG1811", color: "#448aff" },
+            { id: "ELEC1111", color: "#18ffff" },
+            { id: "Routine", color: "#888888" }
+        ];
+        const defaultEvents = [
+            { id: Date.now().toString(), courseId: "ELEC1111", title: "ELEC Sprint: Hard Problems", day: "Monday", start: "09:00", end: "11:00", location: "Library", desc: "Do 3 hard problems with a blank page." }
         ];
 
-        // Loop to generate 10 weeks of data for Term 1 ONLY. Term 2 is empty.
-        for(let w = 1; w <= 10; w++) {
-            if (w === 6) {
-                masterScheduleData.push({ term: 1, week: w, day: "Monday", course: "Routine", title: "Flex Week", start: "09:00", end: "17:00", location: "Anywhere", desc: "Catch up on sleep and 3D printing." });
-                continue; 
-            }
-            baseTerm1.forEach(ev => masterScheduleData.push({ term: 1, week: w, ...ev }));
+        let courses = JSON.parse(localStorage.getItem('tp_courses')) || defaultCourses;
+        let events = JSON.parse(localStorage.getItem('tp_events')) || defaultEvents;
+
+        function saveData() {
+            localStorage.setItem('tp_courses', JSON.stringify(courses));
+            localStorage.setItem('tp_events', JSON.stringify(events));
+            refreshUI();
         }
 
-        // Inject Term 1 Specific Assessment Peaks 
-        masterScheduleData.push({ term: 1, week: 3, day: "Tuesday", course: "Course2", title: "MMAN2700 Quiz 1", start: "19:00", end: "20:00", location: "Online", desc: "Covers Topic 1: Systems and Energy." });
-        masterScheduleData.push({ term: 1, week: 4, day: "Tuesday", course: "Course2", title: "MMAN2700 Lab 1", start: "19:30", end: "21:00", location: "UTL 214S", desc: "Thermodynamics processes experiment." });
-        masterScheduleData.push({ term: 1, week: 5, day: "Tuesday", course: "Course2", title: "MMAN2700 Quiz 2", start: "19:00", end: "20:00", location: "Online", desc: "Covers Topic 2." });
-        masterScheduleData.push({ term: 1, week: 5, day: "Wednesday", course: "Course1", title: "MATH1231 Lab Test 1", start: "18:00", end: "19:00", location: "H13-E G12A", desc: "Basic Algebra/Calculus skills." });
-        masterScheduleData.push({ term: 1, week: 5, day: "Saturday", course: "Course3", title: "ELEC1111 Midterm", start: "11:00", end: "13:00", location: "On-Campus", desc: "HUGE PEAK. 90-minute exam." });
-        masterScheduleData.push({ term: 1, week: 7, day: "Tuesday", course: "Course2", title: "MMAN2700 Quiz 3", start: "18:00", end: "19:00", location: "Online", desc: "Covers Topic 3." });
-        masterScheduleData.push({ term: 1, week: 8, day: "Tuesday", course: "Course2", title: "MMAN2700 Lab 2", start: "19:30", end: "21:00", location: "UTL 214S", desc: "Compressor performance." });
-        masterScheduleData.push({ term: 1, week: 9, day: "Wednesday", course: "Course1", title: "MATH1231 Lab Test 2", start: "18:00", end: "19:00", location: "H13-E G12A", desc: "Includes Maple coding questions." });
+        // --- UI REFRESH LOGIC ---
+        let currentView = "dashboard";
+        let currentFilter = "All";
 
-        // --- 4. STATE & NAVIGATION SETUP ---
-        let currentTerm = 1; 
-        let currentWeek = "home"; 
-        let currentCourseFilter = "All";
-
-        const weekTabsContainer = document.getElementById('week-tabs');
-        for (let i = 1; i <= 10; i++) {
-            const btn = document.createElement('button');
-            btn.className = `tab-btn`;
-            btn.innerText = `Week ${i}`;
-            btn.dataset.week = i;
-            btn.onclick = (e) => switchWeek(e.target, i);
-            weekTabsContainer.appendChild(btn);
-        }
-
-        document.querySelectorAll('.term-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                document.querySelectorAll('.term-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                currentTerm = parseInt(e.target.dataset.term);
-                updateUIForTerm();
-                if (currentWeek === "home") {
-                    updateTermChart();
-                    updateLiveTimeline();
-                } else {
-                    updateWeeklyChart(currentWeek);
-                    renderWeeklySchedule();
-                }
-            };
-        });
-
-        document.querySelector('.home-btn').onclick = (e) => switchWeek(e.target, "home");
-
-        function switchWeek(element, target) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            if(element) {
-                element.classList.add('active');
-            } else if(target !== "home") {
-                // FIXED BUG: Template literal syntax required backticks!
-                document.querySelector(`.tab-btn[data-week="${target}"]`).classList.add('active');
-            }
-
-            currentWeek = target;
-            if(target === "home") {
-                document.getElementById('view-home').style.display = 'block';
-                document.getElementById('view-schedule').style.display = 'none';
-                updateTermChart();
-                updateLiveTimeline();
-            } else {
-                document.getElementById('view-home').style.display = 'none';
-                document.getElementById('view-schedule').style.display = 'block';
-                document.getElementById('weekly-chart-title').innerText = `Term ${currentTerm} - Week ${target} Daily Workload`;
-                updateWeeklyChart(target);
-                renderWeeklySchedule();
-            }
-        }
-
-        document.querySelectorAll('.course-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.course-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentCourseFilter = btn.getAttribute('data-course');
-                if (currentWeek !== "home") renderWeeklySchedule();
-                if (currentWeek === "home") updateLiveTimeline();
-            };
-        });
-
-        function updateUIForTerm() {
-            const config = termConfig[currentTerm];
-            document.getElementById('filter-c1').innerText = config.courses.Course1;
-            document.getElementById('filter-c2').innerText = config.courses.Course2;
-            document.getElementById('filter-c3').innerText = config.courses.Course3;
-            document.getElementById('chart-title').innerText = `Term ${currentTerm} Workload Tracker`;
-        }
-
-        // --- 5. CHARTS CONFIGURATION ---
-        Chart.defaults.color = '#84ffff';
-        Chart.defaults.font.family = 'Rajdhani';
-
-        const ctxTerm = document.getElementById('termChart').getContext('2d');
-        const termLabels = Array.from({length: 10}, (_, i) => `Wk ${i+1}`);
-        let termChart = new Chart(ctxTerm, {
-            type: 'line',
-            data: { labels: termLabels, datasets: [{
-                label: 'Stress / Workload', data: [], borderColor: '#84ffff', backgroundColor: 'rgba(132, 255, 255, 0.15)',
-                borderWidth: 3, pointBackgroundColor: '#fff', pointRadius: 6, pointHoverRadius: 8, fill: true, tension: 0.3
-            }]},
-            options: {
-                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'} }, x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font:{size: 16, weight: 'bold'}} } },
-                onClick: (e, activeElements) => { if (activeElements.length > 0) { switchWeek(null, activeElements[0].index + 1); } }
-            }
-        });
-
-        const ctxWeek = document.getElementById('weeklyChart').getContext('2d');
-        let weeklyChart = new Chart(ctxWeek, {
-            type: 'line',
-            data: { labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], datasets: [{
-                label: 'Daily Workload', data: [], borderColor: '#b2ebf2', backgroundColor: 'rgba(178, 235, 242, 0.15)',
-                borderWidth: 3, pointBackgroundColor: '#fff', pointRadius: 6, pointHoverRadius: 8, fill: true, tension: 0.3
-            }]},
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'} }, x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font:{size: 16, weight: 'bold'}} } } }
-        });
-
-        function updateTermChart() {
-            termChart.data.datasets[0].data = termConfig[currentTerm].stressLevels;
-            termChart.update();
-        }
-
-        function updateWeeklyChart(weekNum) {
-            const weekMultiplier = termConfig[currentTerm].stressLevels[weekNum - 1] / 5; 
-            const zoomedData = dailyStressProfile.map(val => Math.min(10, Math.max(1, Math.round(val * weekMultiplier))));
-            weeklyChart.data.datasets[0].data = zoomedData;
-            weeklyChart.update();
-        }
-
-        // --- 6. SCHEDULE LOGIC ---
-        function timeToMinutes(timeStr) { const [hours, mins] = timeStr.split(':').map(Number); return hours * 60 + mins; }
-
-        function createCard(event, stateClass) {
-            const displayStart = format12Hour(event.start);
-            const displayEnd = format12Hour(event.end);
-            const descHtml = event.desc ? `<div class="event-desc">${event.desc}</div>` : "";
+        function refreshUI() {
+            // Populate Course Selects & Filters
+            const selectEl = document.getElementById('inp-ev-course');
+            const filterContainer = document.getElementById('dynamic-filters');
+            const builderCourseList = document.getElementById('builder-course-list');
+            const dashCourseList = document.getElementById('dash-course-list');
             
-            let displayCourseName = event.course;
-            if(event.course !== "Routine") {
-                displayCourseName = termConfig[currentTerm].courses[event.course];
-            }
+            selectEl.innerHTML = '';
+            filterContainer.innerHTML = '';
+            builderCourseList.innerHTML = '';
+            dashCourseList.innerHTML = '';
 
-            const card = document.createElement('div');
-            card.className = `event-card ${stateClass}`;
-            card.innerHTML = `
-                <div class="event-info">
-                    <strong class="tag-${event.course}">${displayCourseName} | ${event.title}</strong>
-                    <span>📍 ${event.location}</span>
-                    ${descHtml}
-                </div>
-                <div class="event-time">${displayStart} - ${displayEnd}</div>
-            `;
-            return card;
-        }
+            courses.forEach(c => {
+                // Dropdown
+                const opt = document.createElement('option');
+                opt.value = c.id; opt.innerText = c.id;
+                selectEl.appendChild(opt);
 
-        function updateLiveTimeline() {
-            const container = document.getElementById('live-schedule');
-            container.innerHTML = '';
-            
-            const now = new Date();
-            const nowMins = now.getHours() * 60 + now.getMinutes();
+                // Sidebar Filters
+                const fBtn = document.createElement('button');
+                fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
+                fBtn.style.borderLeftColor = c.color;
+                fBtn.innerText = c.id;
+                fBtn.onclick = () => {
+                    document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
+                    fBtn.classList.add('active');
+                    currentFilter = c.id;
+                    if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+                };
+                filterContainer.appendChild(fBtn);
 
-            // Detect if we are currently inside a Term
-            let activeTerm = null;
-            let activeWeek = null;
+                // Builder Manager List
+                const li = document.createElement('li');
+                li.className = "mgmt-item";
+                li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div>
+                                <button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
+                builderCourseList.appendChild(li);
 
-            for (let t in termDates) {
-                let start = new Date(termDates[t]);
-                let end = new Date(termDates[t]);
-                end.setDate(end.getDate() + 70); // 10 weeks
-                
-                if (now >= start && now < end) {
-                    activeTerm = parseInt(t);
-                    let diffTime = Math.abs(now - start);
-                    activeWeek = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
-                    break;
-                }
-            }
-
-            // BREAK DETECTOR
-            if (activeTerm === null || activeTerm !== currentTerm) {
-                document.getElementById('live-day-title').innerText = `Term ${currentTerm} Status`;
-                container.innerHTML = `
-                    <div class="break-alert">
-                        <h3>Currently on Academic Break 🌴</h3>
-                        <p>No classes are scheduled for Term ${currentTerm} right now. Check the weekly tabs to review past or future schedules.</p>
-                    </div>`;
-                return;
-            }
-
-            // If active, show today's schedule
-            const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            const currentDayStr = daysOfWeek[now.getDay()];
-
-            document.getElementById('live-day-title').innerText = `Today's Live Timeline (${currentDayStr}, Week ${activeWeek})`;
-
-            let todaysEvents = masterScheduleData.filter(e => e.term === activeTerm && e.week === activeWeek && e.day === currentDayStr); 
-            if (currentCourseFilter !== "All") todaysEvents = todaysEvents.filter(e => e.course === currentCourseFilter);
-            
-            if (todaysEvents.length === 0) {
-                container.innerHTML = `<p style="color:var(--text-muted);">No specific tasks scheduled for today. Hit the books or take a break!</p>`;
-                return;
-            }
-
-            todaysEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-
-            todaysEvents.forEach(event => {
-                let stateClass = "";
-                if (currentMins >= timeToMinutes(event.end)) stateClass = "event-past";
-                else if (currentMins >= timeToMinutes(event.start) && currentMins < timeToMinutes(event.end)) stateClass = "event-live";
-
-                container.appendChild(createCard(event, stateClass));
+                // Dash List
+                const dli = document.createElement('li');
+                dli.className = "mgmt-item";
+                dli.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span>${c.id}</div>`;
+                dashCourseList.appendChild(dli);
             });
+
+            // Populate Event Manager List
+            const eventList = document.getElementById('builder-event-list');
+            eventList.innerHTML = '';
+            events.sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); // Sort by time loosely
+            events.forEach(e => {
+                const cColor = courses.find(c => c.id === e.courseId)?.color || "#fff";
+                const li = document.createElement('li');
+                li.className = "mgmt-item";
+                li.innerHTML = `
+                    <div>
+                        <strong style="color:${cColor}">${e.courseId}</strong> | ${e.title} <br>
+                        <small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end}</small>
+                    </div>
+                    <button class="btn-delete" onclick="deleteEvent('${e.id}')">Delete</button>
+                `;
+                eventList.appendChild(li);
+            });
+
+            document.getElementById('event-count').innerText = events.length;
         }
 
-        function renderWeeklySchedule() {
-            const display = document.getElementById('weekly-schedule-content');
-            display.innerHTML = '';
+        // --- CRUD ACTIONS ---
+        document.getElementById('form-course').onsubmit = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('inp-course-name').value.trim();
+            const color = document.getElementById('inp-course-color').value;
+            if(!courses.find(c => c.id === name)) {
+                courses.push({id: name, color: color});
+                saveData();
+                document.getElementById('inp-course-name').value = '';
+            }
+        };
 
-            let filteredData = masterScheduleData.filter(e => e.term === currentTerm && e.week === currentWeek);
+        function deleteCourse(id) {
+            courses = courses.filter(c => c.id !== id);
+            events = events.filter(e => e.courseId !== id); // Cascade delete
+            saveData();
+        }
+
+        document.getElementById('form-event').onsubmit = (e) => {
+            e.preventDefault();
+            const newEvent = {
+                id: Date.now().toString(),
+                courseId: document.getElementById('inp-ev-course').value,
+                title: document.getElementById('inp-ev-title').value,
+                day: document.getElementById('inp-ev-day').value,
+                start: document.getElementById('inp-ev-start').value,
+                end: document.getElementById('inp-ev-end').value,
+                location: document.getElementById('inp-ev-location').value,
+                desc: document.getElementById('inp-ev-desc').value
+            };
+            events.push(newEvent);
+            saveData();
+            document.getElementById('form-event').reset();
+        };
+
+        function deleteEvent(id) {
+            events = events.filter(e => e.id !== id);
+            saveData();
+        }
+
+        document.getElementById('btn-hard-reset').onclick = () => {
+            if(confirm("This will delete all custom courses and events. Are you sure?")) {
+                localStorage.removeItem('tp_courses');
+                localStorage.removeItem('tp_events');
+                location.reload(); // Quickest way to clear state and fetch defaults
+            }
+        };
+
+        // --- NAVIGATION & RENDERING ---
+        const weekTabs = document.getElementById('week-tabs');
+        for(let i=1; i<=10; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'tab-btn'; btn.innerText = `Week ${i}`; btn.dataset.view = i;
+            btn.onclick = () => switchView(i, btn);
+            weekTabs.appendChild(btn);
+        }
+
+        document.querySelectorAll('.action-btn').forEach(btn => {
+            btn.onclick = () => switchView(btn.dataset.view, btn);
+        });
+
+        function switchView(view, btnElement) {
+            document.querySelectorAll('#week-tabs button').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
             
-            if (currentCourseFilter !== "All") filteredData = filteredData.filter(e => e.course === currentCourseFilter);
+            document.getElementById('view-dashboard').style.display = 'none';
+            document.getElementById('view-builder').style.display = 'none';
+            document.getElementById('view-schedule').style.display = 'none';
 
-            if (filteredData.length === 0) {
-                display.innerHTML = `<h3 style="color: var(--text-muted); text-align: center; margin-top: 50px;">No schedule data found for Term ${currentTerm}, Week ${currentWeek}.</h3>`;
+            currentView = view;
+
+            if(view === "dashboard") {
+                document.getElementById('view-dashboard').style.display = 'block';
+            } else if (view === "builder") {
+                document.getElementById('view-builder').style.display = 'block';
+            } else {
+                document.getElementById('view-schedule').style.display = 'block';
+                document.getElementById('weekly-title').innerText = `Term 2 - Week ${view} Plan`;
+                renderSchedule(view);
+            }
+        }
+
+        function format12Hour(timeStr) {
+            let [h, m] = timeStr.split(':'); h = parseInt(h);
+            const ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; 
+            return `${h}:${m} ${ampm}`;
+        }
+        function timeToMinutes(timeStr) { const [h, m] = timeStr.split(':').map(Number); return h * 60 + m; }
+
+        function renderSchedule(weekNum) {
+            const container = document.getElementById('weekly-schedule-content');
+            container.innerHTML = '';
+
+            let filteredEvents = events;
+            if(currentFilter !== "All") filteredEvents = events.filter(e => e.courseId === currentFilter);
+
+            // Week 6 Exception Logic (Can be customized later)
+            if(weekNum == 6 && currentFilter === "All") {
+                container.innerHTML = `<div class="builder-section" style="text-align:center; background:rgba(38,198,218,0.1);">
+                    <h3 style="color:var(--accent);">Flexibility Week 🌴</h3>
+                    <p style="color:var(--text-muted);">Standard classes are paused. Use this time to catch up, prep for Week 7 assignments, and recover.</p>
+                </div>`;
                 return;
             }
 
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            let hasEvents = false;
+
             days.forEach(day => {
-                const dayEvents = filteredData.filter(e => e.day === day);
+                const dayEvents = filteredEvents.filter(e => e.day === day);
                 if (dayEvents.length > 0) {
+                    hasEvents = true;
                     dayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
-                    // REAL DATE INTEGRATION
-                    const eventDate = getEventDate(currentTerm, currentWeek, day);
-                    const dateString = new Intl.DateTimeFormat('en-AU', { month: 'short', day: 'numeric', year: 'numeric' }).format(eventDate);
-
                     const daySection = document.createElement('div');
                     daySection.className = 'day-section';
-                    daySection.innerHTML = `<h2 class="day-title">${day} - ${dateString}</h2>`;
+                    daySection.innerHTML = `<h2 class="day-title">${day}</h2>`;
                     
-                    dayEvents.forEach(event => {
-                        daySection.appendChild(createCard(event, ""));
+                    dayEvents.forEach(ev => {
+                        const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
+                        const displayStart = format12Hour(ev.start);
+                        const displayEnd = format12Hour(ev.end);
+                        const descHtml = ev.desc ? `<div class="event-desc">${ev.desc}</div>` : "";
+
+                        const card = document.createElement('div');
+                        card.className = 'event-card';
+                        card.style.borderLeftColor = cColor;
+                        card.innerHTML = `
+                            <div class="event-info">
+                                <strong style="color:${cColor}">${ev.courseId} | ${ev.title}</strong>
+                                <span>📍 ${ev.location}</span>
+                                ${descHtml}
+                            </div>
+                            <div class="event-time" style="color:${cColor}; border-color:${cColor}">${displayStart} - ${displayEnd}</div>
+                        `;
+                        daySection.appendChild(card);
                     });
-                    display.appendChild(daySection);
+                    container.appendChild(daySection);
                 }
             });
+
+            if(!hasEvents) {
+                container.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:50px;">No events scheduled. Go to the Builder tab to add some.</p>`;
+            }
         }
 
-        // Initialize
-        updateUIForTerm();
-        updateTermChart();
-        updateLiveTimeline();
+        // --- INIT ---
+        refreshUI();
 
-        setInterval(() => {
-            if (currentWeek === "home") updateLiveTimeline();
-        }, 60000);
+        // Clear All Filter Logic
+        document.querySelector('.course-filter-btn[data-filter="All"]').onclick = (e) => {
+            document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentFilter = "All";
+            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+        };
 
     </script>
 </body>
