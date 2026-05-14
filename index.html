@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         :root {
             --bg-dark: #0a1414;
@@ -102,6 +104,11 @@
         .btn-skip:hover { opacity: 1; transform: scale(1.1); }
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
+        
+        /* Collapsible Header */
+        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: 0.2s; }
+        .collapsible-header:hover { opacity: 0.8; }
+        
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
         .form-group input[type="text"], .form-group input[type="time"], .form-group select { 
@@ -120,12 +127,13 @@
         .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(38, 198, 218, 0.2); }
         .color-swatch { display: inline-block; width: 15px; height: 15px; border-radius: 50%; margin-right: 10px; }
 
-        /* Animations */
+        /* Animations & Graphs */
         @keyframes pulse {
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.8; }
             100% { transform: scale(1); opacity: 1; }
         }
+        .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -164,17 +172,28 @@
             
             <div id="view-dashboard">
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Welcome</h2>
-                <p style="color: var(--text-muted);">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term. It will automatically populate across your weeks based on your recurrence settings.</p>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term. It will automatically populate across your weeks based on your recurrence settings.</p>
                 
-                <div class="builder-section" style="background: rgba(38, 198, 218, 0.05); border-color: var(--accent);">
-                    <h3 style="margin-top:0; color: var(--accent);">📡 Today's Radar <span id="radar-day" style="color: var(--text-muted); font-size: 16px; margin-left: 10px;"></span></h3>
-                    <div id="dashboard-today-agenda"></div>
+                <div class="builder-section" style="background: rgba(38, 198, 218, 0.05); border-color: var(--accent); padding: 25px;">
+                    <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); padding-bottom: 10px;">
+                        📡 Today's Radar <span id="radar-day" style="color: var(--text-muted); font-size: 18px; margin-left: 10px; font-family:'Share Tech Mono';"></span>
+                    </h3>
+                    
+                    <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
+                        
+                        <div style="flex: 2; min-width: 350px;" id="dashboard-today-agenda"></div>
+                        
+                        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 20px; border: 1px solid rgba(38,198,218,0.2);">
+                            <h4 style="margin: 0 0 15px 0; color: var(--accent); text-transform: uppercase; font-size: 16px; letter-spacing: 1px;">Daily Allocation</h4>
+                            <div class="chart-container">
+                                <canvas id="todayTimeChart"></canvas>
+                            </div>
+                            <p id="empty-chart-msg" style="display: none; color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 20px;">No hours mapped.</p>
+                        </div>
+
+                    </div>
                 </div>
 
-                <div class="builder-section" style="background: rgba(38, 198, 218, 0.1);">
-                    <h3 style="margin-top:0;">Your Saved Courses (Current Term):</h3>
-                    <ul id="dash-course-list" class="mgmt-list" style="color: var(--text-muted);"></ul>
-                </div>
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.1);">
                     <h3 style="margin-top:0;">Your Saved Events for Current Term: <span id="event-count" style="color:var(--accent);">0</span></h3>
                 </div>
@@ -271,8 +290,13 @@
                 </div>
 
                 <div class="builder-section">
-                    <h2>Current Active Components (This Term)</h2>
-                    <ul id="builder-event-list" class="mgmt-list"></ul>
+                    <h2 class="collapsible-header" onclick="toggleActiveComponents()">
+                        Current Active Components (This Term) 
+                        <span id="collapse-icon" style="font-size: 14px; color: var(--text-muted);">▼</span>
+                    </h2>
+                    <div id="active-components-container">
+                        <ul id="builder-event-list" class="mgmt-list"></ul>
+                    </div>
                 </div>
 
                 <button id="btn-hard-reset" style="background: transparent; border: 1px solid #ff5252; color: #ff5252; padding: 10px; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani';">⚠️ Hard Reset All Data (Clear Cache)</button>
@@ -282,6 +306,8 @@
     </div>
 
     <script>
+        let timeChartInstance = null;
+
         // --- SYDNEY CLOCK & RADAR LOGIC ---
         function updateSydneyTime() {
             const now = new Date();
@@ -325,7 +351,6 @@
             termId: c.termId || currentTermId
         }));
         
-        // Fetch events and migrate to the new `isCritical` boolean system
         let rawEvents = JSON.parse(localStorage.getItem('tp_events')) || [];
         let events = rawEvents.map(e => {
             let criticalState = e.isCritical;
@@ -365,6 +390,19 @@
             
             targetDate.setDate(targetDate.getDate() + ((weekNum - 1) * 7) + dayIndex);
             return targetDate;
+        }
+
+        // --- COLLAPSIBLE COMPONENT LIST ---
+        function toggleActiveComponents() {
+            const container = document.getElementById('active-components-container');
+            const icon = document.getElementById('collapse-icon');
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.innerText = '▼';
+            } else {
+                container.style.display = 'none';
+                icon.innerText = '▶';
+            }
         }
 
         // --- EXCLUSION & EDIT LOGIC ---
@@ -449,7 +487,7 @@
             }
         }
 
-        // --- TODAY'S RADAR LOGIC ---
+        // --- TODAY'S RADAR & GRAPH LOGIC ---
         function renderTodayAgenda() {
             const container = document.getElementById('dashboard-today-agenda');
             const dayLabel = document.getElementById('radar-day');
@@ -458,21 +496,29 @@
             container.innerHTML = '';
 
             const now = new Date();
-            const options = { timeZone: 'Australia/Sydney', weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false };
-            const formatter = new Intl.DateTimeFormat('en-AU', options);
-            const parts = formatter.formatToParts(now);
+            const dateOptions = { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' };
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
             
-            let currentDay = parts.find(p => p.type === 'weekday').value;
+            const fullDateString = new Intl.DateTimeFormat('en-AU', dateOptions).format(now);
+            const timeFormatter = new Intl.DateTimeFormat('en-AU', timeOptions);
+            const parts = timeFormatter.formatToParts(now);
+            
+            // Extract day for filtering
+            let currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
             let currentHour = parseInt(parts.find(p => p.type === 'hour').value);
             let currentMinute = parseInt(parts.find(p => p.type === 'minute').value);
             let currentTotalMinutes = (currentHour * 60) + currentMinute;
 
-            dayLabel.innerText = `(${currentDay})`;
+            dayLabel.innerText = `(${fullDateString})`;
 
+            // Filter for generic specific day
             let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay);
             
+            // Render Graph
+            renderTimeGraph(todayEvents);
+
             if (todayEvents.length === 0) {
-                container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 20px 0;">No components scheduled today. Protect your deep work time.</p>`;
+                container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
                 return;
             }
 
@@ -514,6 +560,67 @@
                 `;
                 container.appendChild(card);
             });
+        }
+
+        function renderTimeGraph(todayEvents) {
+            const courseTimeMap = {};
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            
+            todayEvents.forEach(ev => {
+                const startMins = timeToMinutes(ev.start);
+                const endMins = timeToMinutes(ev.end);
+                const duration = endMins - startMins;
+                if (duration > 0) {
+                    courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
+                }
+            });
+
+            const labels = Object.keys(courseTimeMap);
+            const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); // Convert to hours
+            const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
+
+            const ctx = document.getElementById('todayTimeChart');
+            const emptyMsg = document.getElementById('empty-chart-msg');
+            
+            if (timeChartInstance) {
+                timeChartInstance.destroy();
+            }
+            
+            if (labels.length > 0 && ctx) {
+                ctx.style.display = 'block';
+                emptyMsg.style.display = 'none';
+                timeChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: bgColors,
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom', 
+                                labels: { color: '#b2ebf2', font: { family: 'Rajdhani', size: 14 } } 
+                            },
+                            tooltip: { 
+                                callbacks: { 
+                                    label: function(context) { return ` ${context.label}: ${context.raw} hrs`; } 
+                                } 
+                            }
+                        },
+                        cutout: '75%'
+                    }
+                });
+            } else if (ctx) {
+                ctx.style.display = 'none';
+                emptyMsg.style.display = 'block';
+            }
         }
 
         // --- KEY DATES LOGIC ---
@@ -606,10 +713,9 @@
             const selectEl = document.getElementById('inp-ev-course');
             const filterContainer = document.getElementById('dynamic-filters');
             const builderCourseList = document.getElementById('builder-course-list');
-            const dashCourseList = document.getElementById('dash-course-list');
             
             selectEl.innerHTML = ''; filterContainer.innerHTML = '';
-            builderCourseList.innerHTML = ''; dashCourseList.innerHTML = '';
+            builderCourseList.innerHTML = ''; 
 
             termCourses.forEach(c => {
                 const opt = document.createElement('option');
@@ -629,10 +735,6 @@
                 li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div>
                                 <button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
                 builderCourseList.appendChild(li);
-
-                const dli = document.createElement('li'); dli.className = "mgmt-item";
-                dli.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span>${c.id}</div>`;
-                dashCourseList.appendChild(dli);
             });
 
             const eventList = document.getElementById('builder-event-list');
