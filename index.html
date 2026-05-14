@@ -90,10 +90,11 @@
         .event-info span { color: var(--text-muted); font-size: 16px; font-weight: 600; }
         .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; }
         
+        /* Fixed Time Display using Flexbox */
         .event-time { 
             font-family: 'Share Tech Mono', monospace; font-size: 18px; background: rgba(0,0,0,0.4); 
-            padding: 6px 12px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
-            text-align: right;
+            padding: 10px 15px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 90px;
         }
 
         /* Buttons */
@@ -112,6 +113,7 @@
             font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;
         }
         .btn-delete { background: #ff5252; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; }
+        .btn-edit-list { background: #26c6da; color: var(--bg-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
 
         /* List styling in builder */
         .mgmt-list { list-style: none; padding: 0; margin: 0; }
@@ -246,7 +248,10 @@
                                 <input type="text" id="inp-ev-desc" placeholder="e.g. Deep work block. No AI allowed.">
                             </div>
                         </div>
-                        <button type="submit" class="btn-submit" style="margin-top: 15px; width: 100%;">Add to Schedule</button>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="submit" id="btn-submit-event" class="btn-submit" style="flex: 1;">Add to Schedule</button>
+                            <button type="button" id="btn-cancel-edit" class="btn-delete" style="display: none; padding: 10px 20px;" onclick="cancelEdit()">Cancel Edit</button>
+                        </div>
                     </form>
                 </div>
 
@@ -292,7 +297,6 @@
         ];
         
         let terms = JSON.parse(localStorage.getItem('tp_terms')) || defaultTerms;
-        // Migration mapping for terms missing startDate
         terms = terms.map(t => ({ ...t, startDate: t.startDate || "2026-02-16" }));
 
         let currentTermId = localStorage.getItem('tp_active_term') || terms[0].id;
@@ -310,6 +314,8 @@
             skippedWeeks: e.skippedWeeks || [] 
         }));
 
+        let editingEventId = null;
+
         function saveData() {
             localStorage.setItem('tp_terms', JSON.stringify(terms));
             localStorage.setItem('tp_active_term', currentTermId);
@@ -326,8 +332,6 @@
         function getSpecificDate(startDateStr, weekNum, dayString) {
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             const dayIndex = days.indexOf(dayString);
-            
-            // Manual parse to avoid local timezone offset shifts at midnight
             const [y, m, d] = startDateStr.split('-').map(Number);
             const targetDate = new Date(y, m - 1, d);
             
@@ -335,7 +339,7 @@
             return targetDate;
         }
 
-        // --- EXCLUSION LOGIC ---
+        // --- EXCLUSION & EDIT LOGIC ---
         function skipEventOccurrence(eventId, weekNum) {
             const ev = events.find(e => e.id === eventId);
             if(ev && !ev.skippedWeeks.includes(weekNum.toString())) {
@@ -350,6 +354,35 @@
                 ev.skippedWeeks = [];
                 saveData();
             }
+        }
+
+        function editEvent(id) {
+            const ev = events.find(e => e.id === id);
+            if(!ev) return;
+            
+            switchView('builder');
+            
+            document.getElementById('inp-ev-course').value = ev.courseId;
+            document.getElementById('inp-ev-title').value = ev.title;
+            document.getElementById('inp-ev-day').value = ev.day;
+            document.getElementById('inp-ev-occurrence').value = ev.weeks;
+            document.getElementById('inp-ev-location').value = ev.location;
+            document.getElementById('inp-ev-start').value = ev.start;
+            document.getElementById('inp-ev-end').value = ev.end;
+            document.getElementById('inp-ev-desc').value = ev.desc;
+            
+            editingEventId = id;
+            document.getElementById('btn-submit-event').innerText = "Update Component";
+            document.getElementById('btn-cancel-edit').style.display = "block";
+            
+            document.getElementById('form-event').scrollIntoView({behavior: "smooth"});
+        }
+
+        function cancelEdit() {
+            editingEventId = null;
+            document.getElementById('form-event').reset();
+            document.getElementById('btn-submit-event').innerText = "Add to Schedule";
+            document.getElementById('btn-cancel-edit').style.display = "none";
         }
 
         // --- TERM LOGIC ---
@@ -397,36 +430,26 @@
 
             let keyDatesList = [];
             const termEvents = events.filter(e => e.termId === currentTermId);
-
-            // Time calculation base
             const today = new Date();
             today.setHours(0,0,0,0);
 
             termEvents.forEach(ev => {
                 const lowerTitle = ev.title.toLowerCase();
                 if(lowerTitle.includes("exam") || lowerTitle.includes("assignment")) {
-                    
-                    // If assigned to a specific week
                     if(ev.weeks !== "All") {
                         const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
                         const diffTime = targetDate - today;
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         
-                        if (diffDays >= 0) {
-                            keyDatesList.push({ ev, targetDate, diffDays });
-                        }
-                    } 
-                    // If repeats all weeks (rare for an exam, but possible for weekly quizzes)
-                    else {
+                        if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
+                    } else {
                         for(let w=1; w<=10; w++) {
                             if(!ev.skippedWeeks.includes(w.toString())) {
                                 const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
                                 const diffTime = targetDate - today;
                                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                                 
-                                if (diffDays >= 0) {
-                                    keyDatesList.push({ ev, targetDate, diffDays });
-                                }
+                                if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
                             }
                         }
                     }
@@ -536,14 +559,15 @@
                         <strong style="color:${cColor}">${e.courseId}</strong> | ${e.title} <br>
                         <small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small>
                     </div>
-                    <button class="btn-delete" onclick="deleteEvent('${e.id}')">Delete</button>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-edit-list" onclick="editEvent('${e.id}')">Edit</button>
+                        <button class="btn-delete" onclick="deleteEvent('${e.id}')">Delete</button>
+                    </div>
                 `;
                 eventList.appendChild(li);
             });
 
             document.getElementById('event-count').innerText = termEvents.length;
-            
-            // Render Key Dates Sidebar
             updateKeyDates();
         }
 
@@ -567,8 +591,7 @@
 
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
-            const newEvent = {
-                id: Date.now().toString(),
+            const eventData = {
                 termId: currentTermId,
                 courseId: document.getElementById('inp-ev-course').value,
                 title: document.getElementById('inp-ev-title').value,
@@ -577,17 +600,30 @@
                 start: document.getElementById('inp-ev-start').value,
                 end: document.getElementById('inp-ev-end').value,
                 location: document.getElementById('inp-ev-location').value,
-                desc: document.getElementById('inp-ev-desc').value,
-                skippedWeeks: []
+                desc: document.getElementById('inp-ev-desc').value
             };
-            events.push(newEvent);
+
+            if (editingEventId) {
+                const existingIndex = events.findIndex(ev => ev.id === editingEventId);
+                if (existingIndex > -1) {
+                    eventData.id = editingEventId;
+                    eventData.skippedWeeks = events[existingIndex].skippedWeeks;
+                    events[existingIndex] = eventData;
+                }
+                cancelEdit();
+            } else {
+                eventData.id = Date.now().toString();
+                eventData.skippedWeeks = [];
+                events.push(eventData);
+                document.getElementById('inp-ev-title').value = '';
+                document.getElementById('inp-ev-desc').value = '';
+            }
             saveData();
-            document.getElementById('inp-ev-title').value = '';
-            document.getElementById('inp-ev-desc').value = '';
         };
 
         function deleteEvent(id) {
             events = events.filter(e => e.id !== id);
+            if(editingEventId === id) cancelEdit();
             saveData();
         }
 
@@ -675,7 +711,6 @@
                     hasEvents = true;
                     dayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
-                    // Calculate precise date for this day
                     const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
                     const dateDisplay = targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: '2-digit'});
                     
@@ -688,9 +723,7 @@
                         const displayStart = format12Hour(ev.start);
                         const displayEnd = format12Hour(ev.end);
                         const descHtml = ev.desc ? `<div class="event-desc">${ev.desc}</div>` : "";
-                        const occurrenceBadge = ev.weeks !== "All" ? `<span style="background:var(--accent); color:var(--bg-dark); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 10px; vertical-align: middle;">Week ${ev.weeks} Only</span>` : "";
 
-                        // Highlight Logic for Exams and Assignments (Applies ~20% opacity background of the course color)
                         let isCritical = ev.title.toLowerCase().includes("exam") || ev.title.toLowerCase().includes("assignment");
                         let criticalBg = isCritical ? `background-color: ${cColor}33;` : '';
 
@@ -702,14 +735,19 @@
                         card.innerHTML = `
                             <div class="event-info">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <strong style="color:${cColor}">${ev.courseId} | ${ev.title} ${occurrenceBadge}</strong>
-                                    <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${weekNum}')" title="Skip this occurrence for Week ${weekNum}">🚫</button>
+                                    <strong style="color:${cColor}">${ev.courseId} | ${ev.title}</strong>
+                                    <div>
+                                        <button class="btn-skip" onclick="editEvent('${ev.id}')" title="Edit Component">✏️</button>
+                                        <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${weekNum}')" title="Skip this occurrence for Week ${weekNum}">🚫</button>
+                                    </div>
                                 </div>
                                 <span>📍 ${ev.location}</span>
                                 ${descHtml}
                             </div>
                             <div class="event-time" style="color:${cColor}; border-color:${cColor}; background:rgba(0,0,0,0.6);">
-                                ${displayStart}<br><span style="color:var(--text-muted); font-size:14px;">to</span><br>${displayEnd}
+                                <span>${displayStart}</span>
+                                <span style="color:var(--text-muted); font-size:14px; margin: 2px 0;">to</span>
+                                <span>${displayEnd}</span>
                             </div>
                         `;
                         daySection.appendChild(card);
@@ -726,7 +764,6 @@
         // --- INIT ---
         refreshUI();
 
-        // Clear All Filter Logic
         document.querySelector('.course-filter-btn[data-filter="All"]').onclick = (e) => {
             document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
