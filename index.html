@@ -81,22 +81,26 @@
         
         .day-section { margin-bottom: 30px; }
         .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
+        
+        /* Proportional Scaling Cards */
         .event-card {
             background-color: var(--bg-panel); padding: 15px; border-radius: 8px;
-            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; 
+            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: stretch; /* Stretches children to full height */
             border-left: 4px solid var(--outline); border-top: 1px solid rgba(38, 198, 218, 0.2);
             border-right: 1px solid rgba(38, 198, 218, 0.2); border-bottom: 1px solid rgba(38, 198, 218, 0.2);
+            box-sizing: border-box;
         }
-        .event-info { flex: 1; padding-right: 15px; }
+        .event-info { flex: 1; padding-right: 15px; display: flex; flex-direction: column; justify-content: flex-start; }
         .event-info strong { display: block; font-size: 20px; font-weight: 700; margin-bottom: 5px; }
         .event-info span { color: var(--text-muted); font-size: 16px; font-weight: 600; }
-        .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; }
+        .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; flex: 1;}
         
         /* Fixed Time Display */
         .event-time { 
             font-family: 'Share Tech Mono', monospace; font-size: 18px; background: rgba(0,0,0,0.4); 
             padding: 10px 15px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 90px;
+            box-sizing: border-box;
         }
 
         /* Buttons & Forms */
@@ -217,7 +221,6 @@
                             <button type="submit" class="btn-submit">Add</button>
                         </div>
                     </form>
-                    <ul id="builder-course-list" class="mgmt-list"></ul>
                 </div>
 
                 <div class="builder-section">
@@ -553,6 +556,8 @@
                 const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
                 const startMins = timeToMinutes(ev.start);
                 const endMins = timeToMinutes(ev.end);
+                const duration = endMins - startMins;
+                const dynamicHeight = Math.max(80, duration * 1.5); // 1.5px per minute multiplier
                 
                 const isActiveNow = (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
                 const isPast = (currentTotalMinutes > endMins);
@@ -560,7 +565,7 @@
                 const displayStart = format12Hour(ev.start);
                 const displayEnd = format12Hour(ev.end);
                 
-                let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); transition: 0.3s;`;
+                let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; min-height: ${dynamicHeight}px; box-sizing: border-box;`;
                 let statusBadge = "";
 
                 if (isActiveNow) {
@@ -575,12 +580,14 @@
                 const card = document.createElement('div');
                 card.style.cssText = cardStyle;
                 card.innerHTML = `
-                    <div>
+                    <div style="display: flex; flex-direction: column; justify-content: flex-start;">
                         <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px;">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
                         <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">📍 ${ev.location} &nbsp;&nbsp; ${statusBadge}</div>
                     </div>
-                    <div style="font-family: 'Share Tech Mono'; color: ${isPast ? '#999' : cColor}; text-align: right; min-width: 80px;">
-                        ${displayStart} <br> <span style="font-size: 13px; color: var(--text-muted);">to</span> <br> ${displayEnd}
+                    <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor};">
+                        <span>${displayStart}</span>
+                        <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
+                        <span>${displayEnd}</span>
                     </div>
                 `;
                 container.appendChild(card);
@@ -737,10 +744,8 @@
             const termCourses = courses.filter(c => c.termId === currentTermId);
             const selectEl = document.getElementById('inp-ev-course');
             const filterContainer = document.getElementById('dynamic-filters');
-            const builderCourseList = document.getElementById('builder-course-list');
             
             selectEl.innerHTML = ''; filterContainer.innerHTML = '';
-            builderCourseList.innerHTML = ''; 
 
             termCourses.forEach(c => {
                 const opt = document.createElement('option');
@@ -755,11 +760,6 @@
                     if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
                 };
                 filterContainer.appendChild(fBtn);
-
-                const li = document.createElement('li'); li.className = "mgmt-item";
-                li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div>
-                                <button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
-                builderCourseList.appendChild(li);
             });
 
             const eventList = document.getElementById('builder-event-list');
@@ -950,6 +950,11 @@
                     
                     dayEvents.forEach(ev => {
                         const cColor = termCourses.find(c => c.id === ev.courseId)?.color || "#fff";
+                        const startMins = timeToMinutes(ev.start);
+                        const endMins = timeToMinutes(ev.end);
+                        const duration = endMins - startMins;
+                        const dynamicHeight = Math.max(80, duration * 1.5); // 1.5px per minute multiplier
+                        
                         const displayStart = format12Hour(ev.start);
                         const displayEnd = format12Hour(ev.end);
                         const descHtml = ev.desc ? `<div class="event-desc">${ev.desc}</div>` : "";
@@ -960,7 +965,7 @@
                         const card = document.createElement('div');
                         card.className = 'event-card';
                         card.style.borderLeftColor = cColor;
-                        card.style.cssText += criticalBg;
+                        card.style.cssText += `min-height: ${dynamicHeight}px; box-sizing: border-box; ${criticalBg}`;
                         
                         card.innerHTML = `
                             <div class="event-info">
@@ -976,7 +981,7 @@
                             </div>
                             <div class="event-time" style="color:${cColor}; border-color:${cColor}; background:rgba(0,0,0,0.6);">
                                 <span>${displayStart}</span>
-                                <span style="color:var(--text-muted); font-size:14px; margin: 2px 0;">to</span>
+                                <span style="color:var(--text-muted); font-size:14px; margin: 4px 0;">to</span>
                                 <span>${displayEnd}</span>
                             </div>
                         `;
