@@ -193,10 +193,6 @@
 
                     </div>
                 </div>
-
-                <div class="builder-section" style="background: rgba(38, 198, 218, 0.1);">
-                    <h3 style="margin-top:0;">Your Saved Events for Current Term: <span id="event-count" style="color:var(--accent);">0</span></h3>
-                </div>
             </div>
 
             <div id="view-schedule" style="display: none;">
@@ -221,6 +217,7 @@
                             <button type="submit" class="btn-submit">Add</button>
                         </div>
                     </form>
+                    <ul id="builder-course-list" class="mgmt-list"></ul>
                 </div>
 
                 <div class="builder-section">
@@ -336,7 +333,7 @@
 
         // --- DATA MANAGEMENT ---
         const defaultTerms = [{ id: "T1-2026", name: "Term 1", startDate: "2026-02-16" }];
-        const defaultCourses = [];
+        const defaultCourses = []; // Starts clean
         
         let terms = JSON.parse(localStorage.getItem('tp_terms')) || defaultTerms;
         terms = terms.map(t => ({ ...t, startDate: t.startDate || "2026-02-16" }));
@@ -794,7 +791,6 @@
                 eventList.appendChild(li);
             });
 
-            document.getElementById('event-count').innerText = termEvents.length;
             updateKeyDates();
             
             if (currentView === "dashboard") {
