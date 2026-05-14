@@ -104,7 +104,7 @@
         .builder-section h2 { margin-top: 0; color: var(--accent); }
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
-        .form-group input, .form-group select { 
+        .form-group input[type="text"], .form-group input[type="time"], .form-group select { 
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; 
             padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px; 
         }
@@ -127,7 +127,6 @@
     <div class="topbar">
         <div class="logo">🎯 <span>Tracker Pro</span></div>
         
-        <!-- TERM CONTROLS -->
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="addTerm()" title="Add Term">+</button>
@@ -135,7 +134,6 @@
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="setTermDate()" title="Set Start Date">📅</button>
         </div>
 
-        <!-- SYDNEY CLOCK -->
         <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">
             Loading...
         </div>
@@ -205,7 +203,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Component Type & Title</label>
-                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint, Exam" required>
+                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint, Midterm" required>
                             </div>
                             <div class="form-group">
                                 <label>Day of Week</label>
@@ -246,6 +244,12 @@
                                 <label>Strategic Description</label>
                                 <input type="text" id="inp-ev-desc" placeholder="e.g. Deep work block. No AI allowed.">
                             </div>
+                            
+                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
+                                <input type="checkbox" id="inp-ev-critical" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff5252; margin: 0;">
+                                <label for="inp-ev-critical" style="margin: 0; color: #ffb4b4; font-weight: bold; cursor: pointer; font-size: 16px;">🚨 Mark as Important (Adds to Key Dates & Highlights on Schedule)</label>
+                            </div>
+
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 15px;">
                             <button type="submit" id="btn-submit-event" class="btn-submit" style="flex: 1;">Add to Schedule</button>
@@ -305,13 +309,24 @@
             termId: c.termId || currentTermId
         }));
         
+        // Fetch events and migrate to the new `isCritical` boolean system
         let rawEvents = JSON.parse(localStorage.getItem('tp_events')) || [];
-        let events = rawEvents.map(e => ({
-            ...e,
-            termId: e.termId || currentTermId,
-            weeks: e.weeks || "All",
-            skippedWeeks: e.skippedWeeks || [] 
-        }));
+        let events = rawEvents.map(e => {
+            // Auto-migrate older events that had "exam" or "assignment" in the title
+            let criticalState = e.isCritical;
+            if (criticalState === undefined) {
+                const lowerTitle = (e.title || "").toLowerCase();
+                criticalState = lowerTitle.includes("exam") || lowerTitle.includes("assignment");
+            }
+            
+            return {
+                ...e,
+                termId: e.termId || currentTermId,
+                weeks: e.weeks || "All",
+                skippedWeeks: e.skippedWeeks || [],
+                isCritical: criticalState
+            };
+        });
 
         let editingEventId = null;
 
@@ -369,6 +384,7 @@
             document.getElementById('inp-ev-start').value = ev.start;
             document.getElementById('inp-ev-end').value = ev.end;
             document.getElementById('inp-ev-desc').value = ev.desc;
+            document.getElementById('inp-ev-critical').checked = ev.isCritical;
             
             editingEventId = id;
             document.getElementById('btn-submit-event').innerText = "Update Component";
@@ -433,8 +449,8 @@
             today.setHours(0,0,0,0);
 
             termEvents.forEach(ev => {
-                const lowerTitle = ev.title.toLowerCase();
-                if(lowerTitle.includes("exam") || lowerTitle.includes("assignment")) {
+                // Now strictly uses the manual toggle instead of matching title words
+                if(ev.isCritical) {
                     if(ev.weeks !== "All") {
                         const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
                         const diffTime = targetDate - today;
@@ -551,11 +567,14 @@
                 const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) 
                     ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` 
                     : "";
+                
+                // Visual badge for the builder list
+                const criticalBadge = e.isCritical ? `<span style="margin-right: 5px;" title="Important Component">🚨</span>` : "";
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
                 li.innerHTML = `
                     <div>
-                        <strong style="color:${cColor}">${e.courseId}</strong> | ${e.title} <br>
+                        <strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${e.title} <br>
                         <small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small>
                     </div>
                     <div style="display:flex; gap: 8px;">
@@ -599,7 +618,8 @@
                 start: document.getElementById('inp-ev-start').value,
                 end: document.getElementById('inp-ev-end').value,
                 location: document.getElementById('inp-ev-location').value,
-                desc: document.getElementById('inp-ev-desc').value
+                desc: document.getElementById('inp-ev-desc').value,
+                isCritical: document.getElementById('inp-ev-critical').checked
             };
 
             if (editingEventId) {
@@ -616,6 +636,7 @@
                 events.push(eventData);
                 document.getElementById('inp-ev-title').value = '';
                 document.getElementById('inp-ev-desc').value = '';
+                document.getElementById('inp-ev-critical').checked = false;
             }
             saveData();
         };
@@ -723,8 +744,8 @@
                         const displayEnd = format12Hour(ev.end);
                         const descHtml = ev.desc ? `<div class="event-desc">${ev.desc}</div>` : "";
 
-                        let isCritical = ev.title.toLowerCase().includes("exam") || ev.title.toLowerCase().includes("assignment");
-                        let criticalBg = isCritical ? `background-color: ${cColor}33;` : '';
+                        let criticalBg = ev.isCritical ? `background-color: ${cColor}33;` : '';
+                        let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
 
                         const card = document.createElement('div');
                         card.className = 'event-card';
@@ -734,7 +755,7 @@
                         card.innerHTML = `
                             <div class="event-info">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <strong style="color:${cColor}">${ev.courseId} | ${ev.title}</strong>
+                                    <strong style="color:${cColor}">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
                                     <div>
                                         <button class="btn-skip" onclick="editEvent('${ev.id}')" title="Edit Component">✏️</button>
                                         <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${weekNum}')" title="Skip this occurrence for Week ${weekNum}">🚫</button>
