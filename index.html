@@ -84,6 +84,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            overflow-y: auto;
         }
         .sidebar h3 { margin-top: 0; color: var(--accent); font-size: 18px; text-transform: uppercase; border-bottom: 1px solid var(--outline); padding-bottom: 5px; letter-spacing: 2px;}
         .course-btn {
@@ -101,20 +102,15 @@
         .content { flex: 1; padding: 30px; overflow-y: auto; }
         
         .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h2 { color: var(--accent); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        h2 { color: var(--accent); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin: 0 0 15px 0;}
         .chart-container {
-            width: 100%; height: 300px; background: var(--bg-panel);
-            padding: 20px; border-radius: 8px; box-sizing: border-box; margin-bottom: 20px;
+            width: 100%; height: 250px; background: var(--bg-panel);
+            padding: 20px; border-radius: 8px; box-sizing: border-box; margin-bottom: 30px;
             position: relative; border: 1px solid var(--outline);
-        }
-        #btn-back-chart {
-            background: var(--accent); color: var(--bg-dark); border: none;
-            padding: 5px 15px; border-radius: 5px; cursor: pointer; font-weight: 700;
-            display: none; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px;
         }
 
         .day-section { margin-bottom: 30px; }
-        .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); }
+        .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
         .event-card {
             background-color: var(--bg-panel); padding: 15px; border-radius: 8px;
             margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; 
@@ -166,12 +162,9 @@
         <div class="content" id="main-content">
             
             <div id="view-home">
-                <div class="chart-header">
-                    <h2 id="chart-title">Term Workload Tracker</h2>
-                    <button id="btn-back-chart">⬅ Back to Term View</button>
-                </div>
+                <h2>Term Workload Tracker</h2>
                 <div class="chart-container">
-                    <canvas id="stressChart"></canvas>
+                    <canvas id="termChart"></canvas>
                 </div>
 
                 <div id="live-timeline-container">
@@ -181,24 +174,24 @@
             </div>
 
             <div id="view-schedule" style="display: none;">
+                <h2 id="weekly-chart-title">Weekly Breakdown</h2>
+                <div class="chart-container">
+                    <canvas id="weeklyChart"></canvas>
                 </div>
+                <div id="weekly-schedule-content">
+                    </div>
+            </div>
 
         </div>
     </div>
 
     <script>
+        // --- 1. CLOCK LOGIC ---
         function updateClock() {
             const now = new Date();
             const options = { 
-                timeZone: 'Australia/Sydney', 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric',
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit', 
-                hour12: true 
+                timeZone: 'Australia/Sydney', weekday: 'short', year: 'numeric', month: 'short', 
+                day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
             };
             document.getElementById('live-clock').innerText = new Intl.DateTimeFormat('en-AU', options).format(now);
         }
@@ -213,8 +206,9 @@
             return `${hours}:${minutes} ${ampm}`;
         }
 
+        // --- 2. DATA CONFIGURATION ---
         const termStressLevels = [3, 4, 6, 8, 10, 2, 9, 7, 8, 9, 4, 10]; 
-        const dailyStressProfile = [6, 8, 9, 7, 5, 2, 4]; 
+        const dailyStressProfile = [6, 8, 9, 7, 5, 2, 4]; // Base curve for Mon-Sun
 
         const scheduleData = [
             { week: 1, day: "Monday", course: "Routine", title: "Wake & Commute", start: "07:00", end: "09:00", location: "Bus", desc: "Pull espresso (58mm), review last week's notes on Anki during the bus ride." },
@@ -244,9 +238,9 @@
             { week: 1, day: "Friday", course: "MMAN1130", title: "MMAN1130 Lecture", start: "16:00", end: "18:00", location: "Burrows Th", desc: "Finalize the week's theory. Ensure AS1100 notes are updated in OneNote." }
         ];
 
+        // --- 3. STATE & NAVIGATION SETUP ---
         let currentView = "home"; 
         let currentCourse = "All";
-        let isChartZoomed = false;
 
         const weekTabsContainer = document.getElementById('week-tabs');
         document.getElementById('btn-home').onclick = (e) => switchTab(e.target, "home");
@@ -255,13 +249,16 @@
             const btn = document.createElement('button');
             btn.className = `tab-btn`;
             btn.innerText = `Week ${i}`;
+            btn.dataset.week = i;
             btn.onclick = (e) => switchTab(e.target, i);
             weekTabsContainer.insertBefore(btn, document.getElementById('live-clock'));
         }
 
         function switchTab(element, target) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            element.classList.add('active');
+            if(element) element.classList.add('active');
+            else if(target !== "home") document.querySelector(`.tab-btn[data-week="${target}"]`).classList.add('active');
+
             currentView = target;
             if(target === "home") {
                 document.getElementById('view-home').style.display = 'block';
@@ -270,6 +267,8 @@
             } else {
                 document.getElementById('view-home').style.display = 'none';
                 document.getElementById('view-schedule').style.display = 'block';
+                document.getElementById('weekly-chart-title').innerText = `Week ${target} Daily Workload`;
+                updateWeeklyChart(target);
                 renderWeeklySchedule();
             }
         }
@@ -284,13 +283,14 @@
             };
         });
 
-        const ctx = document.getElementById('stressChart').getContext('2d');
-        const termLabels = Array.from({length: 12}, (_, i) => `Wk ${i+1}`);
-        const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        const btnBackChart = document.getElementById('btn-back-chart');
-        const chartTitle = document.getElementById('chart-title');
+        // --- 4. CHARTS CONFIGURATION ---
+        Chart.defaults.color = '#84ffff';
+        Chart.defaults.font.family = 'Rajdhani';
 
-        let stressChart = new Chart(ctx, {
+        // Term Chart (Home)
+        const ctxTerm = document.getElementById('termChart').getContext('2d');
+        const termLabels = Array.from({length: 12}, (_, i) => `Wk ${i+1}`);
+        let termChart = new Chart(ctxTerm, {
             type: 'line',
             data: {
                 labels: termLabels,
@@ -305,55 +305,76 @@
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        titleFont: { family: 'Rajdhani', size: 16 },
-                        bodyFont: { family: 'Rajdhani', size: 14 }
-                    }
-                },
+                plugins: { legend: { display: false } },
                 scales: { 
-                    y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{color:'#84ffff', font: {family: 'Share Tech Mono', size: 14}} }, 
-                    x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{color:'#84ffff', font: {family: 'Rajdhani', size: 16, weight: 'bold'}} } 
+                    y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {family: 'Share Tech Mono', size: 14}} }, 
+                    x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {size: 16, weight: 'bold'}} } 
                 },
                 onClick: (e, activeElements) => {
-                    if (activeElements.length > 0 && !isChartZoomed) {
+                    // Navigate directly to the clicked week
+                    if (activeElements.length > 0) {
                         const weekClicked = activeElements[0].index + 1;
-                        zoomChartToWeek(weekClicked);
+                        switchTab(null, weekClicked);
                     }
                 }
             }
         });
 
-        function zoomChartToWeek(weekNum) {
-            isChartZoomed = true;
-            chartTitle.innerText = `Week ${weekNum} Daily Breakdown`;
-            btnBackChart.style.display = 'block';
-            
+        // Weekly Chart (Inside Week Tabs)
+        const ctxWeek = document.getElementById('weeklyChart').getContext('2d');
+        const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        let weeklyChart = new Chart(ctxWeek, {
+            type: 'line',
+            data: {
+                labels: dayLabels,
+                datasets: [{
+                    label: 'Daily Workload',
+                    data: [], // Updated dynamically
+                    borderColor: '#b2ebf2', 
+                    backgroundColor: 'rgba(178, 235, 242, 0.15)',
+                    borderWidth: 3, pointBackgroundColor: '#fff', pointRadius: 6,
+                    pointHoverRadius: 8, fill: true, tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {family: 'Share Tech Mono', size: 14}} }, 
+                    x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {size: 16, weight: 'bold'}} } 
+                }
+            }
+        });
+
+        function updateWeeklyChart(weekNum) {
             const weekMultiplier = termStressLevels[weekNum - 1] / 5; 
-            const zoomedData = dailyStressProfile.map(val => Math.min(10, Math.round(val * weekMultiplier)));
-
-            stressChart.data.labels = dayLabels;
-            stressChart.data.datasets[0].data = zoomedData;
-            stressChart.data.datasets[0].borderColor = '#b2ebf2'; 
-            stressChart.data.datasets[0].backgroundColor = 'rgba(178, 235, 242, 0.15)';
-            stressChart.update();
+            const zoomedData = dailyStressProfile.map(val => Math.min(10, Math.max(1, Math.round(val * weekMultiplier))));
+            weeklyChart.data.datasets[0].data = zoomedData;
+            weeklyChart.update();
         }
 
-        btnBackChart.onclick = () => {
-            isChartZoomed = false;
-            chartTitle.innerText = `Term Workload Tracker`;
-            btnBackChart.style.display = 'none';
-            stressChart.data.labels = termLabels;
-            stressChart.data.datasets[0].data = termStressLevels;
-            stressChart.data.datasets[0].borderColor = '#84ffff';
-            stressChart.data.datasets[0].backgroundColor = 'rgba(132, 255, 255, 0.15)';
-            stressChart.update();
-        }
-
+        // --- 5. SCHEDULE LOGIC ---
         function timeToMinutes(timeStr) {
             const [hours, mins] = timeStr.split(':').map(Number);
             return hours * 60 + mins;
+        }
+
+        function createCard(event, stateClass) {
+            const displayStart = format12Hour(event.start);
+            const displayEnd = format12Hour(event.end);
+            const descHtml = event.desc ? `<div class="event-desc">${event.desc}</div>` : "";
+
+            const card = document.createElement('div');
+            card.className = `event-card ${stateClass}`;
+            card.innerHTML = `
+                <div class="event-info">
+                    <strong class="tag-${event.course}">${event.course} | ${event.title}</strong>
+                    <span>📍 ${event.location}</span>
+                    ${descHtml}
+                </div>
+                <div class="event-time">${displayStart} - ${displayEnd}</div>
+            `;
+            return card;
         }
 
         function updateLiveTimeline() {
@@ -382,40 +403,22 @@
                 const endMins = timeToMinutes(event.end);
                 
                 let stateClass = "";
-                if (currentMins >= endMins) {
-                    stateClass = "event-past";
-                } else if (currentMins >= startMins && currentMins < endMins) {
-                    stateClass = "event-live";
-                }
+                if (currentMins >= endMins) stateClass = "event-past";
+                else if (currentMins >= startMins && currentMins < endMins) stateClass = "event-live";
 
-                const displayStart = format12Hour(event.start);
-                const displayEnd = format12Hour(event.end);
-
-                const descHtml = event.desc ? `<div class="event-desc">${event.desc}</div>` : "";
-
-                const card = document.createElement('div');
-                card.className = `event-card ${stateClass}`;
-                card.innerHTML = `
-                    <div class="event-info">
-                        <strong class="tag-${event.course}">${event.course} | ${event.title}</strong>
-                        <span>📍 ${event.location}</span>
-                        ${descHtml}
-                    </div>
-                    <div class="event-time">${displayStart} - ${displayEnd}</div>
-                `;
-                container.appendChild(card);
+                container.appendChild(createCard(event, stateClass));
             });
         }
 
         function renderWeeklySchedule() {
-            const display = document.getElementById('view-schedule');
+            const display = document.getElementById('weekly-schedule-content');
             display.innerHTML = '';
 
             let filteredData = scheduleData.filter(event => event.week === currentView);
             if (currentCourse !== "All") filteredData = filteredData.filter(event => event.course === currentCourse);
 
             if (filteredData.length === 0) {
-                display.innerHTML = `<h3 style="color: var(--text-muted); text-align: center; margin-top: 50px;">Update data array for Week ${currentView}.</h3>`;
+                display.innerHTML = `<h3 style="color: var(--text-muted); text-align: center; margin-top: 50px;">No schedule data found for Week ${currentView}.</h3>`;
                 return;
             }
 
@@ -429,22 +432,7 @@
                     daySection.innerHTML = `<h2 class="day-title">${day}</h2>`;
                     
                     dayEvents.forEach(event => {
-                        const displayStart = format12Hour(event.start);
-                        const displayEnd = format12Hour(event.end);
-
-                        const descHtml = event.desc ? `<div class="event-desc">${event.desc}</div>` : "";
-
-                        const card = document.createElement('div');
-                        card.className = 'event-card';
-                        card.innerHTML = `
-                            <div class="event-info">
-                                <strong class="tag-${event.course}">${event.course} | ${event.title}</strong>
-                                <span>📍 ${event.location}</span>
-                                ${descHtml}
-                            </div>
-                            <div class="event-time">${displayStart} - ${displayEnd}</div>
-                        `;
-                        daySection.appendChild(card);
+                        daySection.appendChild(createCard(event, ""));
                     });
                     display.appendChild(daySection);
                 }
