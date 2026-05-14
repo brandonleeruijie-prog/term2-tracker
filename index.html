@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Term 2 Engineering Tracker</title>
+    <title>Engineering Tracker Pro</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,9 +20,9 @@
             --text-muted: #b2ebf2; 
             --outline: #26c6da; 
             
-            --mman: #ff5252; 
-            --engg: #448aff; 
-            --elec: #18ffff; 
+            --c1: #ff5252; /* Course 1 (e.g. MMAN) */
+            --c2: #448aff; /* Course 2 (e.g. ENGG/MATH) */
+            --c3: #18ffff; /* Course 3 (e.g. ELEC) */
         }
         body {
             margin: 0;
@@ -34,32 +34,40 @@
             flex-direction: column;
             height: 100vh;
         }
+        
+        /* Tier 1: Term Navigation */
         .topbar {
-            background-color: var(--bg-panel);
-            padding: 15px 20px;
+            background-color: var(--bg-dark);
+            padding: 10px 20px;
             display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            border-bottom: 1px solid var(--outline);
+            gap: 15px;
+            border-bottom: 1px solid rgba(38, 198, 218, 0.3);
             align-items: center;
         }
-        .tab-btn {
-            background: none;
-            border: 1px solid var(--outline);
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
+        .logo {
+            font-size: 24px;
             font-weight: 700;
-            font-size: 16px;
-            transition: 0.2s;
-            white-space: nowrap;
-            font-family: 'Rajdhani', sans-serif; 
-            letter-spacing: 1px;
+            color: var(--accent);
+            margin-right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
-        .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
-        .home-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); margin-right: 15px; }
+        .term-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 5px 10px;
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 3px solid transparent;
+        }
+        .term-btn:hover { color: var(--accent); }
+        .term-btn.active { color: var(--accent); border-bottom: 3px solid var(--accent); }
 
         #live-clock {
             margin-left: auto;
@@ -67,13 +75,42 @@
             font-size: 18px;
             color: var(--accent);
             background: rgba(0, 0, 0, 0.3);
-            padding: 8px 15px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             border: 1px solid var(--outline);
             white-space: nowrap;
             box-shadow: inset 0 0 10px rgba(38, 198, 218, 0.1);
         }
 
+        /* Tier 2: Week Navigation */
+        .subbar {
+            background-color: var(--bg-panel);
+            padding: 10px 20px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--outline);
+            align-items: center;
+        }
+        .tab-btn {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--outline);
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            transition: 0.2s;
+            white-space: nowrap;
+            font-family: 'Rajdhani', sans-serif; 
+            letter-spacing: 1px;
+        }
+        .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
+        .home-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); margin-right: 10px; }
+
+        /* Main Layout */
         .container { display: flex; flex: 1; overflow: hidden; }
 
         .sidebar {
@@ -95,9 +132,9 @@
         }
         .course-btn:hover { border-color: var(--outline); }
         .course-btn[data-course="All"].active { border-left-color: var(--accent); background: rgba(38, 198, 218, 0.2); color: var(--text-main); }
-        .course-btn[data-course="MMAN1130"].active { border-left-color: var(--mman); background: rgba(255, 82, 82, 0.15); color: var(--text-main); }
-        .course-btn[data-course="ENGG1811"].active { border-left-color: var(--engg); background: rgba(68, 138, 255, 0.15); color: var(--text-main); }
-        .course-btn[data-course="ELEC1111"].active { border-left-color: var(--elec); background: rgba(24, 255, 255, 0.15); color: var(--text-main); }
+        .course-btn[data-course="Course1"].active { border-left-color: var(--c1); background: rgba(255, 82, 82, 0.15); color: var(--text-main); }
+        .course-btn[data-course="Course2"].active { border-left-color: var(--c2); background: rgba(68, 138, 255, 0.15); color: var(--text-main); }
+        .course-btn[data-course="Course3"].active { border-left-color: var(--c3); background: rgba(24, 255, 255, 0.15); color: var(--text-main); }
 
         .content { flex: 1; padding: 30px; overflow-y: auto; }
         
@@ -131,42 +168,48 @@
             white-space: nowrap; 
         }
         
-        .tag-MMAN1130 { color: var(--mman) !important; }
-        .tag-ENGG1811 { color: var(--engg) !important; }
-        .tag-ELEC1111 { color: var(--elec) !important; }
+        .tag-Course1 { color: var(--c1) !important; }
+        .tag-Course2 { color: var(--c2) !important; }
+        .tag-Course3 { color: var(--c3) !important; }
         .tag-Routine { color: var(--text-muted); }
 
         .event-past { opacity: 0.35; filter: grayscale(80%); }
         .event-live { border-left-color: var(--accent); background-color: rgba(38, 198, 218, 0.1); transform: scale(1.02); box-shadow: 0 0 15px rgba(38, 198, 218, 0.2); }
         .event-live .event-time { background: var(--accent); color: var(--bg-dark); border-color: var(--accent); font-weight: bold; }
         
-        #live-timeline-container { margin-top: 40px; }
     </style>
 </head>
 <body>
 
-    <div class="topbar" id="week-tabs">
-        <button class="tab-btn home-btn active" id="btn-home">🎯 Dashboard</button>
+    <div class="topbar" id="term-tabs">
+        <div class="logo">🎯 <span>Tracker Pro</span></div>
+        <button class="term-btn active" data-term="1">Term 1</button>
+        <button class="term-btn" data-term="2">Term 2</button>
         <div id="live-clock">Loading Time...</div>
     </div>
+
+    <div class="subbar" id="week-tabs">
+        <button class="tab-btn home-btn active" data-week="home">Dashboard</button>
+        </div>
 
     <div class="container">
         <div class="sidebar" id="course-tabs">
             <h3>Filters</h3>
             <button class="course-btn active" data-course="All">All Subjects</button>
-            <button class="course-btn" data-course="MMAN1130">MMAN1130</button>
-            <button class="course-btn" data-course="ENGG1811">ENGG1811</button>
-            <button class="course-btn" data-course="ELEC1111">ELEC1111</button>
+            <button class="course-btn" id="filter-c1" data-course="Course1">Course 1</button>
+            <button class="course-btn" id="filter-c2" data-course="Course2">Course 2</button>
+            <button class="course-btn" id="filter-c3" data-course="Course3">Course 3</button>
         </div>
 
         <div class="content" id="main-content">
-            
             <div id="view-home">
-                <h2>Term Workload Tracker</h2>
+                <div class="chart-header">
+                    <h2 id="chart-title">Term Workload Tracker</h2>
+                    <button id="btn-back-chart">⬅ Back to Term View</button>
+                </div>
                 <div class="chart-container">
                     <canvas id="termChart"></canvas>
                 </div>
-
                 <div id="live-timeline-container">
                     <h2 class="day-title" id="live-day-title">Today's Live Timeline</h2>
                     <div id="live-schedule"></div>
@@ -178,10 +221,8 @@
                 <div class="chart-container">
                     <canvas id="weeklyChart"></canvas>
                 </div>
-                <div id="weekly-schedule-content">
-                    </div>
+                <div id="weekly-schedule-content"></div>
             </div>
-
         </div>
     </div>
 
@@ -206,169 +247,178 @@
             return `${hours}:${minutes} ${ampm}`;
         }
 
-        // --- 2. DATA CONFIGURATION ---
-        const termStressLevels = [3, 4, 6, 8, 10, 2, 9, 7, 8, 9, 4, 10]; 
-        const dailyStressProfile = [6, 8, 9, 7, 5, 2, 4]; // Base curve for Mon-Sun
+        // --- 2. DATA ARCHITECTURE ---
+        // Term-specific configurations
+        const termConfig = {
+            1: {
+                courses: {
+                    Course1: "MATH1231",
+                    Course2: "MMAN2700",
+                    Course3: "ELEC1111"
+                },
+                stressLevels: [5, 6, 6, 8, 9, 2, 7, 8, 9, 10, 5, 10] // Placeholder Term 1 stress
+            },
+            2: {
+                courses: {
+                    Course1: "MMAN1130",
+                    Course2: "ENGG1811",
+                    Course3: "ELEC1111" // Assuming Retake for now
+                },
+                stressLevels: [3, 4, 6, 8, 10, 2, 9, 7, 8, 9, 4, 10] // Accurate Term 2 stress
+            }
+        };
 
-        const scheduleData = [
-            { week: 1, day: "Monday", course: "Routine", title: "Wake & Commute", start: "07:00", end: "09:00", location: "Bus", desc: "Pull espresso (58mm), review last week's notes on Anki during the bus ride." },
-            { week: 1, day: "Monday", course: "ELEC1111", title: "ELEC Sprint: Hard Problems", start: "09:00", end: "11:00", location: "On-Campus", desc: "Do 3 hard problems with a blank page. High-yield work: failing at Nodal Analysis and figuring out why is worth 3 hours of highlighting a textbook." },
-            { week: 1, day: "Monday", course: "ENGG1811", title: "ENGG1811 Lecture", start: "14:00", end: "16:00", location: "Rex Vowels", desc: "Focus on the logic of control structures. Do not write down syntax trivia; write down edge cases." },
-            { week: 1, day: "Monday", course: "MMAN1130", title: "MMAN1130 Lecture", start: "16:00", end: "18:00", location: "Science Th", desc: "Note down AS1100 standards and 'Why' a manufacturing process is chosen. Ignore the history of machining." },
-            { week: 1, day: "Monday", course: "Routine", title: "Gym Session", start: "19:00", end: "20:00", location: "Gym", desc: "Reset the brain after the heavy lecture block." },
+        const dailyStressProfile = [6, 8, 9, 7, 5, 2, 4]; 
+
+        // The Master Database
+        const masterScheduleData = [
+            // --- TERM 2 DATA (Your current hybrid schedule) ---
+            { term: 2, week: 1, day: "Monday", course: "Routine", title: "Wake & Commute", start: "07:00", end: "09:00", location: "Bus", desc: "Pull espresso (58mm), review last week's notes on Anki during the bus ride." },
+            { term: 2, week: 1, day: "Monday", course: "Course3", title: "ELEC Sprint: Hard Problems", start: "09:00", end: "11:00", location: "On-Campus", desc: "Do 3 hard problems with a blank page. High-yield work: failing at Nodal Analysis and figuring out why is worth 3 hours of highlighting a textbook." },
+            { term: 2, week: 1, day: "Monday", course: "Course2", title: "ENGG1811 Lecture", start: "14:00", end: "16:00", location: "Rex Vowels", desc: "Focus on the logic of control structures." },
+            { term: 2, week: 1, day: "Monday", course: "Course1", title: "MMAN1130 Lecture", start: "16:00", end: "18:00", location: "Science Th", desc: "Note down AS1100 standards and 'Why' a manufacturing process is chosen." },
+            { term: 2, week: 1, day: "Monday", course: "Routine", title: "Gym Session", start: "19:00", end: "20:00", location: "Gym", desc: "Reset the brain after the heavy lecture block." },
             
-            { week: 1, day: "Tuesday", course: "Routine", title: "Wake & Prep", start: "07:00", end: "09:30", location: "Home/Commute", desc: "Review ENGG1811 Lab logic on paper before arriving." },
-            { week: 1, day: "Tuesday", course: "ENGG1811", title: "ENGG1811 LAB", start: "10:00", end: "12:00", location: "HarpM15570", desc: "Try to break your code. If you finish early, optimize your solution or help a peer to solidify your understanding." },
-            { week: 1, day: "Tuesday", course: "MMAN1130", title: "MMAN1130 PRJ (Practical)", start: "14:00", end: "15:00", location: "UTL 214N", desc: "Mandatory attendance. Focus on hand tools and measurement accuracy." },
-            { week: 1, day: "Tuesday", course: "Routine", title: "Run", start: "16:30", end: "17:00", location: "Outdoors", desc: "Decompress after the practical." },
-            
-            { week: 1, day: "Wednesday", course: "Routine", title: "Wake & Coffee", start: "07:00", end: "08:30", location: "Home", desc: "Prepare for Deep Work day." },
-            { week: 1, day: "Wednesday", course: "MMAN1130", title: "SolidWorks CAD Sprint", start: "08:30", end: "11:30", location: "Home PC", desc: "Deliverable 1a modeling. Use the desktop PC for hardware-heavy CAD. Test 'Design Intent'—if you change a dimension, does the part break?" },
-            { week: 1, day: "Wednesday", course: "ENGG1811", title: "Python Logic Prep", start: "13:00", end: "15:00", location: "Library (Mac)", desc: "Write pseudo-code before typing any Python. Handle exceptions and loops." },
-            { week: 1, day: "Wednesday", course: "ELEC1111", title: "Circuit Mastery Drill", start: "15:00", end: "17:00", location: "Library (Mac)", desc: "Pen and paper ONLY. Work through the 'Problem Graveyard' from last week." },
-            { week: 1, day: "Wednesday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "" },
-
-            { week: 1, day: "Thursday", course: "Routine", title: "Wake & Commute", start: "07:00", end: "12:00", location: "Home/Bus", desc: "" },
-            { week: 1, day: "Thursday", course: "MMAN1130", title: "MMAN1130 TLB (Computer Lab)", start: "12:30", end: "14:00", location: "Ainswth204", desc: "Fix any broken SolidWorks sketches from Wednesday. Ask tutor 'Why' questions about assembly constraints." },
-            { week: 1, day: "Thursday", course: "ENGG1811", title: "ENGG1811 Lecture", start: "16:00", end: "18:00", location: "Rex Vowels", desc: "Listen for specific variable passing and scope rules." },
-            { week: 1, day: "Thursday", course: "Routine", title: "Run", start: "19:30", end: "20:00", location: "Outdoors", desc: "" },
-
-            { week: 1, day: "Friday", course: "Routine", title: "Wake & Commute", start: "07:00", end: "09:00", location: "Home/Bus", desc: "" },
-            { week: 1, day: "Friday", course: "ELEC1111", title: "ELEC Drill (Past Paper)", start: "09:00", end: "11:00", location: "On-Campus", desc: "Set a 15-minute timer per question. Build the exam muscle so you don't freeze under pressure." },
-            { week: 1, day: "Friday", course: "MMAN1130", title: "MMAN1130 Lecture", start: "16:00", end: "18:00", location: "Burrows Th", desc: "Finalize the week's theory. Ensure AS1100 notes are updated in OneNote." }
+            // --- TERM 1 DATA (Placeholders waiting for your input) ---
+            { term: 1, week: 1, day: "Tuesday", course: "Course1", title: "MATH1231 Lecture", start: "10:00", end: "12:00", location: "TBA", desc: "Placeholder for Term 1 Data" },
+            { term: 1, week: 1, day: "Wednesday", course: "Course2", title: "MMAN2700 Thermo", start: "14:00", end: "16:00", location: "TBA", desc: "Placeholder for Term 1 Data" }
         ];
 
         // --- 3. STATE & NAVIGATION SETUP ---
-        let currentView = "home"; 
-        let currentCourse = "All";
+        let currentTerm = 2; // Default to Term 2
+        let currentWeek = "home"; 
+        let currentCourseFilter = "All";
 
+        // Generate Week Tabs
         const weekTabsContainer = document.getElementById('week-tabs');
-        document.getElementById('btn-home').onclick = (e) => switchTab(e.target, "home");
-
         for (let i = 1; i <= 12; i++) {
             const btn = document.createElement('button');
             btn.className = `tab-btn`;
             btn.innerText = `Week ${i}`;
             btn.dataset.week = i;
-            btn.onclick = (e) => switchTab(e.target, i);
-            weekTabsContainer.insertBefore(btn, document.getElementById('live-clock'));
+            btn.onclick = (e) => switchWeek(e.target, i);
+            weekTabsContainer.appendChild(btn);
         }
 
-        function switchTab(element, target) {
+        // Setup Term Buttons
+        document.querySelectorAll('.term-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                document.querySelectorAll('.term-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTerm = parseInt(e.target.dataset.term);
+                updateUIForTerm();
+                if (currentWeek === "home") {
+                    updateTermChart();
+                    updateLiveTimeline();
+                } else {
+                    updateWeeklyChart(currentWeek);
+                    renderWeeklySchedule();
+                }
+            };
+        });
+
+        document.querySelector('.home-btn').onclick = (e) => switchWeek(e.target, "home");
+
+        function switchWeek(element, target) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             if(element) element.classList.add('active');
             else if(target !== "home") document.querySelector(`.tab-btn[data-week="${target}"]`).classList.add('active');
 
-            currentView = target;
+            currentWeek = target;
             if(target === "home") {
                 document.getElementById('view-home').style.display = 'block';
                 document.getElementById('view-schedule').style.display = 'none';
+                updateTermChart();
                 updateLiveTimeline();
             } else {
                 document.getElementById('view-home').style.display = 'none';
                 document.getElementById('view-schedule').style.display = 'block';
-                document.getElementById('weekly-chart-title').innerText = `Week ${target} Daily Workload`;
+                document.getElementById('weekly-chart-title').innerText = `Term ${currentTerm} - Week ${target} Daily Workload`;
                 updateWeeklyChart(target);
                 renderWeeklySchedule();
             }
         }
 
+        // Setup Sidebar Filters
         document.querySelectorAll('.course-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.course-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                currentCourse = btn.getAttribute('data-course');
-                if (currentView !== "home") renderWeeklySchedule();
-                if (currentView === "home") updateLiveTimeline();
+                currentCourseFilter = btn.getAttribute('data-course');
+                if (currentWeek !== "home") renderWeeklySchedule();
+                if (currentWeek === "home") updateLiveTimeline();
             };
         });
+
+        function updateUIForTerm() {
+            // Update Sidebar Labels based on Term config
+            const config = termConfig[currentTerm];
+            document.getElementById('filter-c1').innerText = config.courses.Course1;
+            document.getElementById('filter-c2').innerText = config.courses.Course2;
+            document.getElementById('filter-c3').innerText = config.courses.Course3;
+            document.getElementById('chart-title').innerText = `Term ${currentTerm} Workload Tracker`;
+        }
 
         // --- 4. CHARTS CONFIGURATION ---
         Chart.defaults.color = '#84ffff';
         Chart.defaults.font.family = 'Rajdhani';
 
-        // Term Chart (Home)
         const ctxTerm = document.getElementById('termChart').getContext('2d');
         const termLabels = Array.from({length: 12}, (_, i) => `Wk ${i+1}`);
         let termChart = new Chart(ctxTerm, {
             type: 'line',
-            data: {
-                labels: termLabels,
-                datasets: [{
-                    label: 'Stress / Workload',
-                    data: termStressLevels,
-                    borderColor: '#84ffff', 
-                    backgroundColor: 'rgba(132, 255, 255, 0.15)',
-                    borderWidth: 3, pointBackgroundColor: '#fff', pointRadius: 6,
-                    pointHoverRadius: 8, fill: true, tension: 0.3
-                }]
-            },
+            data: { labels: termLabels, datasets: [{
+                label: 'Stress / Workload', data: [], borderColor: '#84ffff', backgroundColor: 'rgba(132, 255, 255, 0.15)',
+                borderWidth: 3, pointBackgroundColor: '#fff', pointRadius: 6, pointHoverRadius: 8, fill: true, tension: 0.3
+            }]},
             options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {family: 'Share Tech Mono', size: 14}} }, 
-                    x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {size: 16, weight: 'bold'}} } 
-                },
-                onClick: (e, activeElements) => {
-                    // Navigate directly to the clicked week
-                    if (activeElements.length > 0) {
-                        const weekClicked = activeElements[0].index + 1;
-                        switchTab(null, weekClicked);
-                    }
-                }
+                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'} }, x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font:{size: 16, weight: 'bold'}} } },
+                onClick: (e, activeElements) => { if (activeElements.length > 0) { switchWeek(null, activeElements[0].index + 1); } }
             }
         });
 
-        // Weekly Chart (Inside Week Tabs)
         const ctxWeek = document.getElementById('weeklyChart').getContext('2d');
-        const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
         let weeklyChart = new Chart(ctxWeek, {
             type: 'line',
-            data: {
-                labels: dayLabels,
-                datasets: [{
-                    label: 'Daily Workload',
-                    data: [], // Updated dynamically
-                    borderColor: '#b2ebf2', 
-                    backgroundColor: 'rgba(178, 235, 242, 0.15)',
-                    borderWidth: 3, pointBackgroundColor: '#fff', pointRadius: 6,
-                    pointHoverRadius: 8, fill: true, tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {family: 'Share Tech Mono', size: 14}} }, 
-                    x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font: {size: 16, weight: 'bold'}} } 
-                }
-            }
+            data: { labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], datasets: [{
+                label: 'Daily Workload', data: [], borderColor: '#b2ebf2', backgroundColor: 'rgba(178, 235, 242, 0.15)',
+                borderWidth: 3, pointBackgroundColor: '#fff', pointRadius: 6, pointHoverRadius: 8, fill: true, tension: 0.3
+            }]},
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 10, grid: {color:'rgba(38, 198, 218, 0.2)'} }, x: { grid: {color:'rgba(38, 198, 218, 0.2)'}, ticks:{font:{size: 16, weight: 'bold'}} } } }
         });
 
+        function updateTermChart() {
+            termChart.data.datasets[0].data = termConfig[currentTerm].stressLevels;
+            termChart.update();
+        }
+
         function updateWeeklyChart(weekNum) {
-            const weekMultiplier = termStressLevels[weekNum - 1] / 5; 
+            const weekMultiplier = termConfig[currentTerm].stressLevels[weekNum - 1] / 5; 
             const zoomedData = dailyStressProfile.map(val => Math.min(10, Math.max(1, Math.round(val * weekMultiplier))));
             weeklyChart.data.datasets[0].data = zoomedData;
             weeklyChart.update();
         }
 
         // --- 5. SCHEDULE LOGIC ---
-        function timeToMinutes(timeStr) {
-            const [hours, mins] = timeStr.split(':').map(Number);
-            return hours * 60 + mins;
-        }
+        function timeToMinutes(timeStr) { const [hours, mins] = timeStr.split(':').map(Number); return hours * 60 + mins; }
 
         function createCard(event, stateClass) {
             const displayStart = format12Hour(event.start);
             const displayEnd = format12Hour(event.end);
             const descHtml = event.desc ? `<div class="event-desc">${event.desc}</div>` : "";
+            
+            // Map generic Course1/2/3 to actual names for display
+            let displayCourseName = event.course;
+            if(event.course !== "Routine") {
+                displayCourseName = termConfig[currentTerm].courses[event.course];
+            }
 
             const card = document.createElement('div');
             card.className = `event-card ${stateClass}`;
             card.innerHTML = `
                 <div class="event-info">
-                    <strong class="tag-${event.course}">${event.course} | ${event.title}</strong>
+                    <strong class="tag-${event.course}">${displayCourseName} | ${event.title}</strong>
                     <span>📍 ${event.location}</span>
                     ${descHtml}
                 </div>
@@ -388,8 +438,9 @@
 
             document.getElementById('live-day-title').innerText = `Today's Live Timeline (${currentDayStr})`;
 
-            let todaysEvents = scheduleData.filter(e => e.day === currentDayStr && e.week === 1); 
-            if (currentCourse !== "All") todaysEvents = todaysEvents.filter(e => e.course === currentCourse);
+            // Filter for current term, current day, and default to Week 1 for now
+            let todaysEvents = masterScheduleData.filter(e => e.term === currentTerm && e.day === currentDayStr && e.week === 1); 
+            if (currentCourseFilter !== "All") todaysEvents = todaysEvents.filter(e => e.course === currentCourseFilter);
             
             if (todaysEvents.length === 0) {
                 container.innerHTML = `<p style="color:var(--text-muted);">No specific tasks scheduled for today. Hit the books or take a break!</p>`;
@@ -399,12 +450,9 @@
             todaysEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 
             todaysEvents.forEach(event => {
-                const startMins = timeToMinutes(event.start);
-                const endMins = timeToMinutes(event.end);
-                
                 let stateClass = "";
-                if (currentMins >= endMins) stateClass = "event-past";
-                else if (currentMins >= startMins && currentMins < endMins) stateClass = "event-live";
+                if (currentMins >= timeToMinutes(event.end)) stateClass = "event-past";
+                else if (currentMins >= timeToMinutes(event.start) && currentMins < timeToMinutes(event.end)) stateClass = "event-live";
 
                 container.appendChild(createCard(event, stateClass));
             });
@@ -414,11 +462,11 @@
             const display = document.getElementById('weekly-schedule-content');
             display.innerHTML = '';
 
-            let filteredData = scheduleData.filter(event => event.week === currentView);
-            if (currentCourse !== "All") filteredData = filteredData.filter(event => event.course === currentCourse);
+            let filteredData = masterScheduleData.filter(e => e.term === currentTerm && e.week === currentView);
+            if (currentCourseFilter !== "All") filteredData = filteredData.filter(e => e.course === currentCourseFilter);
 
             if (filteredData.length === 0) {
-                display.innerHTML = `<h3 style="color: var(--text-muted); text-align: center; margin-top: 50px;">No schedule data found for Week ${currentView}.</h3>`;
+                display.innerHTML = `<h3 style="color: var(--text-muted); text-align: center; margin-top: 50px;">No schedule data found for Term ${currentTerm}, Week ${currentView}.</h3>`;
                 return;
             }
 
@@ -439,8 +487,13 @@
             });
         }
 
+        // Initialize
+        updateUIForTerm();
+        updateTermChart();
+        updateLiveTimeline();
+
         setInterval(() => {
-            if (currentView === "home") updateLiveTimeline();
+            if (currentWeek === "home") updateLiveTimeline();
         }, 60000);
 
     </script>
