@@ -66,6 +66,14 @@
         .course-filter-btn:hover { border-color: var(--outline); }
         .course-filter-btn.active { border-left-color: var(--accent); background: rgba(38, 198, 218, 0.2); color: var(--text-main); }
 
+        /* Key Dates Triage */
+        .key-date-item {
+            display: flex; flex-direction: column; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-weight: 600; border-left: 4px solid; font-size: 15px;
+        }
+        .kd-red { background: rgba(255, 82, 82, 0.1); border-color: #ff5252; color: #ffb4b4; }
+        .kd-yellow { background: rgba(255, 235, 59, 0.1); border-color: #ffeb3b; color: #fff59d; }
+        .kd-green { background: rgba(76, 175, 80, 0.1); border-color: #4caf50; color: #a5d6a7; }
+
         /* Content */
         .content { flex: 1; padding: 30px; overflow-y: auto; }
         
@@ -120,8 +128,9 @@
         <!-- TERM CONTROLS -->
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
-            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="addTerm()">+</button>
-            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="renameTerm()">✎</button>
+            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="addTerm()" title="Add Term">+</button>
+            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="renameTerm()" title="Rename Term">✎</button>
+            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="setTermDate()" title="Set Start Date">📅</button>
         </div>
 
         <!-- SYDNEY CLOCK -->
@@ -140,6 +149,9 @@
             <h3>Filters</h3>
             <button class="course-filter-btn active" data-filter="All">All Subjects</button>
             <div id="dynamic-filters"></div>
+            
+            <h3 style="margin-top: 20px;">Key Dates</h3>
+            <div id="key-dates-container"></div>
         </div>
 
         <div class="content" id="main-content">
@@ -191,7 +203,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Component Type & Title</label>
-                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint" required>
+                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint, Exam" required>
                             </div>
                             <div class="form-group">
                                 <label>Day of Week</label>
@@ -271,7 +283,7 @@
         updateSydneyTime();
 
         // --- DATA MANAGEMENT (Local Storage) ---
-        const defaultTerms = [{ id: "T2-2026", name: "Term 2" }];
+        const defaultTerms = [{ id: "T2-2026", name: "Term 2", startDate: "2026-06-01" }];
         const defaultCourses = [
             { id: "MMAN1130", color: "#ff5252", termId: "T2-2026" },
             { id: "ENGG1811", color: "#448aff", termId: "T2-2026" },
@@ -280,16 +292,16 @@
         ];
         
         let terms = JSON.parse(localStorage.getItem('tp_terms')) || defaultTerms;
+        // Migration mapping for terms missing startDate
+        terms = terms.map(t => ({ ...t, startDate: t.startDate || "2026-02-16" }));
+
         let currentTermId = localStorage.getItem('tp_active_term') || terms[0].id;
-        
-        // Fetch courses and migrate older schema to have termId
         let rawCourses = JSON.parse(localStorage.getItem('tp_courses')) || defaultCourses;
         let courses = rawCourses.map(c => ({
             ...c,
             termId: c.termId || currentTermId
         }));
         
-        // Fetch events and run migration for skippedWeeks
         let rawEvents = JSON.parse(localStorage.getItem('tp_events')) || [];
         let events = rawEvents.map(e => ({
             ...e,
@@ -305,20 +317,30 @@
             localStorage.setItem('tp_events', JSON.stringify(events));
             refreshUI();
             
-            // Auto re-render schedule if we are looking at a week
             if(currentView !== "dashboard" && currentView !== "builder") {
                 renderSchedule(currentView);
             }
         }
 
+        // --- DATE MATH HELPER ---
+        function getSpecificDate(startDateStr, weekNum, dayString) {
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            const dayIndex = days.indexOf(dayString);
+            
+            // Manual parse to avoid local timezone offset shifts at midnight
+            const [y, m, d] = startDateStr.split('-').map(Number);
+            const targetDate = new Date(y, m - 1, d);
+            
+            targetDate.setDate(targetDate.getDate() + ((weekNum - 1) * 7) + dayIndex);
+            return targetDate;
+        }
+
         // --- EXCLUSION LOGIC ---
         function skipEventOccurrence(eventId, weekNum) {
             const ev = events.find(e => e.id === eventId);
-            if(ev) {
-                if(!ev.skippedWeeks.includes(weekNum.toString())) {
-                    ev.skippedWeeks.push(weekNum.toString());
-                    saveData();
-                }
+            if(ev && !ev.skippedWeeks.includes(weekNum.toString())) {
+                ev.skippedWeeks.push(weekNum.toString());
+                saveData();
             }
         }
 
@@ -339,8 +361,9 @@
         function addTerm() {
             const name = prompt("Enter new Term Name (e.g. 'Term 3'):");
             if(name && name.trim()) {
+                const sDate = prompt("Enter Term Start Date (Monday, YYYY-MM-DD):", "2026-09-14");
                 const newId = `T${Date.now()}`;
-                terms.push({ id: newId, name: name.trim() });
+                terms.push({ id: newId, name: name.trim(), startDate: sDate || "2026-09-14" });
                 currentTermId = newId;
                 saveData();
             }
@@ -355,12 +378,100 @@
             }
         }
 
+        function setTermDate() {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            const newDate = prompt("Set Term Start Date (Monday, YYYY-MM-DD):", currentTerm.startDate);
+            if(newDate && newDate.trim()) {
+                currentTerm.startDate = newDate.trim();
+                saveData();
+            }
+        }
+
+        // --- KEY DATES LOGIC ---
+        function updateKeyDates() {
+            const container = document.getElementById('key-dates-container');
+            container.innerHTML = '';
+            
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+
+            let keyDatesList = [];
+            const termEvents = events.filter(e => e.termId === currentTermId);
+
+            // Time calculation base
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            termEvents.forEach(ev => {
+                const lowerTitle = ev.title.toLowerCase();
+                if(lowerTitle.includes("exam") || lowerTitle.includes("assignment")) {
+                    
+                    // If assigned to a specific week
+                    if(ev.weeks !== "All") {
+                        const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
+                        const diffTime = targetDate - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays >= 0) {
+                            keyDatesList.push({ ev, targetDate, diffDays });
+                        }
+                    } 
+                    // If repeats all weeks (rare for an exam, but possible for weekly quizzes)
+                    else {
+                        for(let w=1; w<=10; w++) {
+                            if(!ev.skippedWeeks.includes(w.toString())) {
+                                const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
+                                const diffTime = targetDate - today;
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                
+                                if (diffDays >= 0) {
+                                    keyDatesList.push({ ev, targetDate, diffDays });
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            keyDatesList.sort((a,b) => a.diffDays - b.diffDays);
+
+            if(keyDatesList.length === 0) {
+                container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming exams or assignments detected.</span>`;
+                return;
+            }
+
+            keyDatesList.forEach(kd => {
+                const item = document.createElement('div');
+                let colorClass = 'kd-green';
+                let urgencyText = `In ${kd.diffDays} days`;
+                
+                if (kd.diffDays === 0) {
+                    colorClass = 'kd-red'; urgencyText = "TODAY";
+                } else if (kd.diffDays <= 3) {
+                    colorClass = 'kd-red';
+                } else if (kd.diffDays <= 7) {
+                    colorClass = 'kd-yellow';
+                }
+
+                const displayDate = kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'});
+                
+                item.className = `key-date-item ${colorClass}`;
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>${kd.ev.courseId} ${kd.ev.title}</span>
+                        <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
+                    </div>
+                    <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
         // --- UI REFRESH LOGIC ---
         let currentView = "dashboard";
         let currentFilter = "All";
 
         function refreshUI() {
-            // Update Term Selector
             const termSelect = document.getElementById('inp-term-selector');
             termSelect.innerHTML = '';
             terms.forEach(t => {
@@ -373,54 +484,39 @@
             const activeTermName = terms.find(t => t.id === currentTermId)?.name || "Current Term";
             document.getElementById('dash-welcome-title').innerText = `Welcome to ${activeTermName}`;
 
-            // Isolate courses for the current term
             const termCourses = courses.filter(c => c.termId === currentTermId);
-
-            // Populate Course Selects & Filters
             const selectEl = document.getElementById('inp-ev-course');
             const filterContainer = document.getElementById('dynamic-filters');
             const builderCourseList = document.getElementById('builder-course-list');
             const dashCourseList = document.getElementById('dash-course-list');
             
-            selectEl.innerHTML = '';
-            filterContainer.innerHTML = '';
-            builderCourseList.innerHTML = '';
-            dashCourseList.innerHTML = '';
+            selectEl.innerHTML = ''; filterContainer.innerHTML = '';
+            builderCourseList.innerHTML = ''; dashCourseList.innerHTML = '';
 
             termCourses.forEach(c => {
-                // Dropdown
                 const opt = document.createElement('option');
-                opt.value = c.id; opt.innerText = c.id;
-                selectEl.appendChild(opt);
+                opt.value = c.id; opt.innerText = c.id; selectEl.appendChild(opt);
 
-                // Sidebar Filters
                 const fBtn = document.createElement('button');
                 fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
-                fBtn.style.borderLeftColor = c.color;
-                fBtn.innerText = c.id;
+                fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
                 fBtn.onclick = () => {
                     document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
-                    fBtn.classList.add('active');
-                    currentFilter = c.id;
+                    fBtn.classList.add('active'); currentFilter = c.id;
                     if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
                 };
                 filterContainer.appendChild(fBtn);
 
-                // Builder Manager List
-                const li = document.createElement('li');
-                li.className = "mgmt-item";
+                const li = document.createElement('li'); li.className = "mgmt-item";
                 li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div>
                                 <button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
                 builderCourseList.appendChild(li);
 
-                // Dash List
-                const dli = document.createElement('li');
-                dli.className = "mgmt-item";
+                const dli = document.createElement('li'); dli.className = "mgmt-item";
                 dli.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span>${c.id}</div>`;
                 dashCourseList.appendChild(dli);
             });
 
-            // Populate Event Manager List (Filtered by active term)
             const eventList = document.getElementById('builder-event-list');
             eventList.innerHTML = '';
             
@@ -430,14 +526,11 @@
             termEvents.forEach(e => {
                 const cColor = termCourses.find(c => c.id === e.courseId)?.color || "#fff";
                 const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
-                
-                // Show skipped weeks warning + restore link
                 const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) 
                     ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` 
                     : "";
 
-                const li = document.createElement('li');
-                li.className = "mgmt-item";
+                const li = document.createElement('li'); li.className = "mgmt-item";
                 li.innerHTML = `
                     <div>
                         <strong style="color:${cColor}">${e.courseId}</strong> | ${e.title} <br>
@@ -449,6 +542,9 @@
             });
 
             document.getElementById('event-count').innerText = termEvents.length;
+            
+            // Render Key Dates Sidebar
+            updateKeyDates();
         }
 
         // --- CRUD ACTIONS ---
@@ -456,7 +552,6 @@
             e.preventDefault();
             const name = document.getElementById('inp-course-name').value.trim();
             const color = document.getElementById('inp-course-color').value;
-            // Prevent duplicates inside the same term
             if(!courses.find(c => c.id === name && c.termId === currentTermId)) {
                 courses.push({id: name, color: color, termId: currentTermId});
                 saveData();
@@ -483,11 +578,10 @@
                 end: document.getElementById('inp-ev-end').value,
                 location: document.getElementById('inp-ev-location').value,
                 desc: document.getElementById('inp-ev-desc').value,
-                skippedWeeks: [] // Initialize empty exclusions array
+                skippedWeeks: []
             };
             events.push(newEvent);
             saveData();
-            // Don't fully reset, keep the course/day fields to speed up multi-entry
             document.getElementById('inp-ev-title').value = '';
             document.getElementById('inp-ev-desc').value = '';
         };
@@ -499,8 +593,7 @@
 
         document.getElementById('btn-hard-reset').onclick = () => {
             if(confirm("This will delete ALL terms, courses, and events. Are you absolutely sure?")) {
-                localStorage.clear();
-                location.reload(); 
+                localStorage.clear(); location.reload(); 
             }
         };
 
@@ -534,8 +627,7 @@
                 document.getElementById('view-builder').style.display = 'block';
             } else {
                 document.getElementById('view-schedule').style.display = 'block';
-                const activeTermName = terms.find(t => t.id === currentTermId)?.name || "Current Term";
-                document.getElementById('weekly-title').innerText = `${activeTermName} - Week ${view} Plan`;
+                document.getElementById('weekly-title').innerText = `Week ${view}`;
                 renderSchedule(view);
             }
         }
@@ -550,24 +642,19 @@
         function renderSchedule(weekNum) {
             const container = document.getElementById('weekly-schedule-content');
             container.innerHTML = '';
-
-            // Step 1: Filter by current term
-            let filteredEvents = events.filter(e => e.termId === currentTermId);
             
-            // Step 2: Filter by specific course (if a filter is applied via Sidebar)
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+
+            let filteredEvents = events.filter(e => e.termId === currentTermId);
             if(currentFilter !== "All") filteredEvents = filteredEvents.filter(e => e.courseId === currentFilter);
 
-            // Step 3: Filter by week applicability AND Exclusion check
             filteredEvents = filteredEvents.filter(e => {
-                // Must belong to this week
                 if(e.weeks !== "All" && e.weeks != weekNum) return false;
-                // Exclude if this specific week was skipped
                 if(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())) return false;
-                
                 return true;
             });
 
-            // Flex Week Logic
             if(weekNum == 6 && currentFilter === "All" && events.filter(e => e.termId === currentTermId && e.weeks === "All").length > 0) {
                  const flexNotice = document.createElement('div');
                  flexNotice.className = "builder-section";
@@ -588,9 +675,13 @@
                     hasEvents = true;
                     dayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     
+                    // Calculate precise date for this day
+                    const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
+                    const dateDisplay = targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: '2-digit'});
+                    
                     const daySection = document.createElement('div');
                     daySection.className = 'day-section';
-                    daySection.innerHTML = `<h2 class="day-title">${day}</h2>`;
+                    daySection.innerHTML = `<h2 class="day-title">${day} <span style="color:var(--text-muted); font-size:18px; margin-left:10px; font-family:'Share Tech Mono';">${dateDisplay}</span></h2>`;
                     
                     dayEvents.forEach(ev => {
                         const cColor = termCourses.find(c => c.id === ev.courseId)?.color || "#fff";
@@ -599,9 +690,15 @@
                         const descHtml = ev.desc ? `<div class="event-desc">${ev.desc}</div>` : "";
                         const occurrenceBadge = ev.weeks !== "All" ? `<span style="background:var(--accent); color:var(--bg-dark); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 10px; vertical-align: middle;">Week ${ev.weeks} Only</span>` : "";
 
+                        // Highlight Logic for Exams and Assignments (Applies ~20% opacity background of the course color)
+                        let isCritical = ev.title.toLowerCase().includes("exam") || ev.title.toLowerCase().includes("assignment");
+                        let criticalBg = isCritical ? `background-color: ${cColor}33;` : '';
+
                         const card = document.createElement('div');
                         card.className = 'event-card';
                         card.style.borderLeftColor = cColor;
+                        card.style.cssText += criticalBg;
+                        
                         card.innerHTML = `
                             <div class="event-info">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -611,7 +708,7 @@
                                 <span>📍 ${ev.location}</span>
                                 ${descHtml}
                             </div>
-                            <div class="event-time" style="color:${cColor}; border-color:${cColor}">
+                            <div class="event-time" style="color:${cColor}; border-color:${cColor}; background:rgba(0,0,0,0.6);">
                                 ${displayStart}<br><span style="color:var(--text-muted); font-size:14px;">to</span><br>${displayEnd}
                             </div>
                         `;
