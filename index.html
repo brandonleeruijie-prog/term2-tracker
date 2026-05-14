@@ -146,7 +146,7 @@
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Welcome</h2>
                 <p style="color: var(--text-muted);">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term. It will automatically populate across your weeks based on your recurrence settings.</p>
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.1);">
-                    <h3 style="margin-top:0;">Your Saved Courses (Global):</h3>
+                    <h3 style="margin-top:0;">Your Saved Courses (Current Term):</h3>
                     <ul id="dash-course-list" class="mgmt-list" style="color: var(--text-muted);"></ul>
                 </div>
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.1);">
@@ -162,7 +162,7 @@
             <div id="view-builder" style="display: none;">
                 
                 <div class="builder-section">
-                    <h2>1. Define Your Courses / Routines (Global)</h2>
+                    <h2>1. Define Your Courses / Routines (Current Term)</h2>
                     <form id="form-course" style="display: flex; gap: 10px; align-items: flex-end;">
                         <div class="form-group" style="flex: 1;">
                             <label>Course Code / Routine Name</label>
@@ -268,20 +268,24 @@
         setInterval(updateSydneyTime, 1000);
         updateSydneyTime();
 
-
         // --- DATA MANAGEMENT (Local Storage) ---
         const defaultTerms = [{ id: "T2-2026", name: "Term 2" }];
         const defaultCourses = [
-            { id: "MMAN1130", color: "#ff5252" },
-            { id: "ENGG1811", color: "#448aff" },
-            { id: "ELEC1111", color: "#18ffff" },
-            { id: "Routine", color: "#888888" }
+            { id: "MMAN1130", color: "#ff5252", termId: "T2-2026" },
+            { id: "ENGG1811", color: "#448aff", termId: "T2-2026" },
+            { id: "ELEC1111", color: "#18ffff", termId: "T2-2026" },
+            { id: "Routine", color: "#888888", termId: "T2-2026" }
         ];
         
         let terms = JSON.parse(localStorage.getItem('tp_terms')) || defaultTerms;
         let currentTermId = localStorage.getItem('tp_active_term') || terms[0].id;
         
-        let courses = JSON.parse(localStorage.getItem('tp_courses')) || defaultCourses;
+        // Fetch courses and migrate older schema to have termId
+        let rawCourses = JSON.parse(localStorage.getItem('tp_courses')) || defaultCourses;
+        let courses = rawCourses.map(c => ({
+            ...c,
+            termId: c.termId || currentTermId
+        }));
         
         // Fetch events and run a quick migration for older data schema without termId or weeks
         let rawEvents = JSON.parse(localStorage.getItem('tp_events')) || [];
@@ -343,6 +347,9 @@
             const activeTermName = terms.find(t => t.id === currentTermId)?.name || "Current Term";
             document.getElementById('dash-welcome-title').innerText = `Welcome to ${activeTermName}`;
 
+            // Isolate courses for the current term
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+
             // Populate Course Selects & Filters
             const selectEl = document.getElementById('inp-ev-course');
             const filterContainer = document.getElementById('dynamic-filters');
@@ -354,7 +361,7 @@
             builderCourseList.innerHTML = '';
             dashCourseList.innerHTML = '';
 
-            courses.forEach(c => {
+            termCourses.forEach(c => {
                 // Dropdown
                 const opt = document.createElement('option');
                 opt.value = c.id; opt.innerText = c.id;
@@ -395,7 +402,7 @@
             termEvents.sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
             termEvents.forEach(e => {
-                const cColor = courses.find(c => c.id === e.courseId)?.color || "#fff";
+                const cColor = termCourses.find(c => c.id === e.courseId)?.color || "#fff";
                 const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
                 const li = document.createElement('li');
                 li.className = "mgmt-item";
@@ -417,17 +424,17 @@
             e.preventDefault();
             const name = document.getElementById('inp-course-name').value.trim();
             const color = document.getElementById('inp-course-color').value;
-            if(!courses.find(c => c.id === name)) {
-                courses.push({id: name, color: color});
+            // Prevent duplicates inside the same term
+            if(!courses.find(c => c.id === name && c.termId === currentTermId)) {
+                courses.push({id: name, color: color, termId: currentTermId});
                 saveData();
                 document.getElementById('inp-course-name').value = '';
             }
         };
 
         function deleteCourse(id) {
-            courses = courses.filter(c => c.id !== id);
-            // Optional: cascade delete events that used this course ID across all terms
-            events = events.filter(e => e.courseId !== id); 
+            courses = courses.filter(c => !(c.id === id && c.termId === currentTermId));
+            events = events.filter(e => !(e.courseId === id && e.termId === currentTermId)); 
             saveData();
         }
 
@@ -532,6 +539,8 @@
 
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             let hasEvents = false;
+            
+            const termCourses = courses.filter(c => c.termId === currentTermId);
 
             days.forEach(day => {
                 const dayEvents = filteredEvents.filter(e => e.day === day);
@@ -544,7 +553,7 @@
                     daySection.innerHTML = `<h2 class="day-title">${day}</h2>`;
                     
                     dayEvents.forEach(ev => {
-                        const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
+                        const cColor = termCourses.find(c => c.id === ev.courseId)?.color || "#fff";
                         const displayStart = format12Hour(ev.start);
                         const displayEnd = format12Hour(ev.end);
                         const descHtml = ev.desc ? `<div class="event-desc">${ev.desc}</div>` : "";
