@@ -20,9 +20,9 @@
             --text-muted: #b2ebf2; 
             --outline: #26c6da; 
             
-            --c1: #ff5252; /* Course 1 */
-            --c2: #448aff; /* Course 2 */
-            --c3: #18ffff; /* Course 3 */
+            --c1: #ff5252; /* MATH1231 / MMAN1130 */
+            --c2: #448aff; /* MMAN2700 / ENGG1811 */
+            --c3: #18ffff; /* ELEC1111 */
         }
         body {
             margin: 0;
@@ -262,32 +262,36 @@
         const masterScheduleData = [];
 
         // --- DYNAMIC DATA GENERATOR ---
+        
+        // TERM 1 BASE SCHEDULE (Built exactly from your PDF timetables & PASS sessions)
         const baseTerm1 = [
-            { day: "Monday", course: "Course1", title: "MATH1231 Lecture", start: "09:00", end: "11:00", location: "Physics Th", desc: "Focus on calculus fundamentals." },
+            { day: "Monday", course: "Course1", title: "MATH1231 Lecture", start: "09:00", end: "11:00", location: "Physics Th", desc: "Focus on calculus and algebra fundamentals." },
             { day: "Monday", course: "Course2", title: "MMAN2700 Lecture", start: "12:00", end: "14:00", location: "Burrows Th", desc: "Thermodynamics theory." },
             { day: "Monday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "Heavy lifting to reset." },
 
             { day: "Tuesday", course: "Course3", title: "ELEC1111 Lecture", start: "10:00", end: "12:00", location: "Clancy Aud", desc: "Circuit analysis theory." },
-            { day: "Tuesday", course: "Course1", title: "MATH1231 PASS Session", start: "15:00", end: "16:00", location: "Online", desc: "Peer study group. Great for exam tricks." },
-            { day: "Tuesday", course: "Course1", title: "MATH1231 Lecture", start: "16:00", end: "18:00", location: "Physics Th", desc: "Algebra concepts." },
-            { day: "Tuesday", course: "Routine", title: "Run", start: "18:00", end: "18:30", location: "Outdoors", desc: "Post-lecture sprint." },
+            { day: "Tuesday", course: "Course2", title: "MMAN2700 Lecture", start: "13:00", end: "15:00", location: "Burrows Th", desc: "Open/Closed system calculations." },
+            { day: "Tuesday", course: "Course1", title: "MATH1231 PASS", start: "15:00", end: "16:00", location: "Online (Teams)", desc: "Free group study session led by seniors. Ask about the 'H' problems." },
+            { day: "Tuesday", course: "Routine", title: "Run", start: "17:00", end: "17:30", location: "Outdoors", desc: "Post-lecture sprint." },
 
             { day: "Wednesday", course: "Course1", title: "MATH1231 Tutorial", start: "10:00", end: "11:00", location: "H13-E 2063", desc: "Work through the 'H' (Hard) problems." },
-            { day: "Wednesday", course: "Course2", title: "MMAN2700 Lecture", start: "13:00", end: "15:00", location: "Burrows Th", desc: "Open/Closed system calculations." },
+            { day: "Wednesday", course: "Course2", title: "MMAN2700 Workshop", start: "12:00", end: "13:00", location: "Griff M10", desc: "Solve example problems." },
+            { day: "Wednesday", course: "Course3", title: "ELEC1111 Workshop", start: "14:00", end: "16:00", location: "Griff M17", desc: "Tutor-led problem solving." },
             { day: "Wednesday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "Mid-week reset." },
 
             { day: "Thursday", course: "Course1", title: "MATH1231 Lecture", start: "09:00", end: "10:00", location: "Physics Th", desc: "Calculus application." },
             { day: "Thursday", course: "Course3", title: "ELEC1111 Lecture", start: "10:00", end: "12:00", location: "Clancy Aud", desc: "AC/DC and Transients." },
-            { day: "Thursday", course: "Course3", title: "ELEC1111 PASS Session", start: "12:00", end: "13:00", location: "Main Lib. 208", desc: "Collaborate on Nodal/Mesh analysis." },
-            { day: "Thursday", course: "Course1", title: "MATH1231 PASS Session", start: "14:00", end: "15:00", location: "Lawr. East 1043", desc: "Work through Maple logic." },
-            { day: "Thursday", course: "Routine", title: "Run", start: "16:30", end: "17:00", location: "Outdoors", desc: "Clear the head." },
+            { day: "Thursday", course: "Course3", title: "ELEC1111 PASS", start: "12:00", end: "13:00", location: "Main Library 208", desc: "Collaborate on Nodal/Mesh analysis." },
+            { day: "Thursday", course: "Course1", title: "MATH1231 PASS", start: "14:00", end: "15:00", location: "Lawr. East 1043", desc: "Work through Maple logic with seniors." },
+            { day: "Thursday", course: "Course1", title: "MATH1231 Lecture", start: "16:00", end: "18:00", location: "Physics Th", desc: "Algebra concepts." },
+            { day: "Thursday", course: "Routine", title: "Run", start: "18:30", end: "19:00", location: "Outdoors", desc: "Clear the head." },
 
             { day: "Friday", course: "Course3", title: "ELEC1111 Lab", start: "09:00", end: "12:00", location: "ElecEng201", desc: "Practical circuit building. Must complete pre-lab!" },
-            { day: "Friday", course: "Course2", title: "MMAN2700 Workshop", start: "12:00", end: "13:00", location: "Griff M10", desc: "Solve example problems on the board." },
-            { day: "Friday", course: "Course3", title: "ELEC1111 PASS Session", start: "13:00", end: "14:00", location: "ElecEng G23", desc: "Review the lab concepts." },
-            { day: "Friday", course: "Course3", title: "ELEC1111 Workshop", start: "14:00", end: "16:00", location: "Griff M17", desc: "Tutor-led problem solving." }
+            { day: "Friday", course: "Course3", title: "ELEC1111 PASS", start: "13:00", end: "14:00", location: "ElecEng G23", desc: "Review the lab concepts and ensure understanding." },
+            { day: "Friday", course: "Routine", title: "Gym Session", start: "18:30", end: "19:30", location: "Gym", desc: "End of week lifting." }
         ];
 
+        // TERM 2 BASE SCHEDULE
         const baseTerm2 = [
             { day: "Monday", course: "Routine", title: "Wake & Commute", start: "07:00", end: "09:00", location: "Bus", desc: "Pull espresso (58mm), Anki flashcards on the bus." },
             { day: "Monday", course: "Course3", title: "ELEC Sprint", start: "09:00", end: "11:00", location: "On-Campus", desc: "3 hard problems with a blank page." },
@@ -318,13 +322,13 @@
             if (w === 6) {
                 masterScheduleData.push({ term: 1, week: w, day: "Monday", course: "Routine", title: "Flex Week", start: "09:00", end: "17:00", location: "Anywhere", desc: "Catch up on sleep and 3D printing." });
                 masterScheduleData.push({ term: 2, week: w, day: "Monday", course: "Routine", title: "Flex Week", start: "09:00", end: "17:00", location: "Anywhere", desc: "Catch up on sleep and 3D printing." });
-                continue;
+                continue; // Skip the rest of the week
             }
             baseTerm1.forEach(ev => masterScheduleData.push({ term: 1, week: w, ...ev }));
             baseTerm2.forEach(ev => masterScheduleData.push({ term: 2, week: w, ...ev }));
         }
 
-        // Inject Term 1 Specific Peaks
+        // Inject Term 1 Specific Assessment Peaks (from Course Outlines)
         masterScheduleData.push({ term: 1, week: 3, day: "Tuesday", course: "Course2", title: "MMAN2700 Quiz 1", start: "19:00", end: "20:00", location: "Online", desc: "Covers Topic 1: Systems and Energy." });
         masterScheduleData.push({ term: 1, week: 4, day: "Tuesday", course: "Course2", title: "MMAN2700 Lab 1", start: "19:30", end: "21:00", location: "UTL 214S", desc: "Thermodynamics processes experiment." });
         masterScheduleData.push({ term: 1, week: 5, day: "Tuesday", course: "Course2", title: "MMAN2700 Quiz 2", start: "19:00", end: "20:00", location: "Online", desc: "Covers Topic 2." });
@@ -336,7 +340,7 @@
 
 
         // --- 3. STATE & NAVIGATION SETUP ---
-        let currentTerm = 2; // Default to current term
+        let currentTerm = 1; // Start on Term 1 to see the loaded data
         let currentWeek = "home"; 
         let currentCourseFilter = "All";
 
@@ -411,7 +415,7 @@
         Chart.defaults.font.family = 'Rajdhani';
 
         const ctxTerm = document.getElementById('termChart').getContext('2d');
-        const termLabels = Array.from({length: 10}, (_, i) => `Wk ${i+1}`); // Set to 10 weeks
+        const termLabels = Array.from({length: 10}, (_, i) => `Wk ${i+1}`);
         let termChart = new Chart(ctxTerm, {
             type: 'line',
             data: { labels: termLabels, datasets: [{
@@ -507,11 +511,13 @@
             const display = document.getElementById('weekly-schedule-content');
             display.innerHTML = '';
 
-            let filteredData = masterScheduleData.filter(e => e.term === currentTerm && e.week === currentView);
+            // BUG FIX: changed currentView to currentWeek
+            let filteredData = masterScheduleData.filter(e => e.term === currentTerm && e.week === currentWeek);
+            
             if (currentCourseFilter !== "All") filteredData = filteredData.filter(e => e.course === currentCourseFilter);
 
             if (filteredData.length === 0) {
-                display.innerHTML = `<h3 style="color: var(--text-muted); text-align: center; margin-top: 50px;">No schedule data found for Term ${currentTerm}, Week ${currentView}.</h3>`;
+                display.innerHTML = `<h3 style="color: var(--text-muted); text-align: center; margin-top: 50px;">No schedule data found for Term ${currentTerm}, Week ${currentWeek}.</h3>`;
                 return;
             }
 
