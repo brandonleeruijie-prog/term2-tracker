@@ -92,7 +92,7 @@
         .event-info span { color: var(--text-muted); font-size: 16px; font-weight: 600; }
         .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; }
         
-        /* Fixed Time Display using Flexbox */
+        /* Fixed Time Display */
         .event-time { 
             font-family: 'Share Tech Mono', monospace; font-size: 18px; background: rgba(0,0,0,0.4); 
             padding: 10px 15px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
@@ -188,7 +188,7 @@
                             <div class="chart-container">
                                 <canvas id="todayTimeChart"></canvas>
                             </div>
-                            <p id="empty-chart-msg" style="display: none; color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 20px;">No hours mapped.</p>
+                            <p id="empty-chart-msg" style="display: none; color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 20px;">No active hours today.</p>
                         </div>
 
                     </div>
@@ -221,7 +221,6 @@
                             <button type="submit" class="btn-submit">Add</button>
                         </div>
                     </form>
-                    <ul id="builder-course-list" class="mgmt-list"></ul>
                 </div>
 
                 <div class="builder-section">
@@ -307,6 +306,7 @@
 
     <script>
         let timeChartInstance = null;
+        let lastRenderedMinute = -1;
 
         // --- SYDNEY CLOCK & RADAR LOGIC ---
         function updateSydneyTime() {
@@ -325,21 +325,18 @@
             const formatter = new Intl.DateTimeFormat('en-AU', options);
             document.getElementById('sydney-clock').innerText = formatter.format(now);
             
-            // Check if radar needs updating (minute tick)
-            if (currentView === "dashboard") {
-                renderTodayAgenda();
+            // Only update the active states on the exact minute change to prevent loop spamming
+            const currentMinute = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' })).getMinutes();
+            if (currentView === "dashboard" && currentMinute !== lastRenderedMinute) {
+                lastRenderedMinute = currentMinute;
+                renderTodayAgenda(true); // Pass true to skip re-animating the graph
             }
         }
         setInterval(updateSydneyTime, 1000);
 
-        // --- DATA MANAGEMENT (Local Storage) ---
-        const defaultTerms = [{ id: "T2-2026", name: "Term 2", startDate: "2026-06-01" }];
-        const defaultCourses = [
-            { id: "MMAN1130", color: "#ff5252", termId: "T2-2026" },
-            { id: "ENGG1811", color: "#448aff", termId: "T2-2026" },
-            { id: "ELEC1111", color: "#18ffff", termId: "T2-2026" },
-            { id: "Routine", color: "#888888", termId: "T2-2026" }
-        ];
+        // --- DATA MANAGEMENT ---
+        const defaultTerms = [{ id: "T1-2026", name: "Term 1", startDate: "2026-02-16" }];
+        const defaultCourses = [];
         
         let terms = JSON.parse(localStorage.getItem('tp_terms')) || defaultTerms;
         terms = terms.map(t => ({ ...t, startDate: t.startDate || "2026-02-16" }));
@@ -381,18 +378,22 @@
             }
         }
 
-        // --- DATE MATH HELPER ---
+        // --- HELPER LOGIC ---
         function getSpecificDate(startDateStr, weekNum, dayString) {
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             const dayIndex = days.indexOf(dayString);
             const [y, m, d] = startDateStr.split('-').map(Number);
             const targetDate = new Date(y, m - 1, d);
-            
             targetDate.setDate(targetDate.getDate() + ((weekNum - 1) * 7) + dayIndex);
             return targetDate;
         }
 
-        // --- COLLAPSIBLE COMPONENT LIST ---
+        function getDaysDiff(d1, d2) {
+            const date1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+            const date2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+            return Math.floor((date2 - date1) / (1000 * 60 * 60 * 24));
+        }
+
         function toggleActiveComponents() {
             const container = document.getElementById('active-components-container');
             const icon = document.getElementById('collapse-icon');
@@ -488,34 +489,61 @@
         }
 
         // --- TODAY'S RADAR & GRAPH LOGIC ---
-        function renderTodayAgenda() {
+        function renderTodayAgenda(isTickUpdate = false) {
             const container = document.getElementById('dashboard-today-agenda');
             const dayLabel = document.getElementById('radar-day');
             if(!container) return;
             
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+
             container.innerHTML = '';
 
             const now = new Date();
-            const dateOptions = { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' };
-            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyToday = new Date(sY, sM - 1, sD);
             
-            const fullDateString = new Intl.DateTimeFormat('en-AU', dateOptions).format(now);
+            const [y, m, d] = currentTerm.startDate.split('-').map(Number);
+            const termStart = new Date(y, m - 1, d);
+            
+            const diffDays = getDaysDiff(termStart, sydneyToday);
+            const currentWeek = Math.floor(diffDays / 7) + 1;
+
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
             const timeFormatter = new Intl.DateTimeFormat('en-AU', timeOptions);
             const parts = timeFormatter.formatToParts(now);
             
-            // Extract day for filtering
             let currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
             let currentHour = parseInt(parts.find(p => p.type === 'hour').value);
             let currentMinute = parseInt(parts.find(p => p.type === 'minute').value);
             let currentTotalMinutes = (currentHour * 60) + currentMinute;
 
-            dayLabel.innerText = `(${fullDateString})`;
-
-            // Filter for generic specific day
-            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay);
+            const fullDateString = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
             
-            // Render Graph
-            renderTimeGraph(todayEvents);
+            // Check if we are inside the 10-week boundaries of the active term
+            if (currentWeek < 1 || currentWeek > 10) {
+                dayLabel.innerText = `(${fullDateString})`;
+                
+                if (!isTickUpdate) renderTimeGraph([]); // empty chart
+
+                container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
+                return;
+            }
+
+            dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
+
+            // Filter for events today that match the exact week constraints
+            let todayEvents = events.filter(e => {
+                if (e.termId !== currentTermId || e.day !== currentDay) return false;
+                if (e.weeks !== "All" && parseInt(e.weeks) !== currentWeek) return false;
+                if (e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())) return false;
+                return true;
+            });
+            
+            if (!isTickUpdate) {
+                renderTimeGraph(todayEvents);
+            }
 
             if (todayEvents.length === 0) {
                 container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
@@ -576,7 +604,7 @@
             });
 
             const labels = Object.keys(courseTimeMap);
-            const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); // Convert to hours
+            const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); 
             const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
 
             const ctx = document.getElementById('todayTimeChart');
@@ -770,7 +798,7 @@
             updateKeyDates();
             
             if (currentView === "dashboard") {
-                renderTodayAgenda();
+                renderTodayAgenda(false);
             }
         }
 
@@ -864,7 +892,7 @@
 
             if(view === "dashboard") {
                 document.getElementById('view-dashboard').style.display = 'block';
-                renderTodayAgenda();
+                renderTodayAgenda(false);
             } else if (view === "builder") {
                 document.getElementById('view-builder').style.display = 'block';
             } else {
