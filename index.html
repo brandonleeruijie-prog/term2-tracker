@@ -52,15 +52,16 @@
         .segmented-control {
             display: flex; flex: 1; border: 1px solid rgba(38, 198, 218, 0.4);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
+            min-width: 0; /* Prevents overflow pushing */
         }
         .segmented-control .tab-btn {
             flex: 1; background: transparent; border: none; border-radius: 0;
             border-right: 1px solid rgba(38, 198, 218, 0.4); margin: 0; padding: 6px 0;
-            text-align: center; font-size: 16px;
+            text-align: center; font-size: 16px; min-width: 0;
         }
         .segmented-control .tab-btn:last-child { border-right: none; }
         .segmented-control .tab-btn:hover { background: rgba(38, 198, 218, 0.15); color: var(--accent); }
-        .segmented-control .tab-btn.active { background: var(--accent); color: var(--bg-dark); }
+        .segmented-control .tab-btn.active { background: var(--accent); color: var(--bg-dark); font-weight: bold;}
 
         .container { display: flex; flex: 1; overflow: hidden; }
 
@@ -86,6 +87,9 @@
         .kd-green { background: rgba(76, 175, 80, 0.1); border-color: #4caf50; color: #a5d6a7; }
 
         .content { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        .day-section { margin-bottom: 30px; }
+        .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
         
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
@@ -141,6 +145,17 @@
             border: 2px dashed var(--accent); border-radius: 4px; pointer-events: none; z-index: 100;
             display: flex; align-items: center; justify-content: center;
             color: var(--accent); font-weight: bold; font-size: 14px; text-shadow: 0 0 5px black;
+        }
+        
+        /* Time Line Indicator */
+        #current-time-line {
+            position: absolute; left: 0; right: 0; height: 2px; background-color: #ff5252;
+            z-index: 50; pointer-events: none;
+            box-shadow: 0 0 8px rgba(255,82,82,0.8);
+        }
+        #current-time-line::before {
+            content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px;
+            background-color: #ff5252; border-radius: 50%;
         }
     </style>
 </head>
@@ -351,15 +366,62 @@
         let timeChartInstance = null;
         let lastRenderedMinute = -1;
 
+        // Initialize Week Tabs early to avoid vanishing UI
+        function initWeekTabs() {
+            const weekTabsContainer = document.getElementById('week-tabs-container');
+            if(weekTabsContainer.children.length === 0) {
+                for(let i=1; i<=10; i++) {
+                    const btn = document.createElement('button'); 
+                    btn.className = 'tab-btn'; 
+                    btn.innerText = `W${i}`; 
+                    btn.dataset.view = i;
+                    btn.onclick = () => switchView(i, btn); 
+                    weekTabsContainer.appendChild(btn);
+                }
+            }
+        }
+        initWeekTabs();
+
+        document.querySelectorAll('.action-btn').forEach(btn => { 
+            btn.onclick = () => switchView(btn.dataset.view, btn); 
+        });
+
+        function getCurrentCalendarWeek() {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return -1;
+            const now = new Date();
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyToday = new Date(sY, sM - 1, sD);
+            const [y, m, d] = currentTerm.startDate.split('-').map(Number);
+            const termStart = new Date(y, m - 1, d);
+            const diffDays = getDaysDiff(termStart, sydneyToday);
+            return Math.floor(diffDays / 7) + 1;
+        }
+
         function updateSydneyTime() {
             const now = new Date();
             const options = { timeZone: 'Australia/Sydney', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
             document.getElementById('sydney-clock').innerText = new Intl.DateTimeFormat('en-AU', options).format(now);
             
             const currentMinute = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' })).getMinutes();
-            if (currentView === "dashboard" && currentMinute !== lastRenderedMinute) {
+            if (currentMinute !== lastRenderedMinute) {
                 lastRenderedMinute = currentMinute;
-                renderTodayAgenda(true);
+                if (currentView === "dashboard") {
+                    renderTodayAgenda(true);
+                }
+                
+                // Update Time Line if looking at the current active week
+                if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
+                    const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+                    const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+                    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+                    let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+                    const totalMins = currentH * 60 + currentM;
+                    
+                    const timeLine = document.getElementById('current-time-line');
+                    if(timeLine) timeLine.style.top = `${totalMins * TIME_SCALE}px`;
+                }
             }
         }
         setInterval(updateSydneyTime, 1000);
@@ -866,9 +928,21 @@
         function deleteEvent(id) { events = events.filter(e => e.id !== id); if(editingEventId === id) cancelEdit(); saveData(); }
         document.getElementById('btn-hard-reset').onclick = () => { if(confirm("This will delete ALL data. Are you absolutely sure?")) { localStorage.clear(); location.reload(); } };
 
-        // --- CALENDAR GRID & DRAG LOGIC ---
+        // --- NAVIGATION & CALENDAR GRID RENDERING ---
+        function switchView(view, btnElement) {
+            document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active'); else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
+            
+            document.getElementById('view-dashboard').style.display = 'none'; document.getElementById('view-builder').style.display = 'none'; document.getElementById('view-schedule').style.display = 'none';
+            currentView = view;
+
+            if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; renderTodayAgenda(false); } 
+            else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
+            else { document.getElementById('view-schedule').style.display = 'flex'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
+        }
+
         function format12Hour(timeStr) {
-            let [h, m] = timeStr.split(':'); h = parseInt(h); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${m} ${ampm}`;
+            let [h, m] = timeStr.split(':'); h = parseInt(h); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${m.toString().padStart(2,'0')} ${ampm}`;
         }
         function timeToMinutes(timeStr) { const [h, m] = timeStr.split(':').map(Number); return h * 60 + m; }
         function minsToTimeStr(mins) {
@@ -927,14 +1001,9 @@
 
             let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
 
-            if(weekNum == 6 && currentFilter === "All" && events.filter(e => e.termId === currentTermId && e.weeks === "All").length > 0) {
-                 const flexNotice = document.createElement('div'); flexNotice.style.cssText = "text-align:center; background:rgba(38,198,218,0.1); padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--outline); flex-shrink: 0;";
-                 flexNotice.innerHTML = `<span style="color:var(--accent); font-weight: bold; margin-right: 10px;">Flexibility Week 🌴</span><span style="color:var(--text-muted); font-size:14px;">Click any block to edit, or drag to create high-yield study blocks.</span>`;
-                 container.appendChild(flexNotice);
-            }
-
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
+            // Build Calendar Grid HTML with Absolute Positioning overlay fixes
             let html = `
                 <div style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow: hidden;">
                     <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(38,198,218,0.1);">
@@ -954,9 +1023,24 @@
                             <span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span>
                          </div>`;
             }
+            
+            // Inject the Absolute Positioned Line Grid overlay
             html += `</div>
                         <div style="position: absolute; top: 0; left: 60px; right: 0; height: ${24 * 60 * TIME_SCALE}px; pointer-events: none; z-index: 1;">`;
             for(let i=0; i<24; i++) { html += `<div style="height: ${60 * TIME_SCALE}px; border-bottom: 1px solid rgba(38,198,218,0.1); box-sizing: border-box;"></div>`; }
+            
+            // Current Time Indicator Injection (If Current Week)
+            if (weekNum == getCurrentCalendarWeek()) {
+                const now = new Date();
+                const parts = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
+                let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+                let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+                const totalMins = currentH * 60 + currentM;
+                html += `<div id="current-time-line" style="position: absolute; left: 0; right: 0; top: ${totalMins * TIME_SCALE}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8);">
+                            <div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>
+                         </div>`;
+            }
+
             html += `</div>
                         <div style="display: flex; flex: 1; position: relative; height: ${24 * 60 * TIME_SCALE}px;">`;
             days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(38,198,218,0.2); z-index: 2; cursor: crosshair;"></div>`; });
@@ -1038,13 +1122,13 @@
                 });
             });
             
-            // Auto-scroll the calendar to 8:00 AM on initial load
             setTimeout(() => {
                 const calBody = document.getElementById('cal-body');
                 if(calBody) calBody.scrollTop = (8 * 60 * TIME_SCALE) - 20;
             }, 10);
         }
 
+        // Initialize Call
         updateSydneyTime(); refreshUI();
         document.querySelector('.course-filter-btn[data-filter="All"]').onclick = (e) => {
             document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
