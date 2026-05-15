@@ -27,7 +27,6 @@
             display: flex; flex-direction: column; height: 100vh;
         }
         
-        /* Top Navigation */
         .topbar {
             background-color: var(--bg-dark); padding: 10px 20px; display: flex;
             gap: 15px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); align-items: center;
@@ -50,10 +49,8 @@
         .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
         .action-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); margin-right: 10px; }
 
-        /* Main Layout */
         .container { display: flex; flex: 1; overflow: hidden; }
 
-        /* Sidebar */
         .sidebar {
             width: 250px; background-color: var(--bg-panel); padding: 20px;
             border-right: 1px solid var(--outline); display: flex; flex-direction: column; gap: 15px; overflow-y: auto;
@@ -68,7 +65,6 @@
         .course-filter-btn:hover { border-color: var(--outline); }
         .course-filter-btn.active { border-left-color: var(--accent); background: rgba(38, 198, 218, 0.2); color: var(--text-main); }
 
-        /* Key Dates Triage */
         .key-date-item {
             display: flex; flex-direction: column; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-weight: 600; border-left: 4px solid; font-size: 15px;
         }
@@ -76,16 +72,14 @@
         .kd-yellow { background: rgba(255, 235, 59, 0.1); border-color: #ffeb3b; color: #fff59d; }
         .kd-green { background: rgba(76, 175, 80, 0.1); border-color: #4caf50; color: #a5d6a7; }
 
-        /* Content */
         .content { flex: 1; padding: 30px; overflow-y: auto; }
         
         .day-section { margin-bottom: 30px; }
         .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
         
-        /* Proportional Scaling Cards */
         .event-card {
             background-color: var(--bg-panel); padding: 15px; border-radius: 8px;
-            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: stretch; /* Stretches children to full height */
+            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: stretch;
             border-left: 4px solid var(--outline); border-top: 1px solid rgba(38, 198, 218, 0.2);
             border-right: 1px solid rgba(38, 198, 218, 0.2); border-bottom: 1px solid rgba(38, 198, 218, 0.2);
             box-sizing: border-box;
@@ -95,7 +89,6 @@
         .event-info span { color: var(--text-muted); font-size: 16px; font-weight: 600; }
         .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; flex: 1;}
         
-        /* Fixed Time Display */
         .event-time { 
             font-family: 'Share Tech Mono', monospace; font-size: 18px; background: rgba(0,0,0,0.4); 
             padding: 10px 15px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
@@ -103,13 +96,11 @@
             box-sizing: border-box;
         }
 
-        /* Buttons & Forms */
         .btn-skip { background: transparent; border: none; font-size: 18px; cursor: pointer; opacity: 0.5; transition: 0.2s; padding: 0 5px; margin-left: 10px; }
         .btn-skip:hover { opacity: 1; transform: scale(1.1); }
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
         
-        /* Collapsible Header */
         .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: 0.2s; }
         .collapsible-header:hover { opacity: 0.8; }
         
@@ -126,35 +117,46 @@
         .btn-delete { background: #ff5252; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; }
         .btn-edit-list { background: #26c6da; color: var(--bg-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
 
-        /* List styling in builder */
         .mgmt-list { list-style: none; padding: 0; margin: 0; }
         .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(38, 198, 218, 0.2); }
         .color-swatch { display: inline-block; width: 15px; height: 15px; border-radius: 50%; margin-right: 10px; }
 
-        /* Animations & Graphs */
         @keyframes pulse {
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.05); opacity: 0.8; }
             100% { transform: scale(1); opacity: 1; }
         }
         .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
+
+        /* MODAL CSS */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 2000; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: var(--bg-panel); padding: 30px; border-radius: 8px; border: 1px solid var(--accent);
+            width: 90%; max-width: 650px; position: relative; box-shadow: 0 0 30px rgba(38, 198, 218, 0.2);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .close-modal {
+            position: absolute; top: 15px; right: 20px; font-size: 24px; color: var(--text-muted); 
+            background: transparent; border: none; cursor: pointer; transition: 0.2s;
+        }
+        .close-modal:hover { color: #ff5252; }
     </style>
 </head>
 <body>
 
     <div class="topbar">
         <div class="logo">🎯 <span>Tracker Pro</span></div>
-        
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="addTerm()" title="Add Term">+</button>
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="renameTerm()" title="Rename Term">✎</button>
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="setTermDate()" title="Set Start Date">📅</button>
         </div>
-
-        <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">
-            Loading...
-        </div>
+        <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">Loading...</div>
     </div>
 
     <div class="subbar" id="week-tabs">
@@ -167,7 +169,6 @@
             <h3>Filters</h3>
             <button class="course-filter-btn active" data-filter="All">All Subjects</button>
             <div id="dynamic-filters"></div>
-            
             <h3 style="margin-top: 20px;">Key Dates</h3>
             <div id="key-dates-container"></div>
         </div>
@@ -182,19 +183,13 @@
                     <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); padding-bottom: 10px;">
                         📡 Today's Radar <span id="radar-day" style="color: var(--text-muted); font-size: 18px; margin-left: 10px; font-family:'Share Tech Mono';"></span>
                     </h3>
-                    
                     <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
-                        
                         <div style="flex: 2; min-width: 350px;" id="dashboard-today-agenda"></div>
-                        
                         <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 20px; border: 1px solid rgba(38,198,218,0.2);">
                             <h4 style="margin: 0 0 15px 0; color: var(--accent); text-transform: uppercase; font-size: 16px; letter-spacing: 1px;">Daily Allocation</h4>
-                            <div class="chart-container">
-                                <canvas id="todayTimeChart"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas id="todayTimeChart"></canvas></div>
                             <p id="empty-chart-msg" style="display: none; color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 20px;">No active hours today.</p>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -224,7 +219,7 @@
                 </div>
 
                 <div class="builder-section">
-                    <h2>2. Add Schedule Component (Current Term)</h2>
+                    <h2>2. Add Master Component (Current Term)</h2>
                     <form id="form-event">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div class="form-group">
@@ -233,7 +228,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Component Type & Title</label>
-                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint, Midterm" required>
+                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint" required>
                             </div>
                             <div class="form-group">
                                 <label>Day of Week</label>
@@ -244,19 +239,14 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Occurrence (All or Specific Week)</label>
+                                <label>Occurrence</label>
                                 <select id="inp-ev-occurrence">
                                     <option value="All">Repeat: All Weeks</option>
-                                    <option value="1">Standalone: Week 1</option>
-                                    <option value="2">Standalone: Week 2</option>
-                                    <option value="3">Standalone: Week 3</option>
-                                    <option value="4">Standalone: Week 4</option>
-                                    <option value="5">Standalone: Week 5</option>
-                                    <option value="6">Standalone: Week 6</option>
-                                    <option value="7">Standalone: Week 7</option>
-                                    <option value="8">Standalone: Week 8</option>
-                                    <option value="9">Standalone: Week 9</option>
-                                    <option value="10">Standalone: Week 10</option>
+                                    <option value="1">Standalone: Week 1</option><option value="2">Standalone: Week 2</option>
+                                    <option value="3">Standalone: Week 3</option><option value="4">Standalone: Week 4</option>
+                                    <option value="5">Standalone: Week 5</option><option value="6">Standalone: Week 6</option>
+                                    <option value="7">Standalone: Week 7</option><option value="8">Standalone: Week 8</option>
+                                    <option value="9">Standalone: Week 9</option><option value="10">Standalone: Week 10</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -277,20 +267,19 @@
                             
                             <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
                                 <input type="checkbox" id="inp-ev-critical" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff5252; margin: 0;">
-                                <label for="inp-ev-critical" style="margin: 0; color: #ffb4b4; font-weight: bold; cursor: pointer; font-size: 16px;">🚨 Mark as Important (Adds to Key Dates & Highlights on Schedule)</label>
+                                <label for="inp-ev-critical" style="margin: 0; color: #ffb4b4; font-weight: bold; cursor: pointer; font-size: 16px;">🚨 Mark as Important</label>
                             </div>
-
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 15px;">
-                            <button type="submit" id="btn-submit-event" class="btn-submit" style="flex: 1;">Add to Schedule</button>
-                            <button type="button" id="btn-cancel-edit" class="btn-delete" style="display: none; padding: 10px 20px;" onclick="cancelEdit()">Cancel Edit</button>
+                            <button type="submit" id="btn-submit-event" class="btn-submit" style="flex: 1;">Add to Master Schedule</button>
+                            <button type="button" id="btn-cancel-edit" class="btn-delete" style="display: none; padding: 10px 20px;" onclick="cancelEdit()">Cancel Master Edit</button>
                         </div>
                     </form>
                 </div>
 
                 <div class="builder-section">
                     <h2 class="collapsible-header" onclick="toggleActiveComponents()">
-                        Current Active Components (This Term) 
+                        Current Active Components (Master List) 
                         <span id="collapse-icon" style="font-size: 14px; color: var(--text-muted);">▼</span>
                     </h2>
                     <div id="active-components-container">
@@ -298,9 +287,59 @@
                     </div>
                 </div>
 
-                <button id="btn-hard-reset" style="background: transparent; border: 1px solid #ff5252; color: #ff5252; padding: 10px; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani';">⚠️ Hard Reset All Data (Clear Cache)</button>
-
+                <button id="btn-hard-reset" style="background: transparent; border: 1px solid #ff5252; color: #ff5252; padding: 10px; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani';">⚠️ Hard Reset All Data</button>
             </div>
+        </div>
+    </div>
+
+    <div id="instance-edit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeInstanceModal()">✖</button>
+            <h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Edit Specific Block</h2>
+            <p id="modal-warning" style="font-size: 15px; color: #ffb4b4; background: rgba(255,82,82,0.1); padding: 8px; border-radius: 4px; display: none;">
+                ⚠️ You are editing a recurring event. Saving changes will isolate this update to <b>Week <span id="modal-week-num"></span></b> only.
+            </p>
+            
+            <form id="form-instance-edit">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                    <div class="form-group">
+                        <label>Course</label>
+                        <select id="mod-ev-course" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Component Title</label>
+                        <input type="text" id="mod-ev-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Day of Week</label>
+                        <select id="mod-ev-day">
+                            <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" id="mod-ev-location" required>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Time Block (Start & End 24H)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="time" id="mod-ev-start" required style="flex: 1;">
+                            <input type="time" id="mod-ev-end" required style="flex: 1;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Strategic Description</label>
+                        <input type="text" id="mod-ev-desc">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="mod-ev-critical" style="width: 18px; height: 18px; accent-color: #ff5252; margin: 0;">
+                        <label for="mod-ev-critical" style="margin: 0; color: #ffb4b4;">🚨 Mark as Important</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit" style="width: 100%; margin-top: 15px;">Save Isolated Changes</button>
+            </form>
         </div>
     </div>
 
@@ -308,63 +347,36 @@
         let timeChartInstance = null;
         let lastRenderedMinute = -1;
 
-        // --- SYDNEY CLOCK & RADAR LOGIC ---
         function updateSydneyTime() {
             const now = new Date();
-            const options = { 
-                timeZone: 'Australia/Sydney', 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit', 
-                hour12: true 
-            };
-            const formatter = new Intl.DateTimeFormat('en-AU', options);
-            document.getElementById('sydney-clock').innerText = formatter.format(now);
+            const options = { timeZone: 'Australia/Sydney', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+            document.getElementById('sydney-clock').innerText = new Intl.DateTimeFormat('en-AU', options).format(now);
             
-            // Only update the active states on the exact minute change to prevent loop spamming
             const currentMinute = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' })).getMinutes();
             if (currentView === "dashboard" && currentMinute !== lastRenderedMinute) {
                 lastRenderedMinute = currentMinute;
-                renderTodayAgenda(true); // Pass true to skip re-animating the graph
+                renderTodayAgenda(true);
             }
         }
         setInterval(updateSydneyTime, 1000);
 
-        // --- DATA MANAGEMENT ---
         const defaultTerms = [{ id: "T1-2026", name: "Term 1", startDate: "2026-02-16" }];
-        const defaultCourses = []; // Starts clean
-        
         let terms = JSON.parse(localStorage.getItem('tp_terms')) || defaultTerms;
         terms = terms.map(t => ({ ...t, startDate: t.startDate || "2026-02-16" }));
 
         let currentTermId = localStorage.getItem('tp_active_term') || terms[0].id;
-        let rawCourses = JSON.parse(localStorage.getItem('tp_courses')) || defaultCourses;
-        let courses = rawCourses.map(c => ({
-            ...c,
-            termId: c.termId || currentTermId
-        }));
+        let courses = JSON.parse(localStorage.getItem('tp_courses')) || [];
+        courses = courses.map(c => ({ ...c, termId: c.termId || currentTermId }));
         
-        let rawEvents = JSON.parse(localStorage.getItem('tp_events')) || [];
-        let events = rawEvents.map(e => {
-            let criticalState = e.isCritical;
-            if (criticalState === undefined) {
-                const lowerTitle = (e.title || "").toLowerCase();
-                criticalState = lowerTitle.includes("exam") || lowerTitle.includes("assignment");
-            }
-            return {
-                ...e,
-                termId: e.termId || currentTermId,
-                weeks: e.weeks || "All",
-                skippedWeeks: e.skippedWeeks || [],
-                isCritical: criticalState
-            };
-        });
+        let events = JSON.parse(localStorage.getItem('tp_events')) || [];
+        events = events.map(e => ({
+            ...e, termId: e.termId || currentTermId, weeks: e.weeks || "All", skippedWeeks: e.skippedWeeks || [],
+            isCritical: e.isCritical === undefined ? ((e.title||"").toLowerCase().includes("exam") || (e.title||"").toLowerCase().includes("assignment")) : e.isCritical
+        }));
 
-        let editingEventId = null;
+        let editingEventId = null; 
+        let modalInstanceId = null;
+        let modalInstanceWeek = null;
 
         function saveData() {
             localStorage.setItem('tp_terms', JSON.stringify(terms));
@@ -372,19 +384,14 @@
             localStorage.setItem('tp_courses', JSON.stringify(courses));
             localStorage.setItem('tp_events', JSON.stringify(events));
             refreshUI();
-            
-            if(currentView !== "dashboard" && currentView !== "builder") {
-                renderSchedule(currentView);
-            }
+            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
         }
 
-        // --- HELPER LOGIC ---
         function getSpecificDate(startDateStr, weekNum, dayString) {
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-            const dayIndex = days.indexOf(dayString);
             const [y, m, d] = startDateStr.split('-').map(Number);
             const targetDate = new Date(y, m - 1, d);
-            targetDate.setDate(targetDate.getDate() + ((weekNum - 1) * 7) + dayIndex);
+            targetDate.setDate(targetDate.getDate() + ((weekNum - 1) * 7) + days.indexOf(dayString));
             return targetDate;
         }
 
@@ -397,16 +404,10 @@
         function toggleActiveComponents() {
             const container = document.getElementById('active-components-container');
             const icon = document.getElementById('collapse-icon');
-            if (container.style.display === 'none') {
-                container.style.display = 'block';
-                icon.innerText = '▼';
-            } else {
-                container.style.display = 'none';
-                icon.innerText = '▶';
-            }
+            if (container.style.display === 'none') { container.style.display = 'block'; icon.innerText = '▼'; } 
+            else { container.style.display = 'none'; icon.innerText = '▶'; }
         }
 
-        // --- EXCLUSION & EDIT LOGIC ---
         function skipEventOccurrence(eventId, weekNum) {
             const ev = events.find(e => e.id === eventId);
             if(ev && !ev.skippedWeeks.includes(weekNum.toString())) {
@@ -417,75 +418,121 @@
 
         function restoreEvent(eventId) {
             const ev = events.find(e => e.id === eventId);
-            if(ev) {
-                ev.skippedWeeks = [];
-                saveData();
-            }
+            if(ev) { ev.skippedWeeks = []; saveData(); }
         }
 
-        function editEvent(id) {
+        // --- MASTER EDITOR (Builder Tab) ---
+        function editMasterEvent(id) {
             const ev = events.find(e => e.id === id);
             if(!ev) return;
-            
             switchView('builder');
-            
-            document.getElementById('inp-ev-course').value = ev.courseId;
-            document.getElementById('inp-ev-title').value = ev.title;
-            document.getElementById('inp-ev-day').value = ev.day;
-            document.getElementById('inp-ev-occurrence').value = ev.weeks;
-            document.getElementById('inp-ev-location').value = ev.location;
-            document.getElementById('inp-ev-start').value = ev.start;
-            document.getElementById('inp-ev-end').value = ev.end;
-            document.getElementById('inp-ev-desc').value = ev.desc;
+            document.getElementById('inp-ev-course').value = ev.courseId; document.getElementById('inp-ev-title').value = ev.title;
+            document.getElementById('inp-ev-day').value = ev.day; document.getElementById('inp-ev-occurrence').value = ev.weeks;
+            document.getElementById('inp-ev-location').value = ev.location; document.getElementById('inp-ev-start').value = ev.start;
+            document.getElementById('inp-ev-end').value = ev.end; document.getElementById('inp-ev-desc').value = ev.desc;
             document.getElementById('inp-ev-critical').checked = ev.isCritical;
-            
             editingEventId = id;
-            document.getElementById('btn-submit-event').innerText = "Update Component";
+            document.getElementById('btn-submit-event').innerText = "Update Master Component";
             document.getElementById('btn-cancel-edit').style.display = "block";
-            
             document.getElementById('form-event').scrollIntoView({behavior: "smooth"});
         }
 
         function cancelEdit() {
-            editingEventId = null;
-            document.getElementById('form-event').reset();
-            document.getElementById('btn-submit-event').innerText = "Add to Schedule";
+            editingEventId = null; document.getElementById('form-event').reset();
+            document.getElementById('btn-submit-event').innerText = "Add to Master Schedule";
             document.getElementById('btn-cancel-edit').style.display = "none";
         }
 
-        // --- TERM LOGIC ---
-        function switchTerm(newTermId) {
-            currentTermId = newTermId;
-            saveData();
+        // --- INSTANCE MODAL EDITOR (Radar & Schedule View) ---
+        function openInstanceModal(id, week) {
+            const ev = events.find(e => e.id === id);
+            if(!ev) return;
+            
+            modalInstanceId = id;
+            modalInstanceWeek = week.toString();
+            
+            document.getElementById('mod-ev-course').value = ev.courseId;
+            document.getElementById('mod-ev-title').value = ev.title;
+            document.getElementById('mod-ev-day').value = ev.day;
+            document.getElementById('mod-ev-location').value = ev.location;
+            document.getElementById('mod-ev-start').value = ev.start;
+            document.getElementById('mod-ev-end').value = ev.end;
+            document.getElementById('mod-ev-desc').value = ev.desc;
+            document.getElementById('mod-ev-critical').checked = ev.isCritical;
+
+            const warning = document.getElementById('modal-warning');
+            if(ev.weeks === "All") {
+                document.getElementById('modal-week-num').innerText = week;
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+
+            document.getElementById('instance-edit-modal').style.display = 'flex';
         }
 
+        function closeInstanceModal() {
+            document.getElementById('instance-edit-modal').style.display = 'none';
+            modalInstanceId = null; modalInstanceWeek = null;
+        }
+
+        document.getElementById('form-instance-edit').onsubmit = (e) => {
+            e.preventDefault();
+            const originalEv = events.find(ev => ev.id === modalInstanceId);
+            if(!originalEv) return;
+
+            const isolatedData = {
+                id: Date.now().toString(),
+                termId: currentTermId,
+                courseId: document.getElementById('mod-ev-course').value,
+                title: document.getElementById('mod-ev-title').value,
+                day: document.getElementById('mod-ev-day').value,
+                weeks: modalInstanceWeek, // Lock to specific week
+                location: document.getElementById('mod-ev-location').value,
+                start: document.getElementById('mod-ev-start').value,
+                end: document.getElementById('mod-ev-end').value,
+                desc: document.getElementById('mod-ev-desc').value,
+                isCritical: document.getElementById('mod-ev-critical').checked,
+                skippedWeeks: []
+            };
+
+            if (originalEv.weeks === "All") {
+                // SPLIT LOGIC: Flag original as skipped for this week, insert new clone
+                if (!originalEv.skippedWeeks.includes(modalInstanceWeek)) {
+                    originalEv.skippedWeeks.push(modalInstanceWeek);
+                }
+                events.push(isolatedData);
+            } else {
+                // UPDATE LOGIC: It's already an isolated event, just update it in place
+                isolatedData.id = originalEv.id; 
+                const idx = events.findIndex(ev => ev.id === modalInstanceId);
+                events[idx] = isolatedData;
+            }
+
+            saveData();
+            closeInstanceModal();
+        };
+
+        // --- TERM LOGIC ---
+        function switchTerm(newTermId) { currentTermId = newTermId; saveData(); }
         function addTerm() {
             const name = prompt("Enter new Term Name (e.g. 'Term 3'):");
             if(name && name.trim()) {
                 const sDate = prompt("Enter Term Start Date (Monday, YYYY-MM-DD):", "2026-09-14");
                 const newId = `T${Date.now()}`;
                 terms.push({ id: newId, name: name.trim(), startDate: sDate || "2026-09-14" });
-                currentTermId = newId;
-                saveData();
+                currentTermId = newId; saveData();
             }
         }
-
         function renameTerm() {
             const currentTerm = terms.find(t => t.id === currentTermId);
             const newName = prompt("Rename Term:", currentTerm.name);
-            if(newName && newName.trim()) {
-                currentTerm.name = newName.trim();
-                saveData();
-            }
+            if(newName && newName.trim()) { currentTerm.name = newName.trim(); saveData(); }
         }
-
         function setTermDate() {
             const currentTerm = terms.find(t => t.id === currentTermId);
             const newDate = prompt("Set Term Start Date (Monday, YYYY-MM-DD):", currentTerm.startDate);
-            if(newDate && newDate.trim()) {
-                currentTerm.startDate = newDate.trim();
-                saveData();
-            }
+            if(newDate && newDate.trim()) { currentTerm.startDate = newDate.trim(); saveData(); }
         }
 
         // --- TODAY'S RADAR & GRAPH LOGIC ---
@@ -496,14 +543,12 @@
             
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
-
             container.innerHTML = '';
 
             const now = new Date();
             const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
             const [sM, sD, sY] = sydneyDateString.split('/');
             const sydneyToday = new Date(sY, sM - 1, sD);
-            
             const [y, m, d] = currentTerm.startDate.split('-').map(Number);
             const termStart = new Date(y, m - 1, d);
             
@@ -511,39 +556,24 @@
             const currentWeek = Math.floor(diffDays / 7) + 1;
 
             const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
-            const timeFormatter = new Intl.DateTimeFormat('en-AU', timeOptions);
-            const parts = timeFormatter.formatToParts(now);
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
             
             let currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
-            let currentHour = parseInt(parts.find(p => p.type === 'hour').value);
-            let currentMinute = parseInt(parts.find(p => p.type === 'minute').value);
-            let currentTotalMinutes = (currentHour * 60) + currentMinute;
-
+            let currentTotalMinutes = (parseInt(parts.find(p => p.type === 'hour').value) * 60) + parseInt(parts.find(p => p.type === 'minute').value);
             const fullDateString = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
             
-            // Check if we are inside the 10-week boundaries of the active term
             if (currentWeek < 1 || currentWeek > 10) {
                 dayLabel.innerText = `(${fullDateString})`;
-                
-                if (!isTickUpdate) renderTimeGraph([]); // empty chart
-
+                if (!isTickUpdate) renderTimeGraph([]); 
                 container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
                 return;
             }
 
             dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
 
-            // Filter for events today that match the exact week constraints
-            let todayEvents = events.filter(e => {
-                if (e.termId !== currentTermId || e.day !== currentDay) return false;
-                if (e.weeks !== "All" && parseInt(e.weeks) !== currentWeek) return false;
-                if (e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())) return false;
-                return true;
-            });
+            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())));
             
-            if (!isTickUpdate) {
-                renderTimeGraph(todayEvents);
-            }
+            if (!isTickUpdate) renderTimeGraph(todayEvents);
 
             if (todayEvents.length === 0) {
                 container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
@@ -554,35 +584,32 @@
 
             todayEvents.forEach(ev => {
                 const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
-                const startMins = timeToMinutes(ev.start);
-                const endMins = timeToMinutes(ev.end);
-                const duration = endMins - startMins;
-                const dynamicHeight = Math.max(80, duration * 1.5); // 1.5px per minute multiplier
+                const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
+                const duration = endMins - startMins; const dynamicHeight = Math.max(80, duration * 1.5); 
                 
                 const isActiveNow = (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
                 const isPast = (currentTotalMinutes > endMins);
-
-                const displayStart = format12Hour(ev.start);
-                const displayEnd = format12Hour(ev.end);
+                const displayStart = format12Hour(ev.start); const displayEnd = format12Hour(ev.end);
                 
                 let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; min-height: ${dynamicHeight}px; box-sizing: border-box;`;
-                let statusBadge = "";
-
-                if (isActiveNow) {
-                    cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
-                    statusBadge = `<span style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; animation: pulse 2s infinite; vertical-align: middle;">ACTIVE NOW</span>`;
-                } else if (isPast) {
-                    cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
-                }
+                let statusBadge = isActiveNow ? `<span style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; animation: pulse 2s infinite; vertical-align: middle;">ACTIVE NOW</span>` : "";
+                if (isPast) cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
 
                 let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
 
                 const card = document.createElement('div');
                 card.style.cssText = cardStyle;
                 card.innerHTML = `
-                    <div style="display: flex; flex-direction: column; justify-content: flex-start;">
-                        <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px;">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                    <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px;">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                            <div>
+                                <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
+                                <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
+                            </div>
+                        </div>
                         <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">📍 ${ev.location} &nbsp;&nbsp; ${statusBadge}</div>
+                        ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
                     </div>
                     <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor};">
                         <span>${displayStart}</span>
@@ -597,14 +624,9 @@
         function renderTimeGraph(todayEvents) {
             const courseTimeMap = {};
             const termCourses = courses.filter(c => c.termId === currentTermId);
-            
             todayEvents.forEach(ev => {
-                const startMins = timeToMinutes(ev.start);
-                const endMins = timeToMinutes(ev.end);
-                const duration = endMins - startMins;
-                if (duration > 0) {
-                    courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
-                }
+                const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
             });
 
             const labels = Object.keys(courseTimeMap);
@@ -612,46 +634,17 @@
             const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
 
             const ctx = document.getElementById('todayTimeChart');
-            const emptyMsg = document.getElementById('empty-chart-msg');
-            
-            if (timeChartInstance) {
-                timeChartInstance.destroy();
-            }
+            if (timeChartInstance) timeChartInstance.destroy();
             
             if (labels.length > 0 && ctx) {
-                ctx.style.display = 'block';
-                emptyMsg.style.display = 'none';
+                ctx.style.display = 'block'; document.getElementById('empty-chart-msg').style.display = 'none';
                 timeChartInstance = new Chart(ctx, {
                     type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: bgColors,
-                            borderWidth: 0,
-                            hoverOffset: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { 
-                                position: 'bottom', 
-                                labels: { color: '#b2ebf2', font: { family: 'Rajdhani', size: 14 } } 
-                            },
-                            tooltip: { 
-                                callbacks: { 
-                                    label: function(context) { return ` ${context.label}: ${context.raw} hrs`; } 
-                                } 
-                            }
-                        },
-                        cutout: '75%'
-                    }
+                    data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#b2ebf2', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' }
                 });
             } else if (ctx) {
-                ctx.style.display = 'none';
-                emptyMsg.style.display = 'block';
+                ctx.style.display = 'none'; document.getElementById('empty-chart-msg').style.display = 'block';
             }
         }
 
@@ -659,30 +652,24 @@
         function updateKeyDates() {
             const container = document.getElementById('key-dates-container');
             container.innerHTML = '';
-            
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
 
             let keyDatesList = [];
             const termEvents = events.filter(e => e.termId === currentTermId);
-            const today = new Date();
-            today.setHours(0,0,0,0);
+            const today = new Date(); today.setHours(0,0,0,0);
 
             termEvents.forEach(ev => {
                 if(ev.isCritical) {
                     if(ev.weeks !== "All") {
                         const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
-                        const diffTime = targetDate - today;
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
+                        const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
                         if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
                     } else {
                         for(let w=1; w<=10; w++) {
                             if(!ev.skippedWeeks.includes(w.toString())) {
                                 const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
-                                const diffTime = targetDate - today;
-                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                
+                                const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
                                 if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
                             }
                         }
@@ -691,68 +678,47 @@
             });
 
             keyDatesList.sort((a,b) => a.diffDays - b.diffDays);
-
             if(keyDatesList.length === 0) {
-                container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`;
-                return;
+                container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; return;
             }
 
             keyDatesList.forEach(kd => {
                 const item = document.createElement('div');
-                let colorClass = 'kd-green';
-                let urgencyText = `In ${kd.diffDays} days`;
-                
-                if (kd.diffDays === 0) {
-                    colorClass = 'kd-red'; urgencyText = "TODAY";
-                } else if (kd.diffDays <= 3) {
-                    colorClass = 'kd-red';
-                } else if (kd.diffDays <= 7) {
-                    colorClass = 'kd-yellow';
-                }
+                let colorClass = 'kd-green'; let urgencyText = `In ${kd.diffDays} days`;
+                if (kd.diffDays === 0) { colorClass = 'kd-red'; urgencyText = "TODAY"; } 
+                else if (kd.diffDays <= 3) { colorClass = 'kd-red'; } 
+                else if (kd.diffDays <= 7) { colorClass = 'kd-yellow'; }
 
-                const displayDate = kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'});
-                
                 item.className = `key-date-item ${colorClass}`;
-                item.innerHTML = `
-                    <div style="display:flex; justify-content:space-between;">
-                        <span>${kd.ev.courseId} ${kd.ev.title}</span>
-                        <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
-                    </div>
-                    <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
-                `;
+                item.innerHTML = `<div style="display:flex; justify-content:space-between;"><span>${kd.ev.courseId} ${kd.ev.title}</span><span style="font-family:'Share Tech Mono'; font-size:14px;">${kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'})}</span></div><div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>`;
                 container.appendChild(item);
             });
         }
 
         // --- UI REFRESH LOGIC ---
-        let currentView = "dashboard";
-        let currentFilter = "All";
+        let currentView = "dashboard"; let currentFilter = "All";
 
         function refreshUI() {
-            const termSelect = document.getElementById('inp-term-selector');
-            termSelect.innerHTML = '';
+            const termSelect = document.getElementById('inp-term-selector'); termSelect.innerHTML = '';
             terms.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id; opt.innerText = t.name;
-                if(t.id === currentTermId) opt.selected = true;
-                termSelect.appendChild(opt);
+                const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name;
+                if(t.id === currentTermId) opt.selected = true; termSelect.appendChild(opt);
             });
-            
-            const activeTermName = terms.find(t => t.id === currentTermId)?.name || "Current Term";
-            document.getElementById('dash-welcome-title').innerText = `Welcome to ${activeTermName}`;
+            document.getElementById('dash-welcome-title').innerText = `Welcome to ${terms.find(t => t.id === currentTermId)?.name || "Current Term"}`;
 
             const termCourses = courses.filter(c => c.termId === currentTermId);
             const selectEl = document.getElementById('inp-ev-course');
+            const modSelectEl = document.getElementById('mod-ev-course'); // Also populate modal dropdown
             const filterContainer = document.getElementById('dynamic-filters');
+            const builderCourseList = document.getElementById('builder-course-list');
             
-            selectEl.innerHTML = ''; filterContainer.innerHTML = '';
+            selectEl.innerHTML = ''; modSelectEl.innerHTML = ''; filterContainer.innerHTML = ''; builderCourseList.innerHTML = ''; 
 
             termCourses.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id; opt.innerText = c.id; selectEl.appendChild(opt);
+                const opt = document.createElement('option'); opt.value = c.id; opt.innerText = c.id; selectEl.appendChild(opt);
+                const opt2 = document.createElement('option'); opt2.value = c.id; opt2.innerText = c.id; modSelectEl.appendChild(opt2);
 
-                const fBtn = document.createElement('button');
-                fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
+                const fBtn = document.createElement('button'); fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
                 fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
                 fBtn.onclick = () => {
                     document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
@@ -760,253 +726,156 @@
                     if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
                 };
                 filterContainer.appendChild(fBtn);
+
+                const li = document.createElement('li'); li.className = "mgmt-item";
+                li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
+                builderCourseList.appendChild(li);
             });
 
-            const eventList = document.getElementById('builder-event-list');
-            eventList.innerHTML = '';
-            
-            const termEvents = events.filter(e => e.termId === currentTermId);
-            termEvents.sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
+            const eventList = document.getElementById('builder-event-list'); eventList.innerHTML = '';
+            const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
             termEvents.forEach(e => {
                 const cColor = termCourses.find(c => c.id === e.courseId)?.color || "#fff";
                 const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
-                const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) 
-                    ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` 
-                    : "";
-                
+                const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` : "";
                 const criticalBadge = e.isCritical ? `<span style="margin-right: 5px;" title="Important Component">🚨</span>` : "";
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
-                li.innerHTML = `
-                    <div>
-                        <strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${e.title} <br>
-                        <small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small>
-                    </div>
+                li.innerHTML = `<div><strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${e.title} <br><small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
                     <div style="display:flex; gap: 8px;">
-                        <button class="btn-edit-list" onclick="editEvent('${e.id}')">Edit</button>
+                        <button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button>
                         <button class="btn-delete" onclick="deleteEvent('${e.id}')">Delete</button>
-                    </div>
-                `;
+                    </div>`;
                 eventList.appendChild(li);
             });
 
             updateKeyDates();
-            
-            if (currentView === "dashboard") {
-                renderTodayAgenda(false);
-            }
+            if (currentView === "dashboard") renderTodayAgenda(false);
         }
 
         // --- CRUD ACTIONS ---
         document.getElementById('form-course').onsubmit = (e) => {
             e.preventDefault();
             const name = document.getElementById('inp-course-name').value.trim();
-            const color = document.getElementById('inp-course-color').value;
             if(!courses.find(c => c.id === name && c.termId === currentTermId)) {
-                courses.push({id: name, color: color, termId: currentTermId});
-                saveData();
-                document.getElementById('inp-course-name').value = '';
+                courses.push({id: name, color: document.getElementById('inp-course-color').value, termId: currentTermId});
+                saveData(); document.getElementById('inp-course-name').value = '';
             }
         };
 
         function deleteCourse(id) {
             courses = courses.filter(c => !(c.id === id && c.termId === currentTermId));
-            events = events.filter(e => !(e.courseId === id && e.termId === currentTermId)); 
-            saveData();
+            events = events.filter(e => !(e.courseId === id && e.termId === currentTermId)); saveData();
         }
 
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
             const eventData = {
-                termId: currentTermId,
-                courseId: document.getElementById('inp-ev-course').value,
-                title: document.getElementById('inp-ev-title').value,
-                day: document.getElementById('inp-ev-day').value,
-                weeks: document.getElementById('inp-ev-occurrence').value,
-                start: document.getElementById('inp-ev-start').value,
-                end: document.getElementById('inp-ev-end').value,
-                location: document.getElementById('inp-ev-location').value,
-                desc: document.getElementById('inp-ev-desc').value,
+                termId: currentTermId, courseId: document.getElementById('inp-ev-course').value, title: document.getElementById('inp-ev-title').value,
+                day: document.getElementById('inp-ev-day').value, weeks: document.getElementById('inp-ev-occurrence').value, start: document.getElementById('inp-ev-start').value,
+                end: document.getElementById('inp-ev-end').value, location: document.getElementById('inp-ev-location').value, desc: document.getElementById('inp-ev-desc').value,
                 isCritical: document.getElementById('inp-ev-critical').checked
             };
 
             if (editingEventId) {
-                const existingIndex = events.findIndex(ev => ev.id === editingEventId);
-                if (existingIndex > -1) {
-                    eventData.id = editingEventId;
-                    eventData.skippedWeeks = events[existingIndex].skippedWeeks;
-                    events[existingIndex] = eventData;
-                }
+                const idx = events.findIndex(ev => ev.id === editingEventId);
+                if (idx > -1) { eventData.id = editingEventId; eventData.skippedWeeks = events[idx].skippedWeeks; events[idx] = eventData; }
                 cancelEdit();
             } else {
-                eventData.id = Date.now().toString();
-                eventData.skippedWeeks = [];
-                events.push(eventData);
-                document.getElementById('inp-ev-title').value = '';
-                document.getElementById('inp-ev-desc').value = '';
-                document.getElementById('inp-ev-critical').checked = false;
+                eventData.id = Date.now().toString(); eventData.skippedWeeks = []; events.push(eventData);
+                document.getElementById('inp-ev-title').value = ''; document.getElementById('inp-ev-desc').value = ''; document.getElementById('inp-ev-critical').checked = false;
             }
             saveData();
         };
 
-        function deleteEvent(id) {
-            events = events.filter(e => e.id !== id);
-            if(editingEventId === id) cancelEdit();
-            saveData();
-        }
-
-        document.getElementById('btn-hard-reset').onclick = () => {
-            if(confirm("This will delete ALL terms, courses, and events. Are you absolutely sure?")) {
-                localStorage.clear(); location.reload(); 
-            }
-        };
+        function deleteEvent(id) { events = events.filter(e => e.id !== id); if(editingEventId === id) cancelEdit(); saveData(); }
+        document.getElementById('btn-hard-reset').onclick = () => { if(confirm("This will delete ALL data. Are you absolutely sure?")) { localStorage.clear(); location.reload(); } };
 
         // --- NAVIGATION & RENDERING ---
         const weekTabs = document.getElementById('week-tabs');
         for(let i=1; i<=10; i++) {
-            const btn = document.createElement('button');
-            btn.className = 'tab-btn'; btn.innerText = `Week ${i}`; btn.dataset.view = i;
-            btn.onclick = () => switchView(i, btn);
-            weekTabs.appendChild(btn);
+            const btn = document.createElement('button'); btn.className = 'tab-btn'; btn.innerText = `Week ${i}`; btn.dataset.view = i;
+            btn.onclick = () => switchView(i, btn); weekTabs.appendChild(btn);
         }
 
-        document.querySelectorAll('.action-btn').forEach(btn => {
-            btn.onclick = () => switchView(btn.dataset.view, btn);
-        });
+        document.querySelectorAll('.action-btn').forEach(btn => { btn.onclick = () => switchView(btn.dataset.view, btn); });
 
         function switchView(view, btnElement) {
             document.querySelectorAll('#week-tabs button').forEach(b => b.classList.remove('active'));
-            if(btnElement) btnElement.classList.add('active');
-            else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
+            if(btnElement) btnElement.classList.add('active'); else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
             
-            document.getElementById('view-dashboard').style.display = 'none';
-            document.getElementById('view-builder').style.display = 'none';
-            document.getElementById('view-schedule').style.display = 'none';
-
+            document.getElementById('view-dashboard').style.display = 'none'; document.getElementById('view-builder').style.display = 'none'; document.getElementById('view-schedule').style.display = 'none';
             currentView = view;
 
-            if(view === "dashboard") {
-                document.getElementById('view-dashboard').style.display = 'block';
-                renderTodayAgenda(false);
-            } else if (view === "builder") {
-                document.getElementById('view-builder').style.display = 'block';
-            } else {
-                document.getElementById('view-schedule').style.display = 'block';
-                document.getElementById('weekly-title').innerText = `Week ${view}`;
-                renderSchedule(view);
-            }
+            if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; renderTodayAgenda(false); } 
+            else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
+            else { document.getElementById('view-schedule').style.display = 'block'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
         }
 
         function format12Hour(timeStr) {
-            let [h, m] = timeStr.split(':'); h = parseInt(h);
-            const ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; 
-            return `${h}:${m} ${ampm}`;
+            let [h, m] = timeStr.split(':'); h = parseInt(h); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${m} ${ampm}`;
         }
         function timeToMinutes(timeStr) { const [h, m] = timeStr.split(':').map(Number); return h * 60 + m; }
 
         function renderSchedule(weekNum) {
-            const container = document.getElementById('weekly-schedule-content');
-            container.innerHTML = '';
-            
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(!currentTerm) return;
+            const container = document.getElementById('weekly-schedule-content'); container.innerHTML = '';
+            const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
 
-            let filteredEvents = events.filter(e => e.termId === currentTermId);
-            if(currentFilter !== "All") filteredEvents = filteredEvents.filter(e => e.courseId === currentFilter);
-
-            filteredEvents = filteredEvents.filter(e => {
-                if(e.weeks !== "All" && e.weeks != weekNum) return false;
-                if(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())) return false;
-                return true;
-            });
+            let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
 
             if(weekNum == 6 && currentFilter === "All" && events.filter(e => e.termId === currentTermId && e.weeks === "All").length > 0) {
-                 const flexNotice = document.createElement('div');
-                 flexNotice.className = "builder-section";
-                 flexNotice.style.cssText = "text-align:center; background:rgba(38,198,218,0.1); padding: 15px; margin-bottom: 20px;";
-                 flexNotice.innerHTML = `<h3 style="color:var(--accent); margin:0 0 5px 0;">Flexibility Week 🌴</h3>
-                                         <p style="color:var(--text-muted); margin:0; font-size:16px;">Hit the 🚫 icon on any standard recurring classes below to clear them off the board and replace them with high-yield blocks.</p>`;
+                 const flexNotice = document.createElement('div'); flexNotice.className = "builder-section"; flexNotice.style.cssText = "text-align:center; background:rgba(38,198,218,0.1); padding: 15px; margin-bottom: 20px;";
+                 flexNotice.innerHTML = `<h3 style="color:var(--accent); margin:0 0 5px 0;">Flexibility Week 🌴</h3><p style="color:var(--text-muted); margin:0; font-size:16px;">Hit the 🚫 icon on any standard recurring classes to clear them and replace with high-yield blocks.</p>`;
                  container.appendChild(flexNotice);
             }
 
-            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-            let hasEvents = false;
-            
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]; let hasEvents = false;
             const termCourses = courses.filter(c => c.termId === currentTermId);
 
             days.forEach(day => {
                 const dayEvents = filteredEvents.filter(e => e.day === day);
                 if (dayEvents.length > 0) {
-                    hasEvents = true;
-                    dayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-                    
+                    hasEvents = true; dayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
                     const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
-                    const dateDisplay = targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: '2-digit'});
-                    
-                    const daySection = document.createElement('div');
-                    daySection.className = 'day-section';
-                    daySection.innerHTML = `<h2 class="day-title">${day} <span style="color:var(--text-muted); font-size:18px; margin-left:10px; font-family:'Share Tech Mono';">${dateDisplay}</span></h2>`;
+                    const daySection = document.createElement('div'); daySection.className = 'day-section';
+                    daySection.innerHTML = `<h2 class="day-title">${day} <span style="color:var(--text-muted); font-size:18px; margin-left:10px; font-family:'Share Tech Mono';">${targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: '2-digit'})}</span></h2>`;
                     
                     dayEvents.forEach(ev => {
                         const cColor = termCourses.find(c => c.id === ev.courseId)?.color || "#fff";
-                        const startMins = timeToMinutes(ev.start);
-                        const endMins = timeToMinutes(ev.end);
-                        const duration = endMins - startMins;
-                        const dynamicHeight = Math.max(80, duration * 1.5); // 1.5px per minute multiplier
-                        
-                        const displayStart = format12Hour(ev.start);
-                        const displayEnd = format12Hour(ev.end);
-                        const descHtml = ev.desc ? `<div class="event-desc">${ev.desc}</div>` : "";
-
+                        const dynamicHeight = Math.max(80, (timeToMinutes(ev.end) - timeToMinutes(ev.start)) * 1.5); 
                         let criticalBg = ev.isCritical ? `background-color: ${cColor}33;` : '';
                         let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
 
-                        const card = document.createElement('div');
-                        card.className = 'event-card';
-                        card.style.borderLeftColor = cColor;
-                        card.style.cssText += `min-height: ${dynamicHeight}px; box-sizing: border-box; ${criticalBg}`;
-                        
+                        const card = document.createElement('div'); card.className = 'event-card';
+                        card.style.cssText = `border-left-color: ${cColor}; min-height: ${dynamicHeight}px; box-sizing: border-box; ${criticalBg}`;
                         card.innerHTML = `
                             <div class="event-info">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <strong style="color:${cColor}">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
-                                    <div>
-                                        <button class="btn-skip" onclick="editEvent('${ev.id}')" title="Edit Component">✏️</button>
-                                        <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${weekNum}')" title="Skip this occurrence for Week ${weekNum}">🚫</button>
-                                    </div>
+                                    <div><button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${weekNum}')" title="Edit this specific instance">✏️</button><button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${weekNum}')" title="Skip this occurrence">🚫</button></div>
                                 </div>
                                 <span>📍 ${ev.location}</span>
-                                ${descHtml}
+                                ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
                             </div>
                             <div class="event-time" style="color:${cColor}; border-color:${cColor}; background:rgba(0,0,0,0.6);">
-                                <span>${displayStart}</span>
-                                <span style="color:var(--text-muted); font-size:14px; margin: 4px 0;">to</span>
-                                <span>${displayEnd}</span>
-                            </div>
-                        `;
+                                <span>${format12Hour(ev.start)}</span><span style="color:var(--text-muted); font-size:14px; margin: 4px 0;">to</span><span>${format12Hour(ev.end)}</span>
+                            </div>`;
                         daySection.appendChild(card);
                     });
                     container.appendChild(daySection);
                 }
             });
 
-            if(!hasEvents) {
-                container.innerHTML += `<p style="text-align:center; color:var(--text-muted); margin-top:50px;">No events scheduled for Week ${weekNum}. Use the Builder tab to add some.</p>`;
-            }
+            if(!hasEvents) container.innerHTML += `<p style="text-align:center; color:var(--text-muted); margin-top:50px;">No events scheduled for Week ${weekNum}.</p>`;
         }
 
-        // --- INIT ---
-        updateSydneyTime();
-        refreshUI();
-
+        updateSydneyTime(); refreshUI();
         document.querySelector('.course-filter-btn[data-filter="All"]').onclick = (e) => {
             document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            currentFilter = "All";
+            e.target.classList.add('active'); currentFilter = "All";
             if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
         };
-
     </script>
 </body>
 </html>
