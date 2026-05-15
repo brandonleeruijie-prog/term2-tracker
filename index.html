@@ -12,6 +12,9 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
             --bg-dark: #0a1414;
@@ -148,8 +151,27 @@
             color: var(--accent); font-weight: bold; font-size: 14px; text-shadow: 0 0 5px black;
         }
         
-        /* Utility */
+        /* Time Line Indicator */
+        #current-time-line {
+            position: absolute; left: 0; right: 0; height: 2px; background-color: #ff5252;
+            z-index: 50; pointer-events: none;
+            box-shadow: 0 0 8px rgba(255,82,82,0.8);
+        }
+        #current-time-line::before {
+            content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px;
+            background-color: #ff5252; border-radius: 50%;
+        }
+        
         .hidden { display: none !important; }
+        
+        /* Sync Status Indicator */
+        #sync-status {
+            font-family: 'Share Tech Mono', monospace; font-size: 14px; margin-left: 15px; color: #4caf50;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .sync-pulse {
+            width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite;
+        }
     </style>
 </head>
 <body>
@@ -163,6 +185,7 @@
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="setTermDate()" title="Set Start Date">📅</button>
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px; border-color: #ff5252; color: #ff5252;" onclick="deleteCurrentTerm()" title="Delete Term">🗑️</button>
         </div>
+        <div id="sync-status" title="Firebase Cloud Sync is Active"><div class="sync-pulse"></div> Cloud Sync</div>
         <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">Loading...</div>
     </div>
 
@@ -184,7 +207,7 @@
         <div class="content" id="main-content">
             
             <div id="view-dashboard">
-                <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Welcome</h2>
+                <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Loading Database...</h2>
                 <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term. It will automatically populate across your weeks based on your recurrence settings.</p>
                 
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.05); border-color: var(--accent); padding: 25px;">
@@ -210,8 +233,8 @@
             <div id="view-builder" style="display: none;">
                 
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.05);">
-                    <h2 style="font-size: 18px;">💾 Data Management</h2>
-                    <p style="color: var(--text-muted); font-size: 14px; margin-top: 0;">Backup your database or import a saved snapshot.</p>
+                    <h2 style="font-size: 18px;">💾 Data Management (Cloud Synced)</h2>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-top: 0;">Backup your Firestore database or migrate a legacy JSON snapshot into the cloud.</p>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-submit" style="background: #4caf50; font-size: 14px;" onclick="exportData()">⬇️ Export JSON</button>
                         <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importData(event)">
@@ -310,7 +333,7 @@
                     </div>
                 </div>
 
-                <button id="btn-hard-reset" style="background: transparent; border: 1px solid #ff5252; color: #ff5252; padding: 10px; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani';">⚠️ Hard Reset All Data</button>
+                <button id="btn-hard-reset" style="background: transparent; border: 1px solid #ff5252; color: #ff5252; padding: 10px; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani';">⚠️ Hard Reset Cloud Database</button>
             </div>
         </div>
     </div>
@@ -375,10 +398,83 @@
     </div>
 
     <script>
+        // --- FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzQghlZIMFFhxj4szLWyE461qXkWsdQFo",
+            authDomain: "master-planner-6687b.firebaseapp.com",
+            projectId: "master-planner-6687b",
+            storageBucket: "master-planner-6687b.firebasestorage.app",
+            messagingSenderId: "1035219779102",
+            appId: "1:1035219779102:web:f761fef6fd46ade3ef780f"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Enable offline persistence
+        db.enablePersistence().catch(function(err) {
+            console.log("Firebase Persistence Error: ", err.code);
+        });
+
+        // Global Data Stores
+        let terms = [];
+        let courses = [];
+        let events = [];
+        let currentTermId = localStorage.getItem('tp_active_term') || null;
+        let loaders = { terms: false, courses: false, events: false };
+
         const TIME_SCALE = 1.2; 
         let timeChartInstance = null;
         let activeTimers = {};
+        let lastRenderedMinute = -1;
+        let currentView = "dashboard"; 
+        let currentFilter = "All";
 
+        let editingEventId = null; 
+        let modalInstanceId = null;
+        let modalInstanceWeek = null;
+
+        // --- REAL-TIME LISTENERS ---
+        function checkLoaders() {
+            if(loaders.terms && loaders.courses && loaders.events) {
+                if(terms.length === 0) {
+                    const defaultId = `T${Date.now()}`;
+                    db.collection('terms').doc(defaultId).set({ id: defaultId, name: "Term 1", startDate: "2026-02-16" });
+                } else {
+                    if (!currentTermId || !terms.find(t => t.id === currentTermId)) {
+                        currentTermId = terms[0].id;
+                        localStorage.setItem('tp_active_term', currentTermId);
+                    }
+                    refreshUI();
+                    if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+                }
+            }
+        }
+
+        db.collection("terms").onSnapshot(snapshot => {
+            terms = snapshot.docs.map(doc => doc.data());
+            loaders.terms = true; checkLoaders();
+        });
+
+        db.collection("courses").onSnapshot(snapshot => {
+            courses = snapshot.docs.map(doc => doc.data());
+            loaders.courses = true; checkLoaders();
+        });
+
+        db.collection("events").onSnapshot(snapshot => {
+            events = snapshot.docs.map(doc => {
+                let e = doc.data();
+                return {
+                    ...e,
+                    weeks: e.weeks || "All", 
+                    skippedWeeks: e.skippedWeeks || [],
+                    isCritical: e.isCritical || false,
+                    weight: e.weight || null
+                };
+            });
+            loaders.events = true; checkLoaders();
+        });
+
+        // --- UI SETUP ---
         function initWeekTabs() {
             const weekTabsContainer = document.getElementById('week-tabs-container');
             if(weekTabsContainer.children.length === 0) {
@@ -412,7 +508,6 @@
         }
 
         // --- TICK ENGINE ---
-        let lastRenderedMinute = -1;
         function updateSydneyTime() {
             const now = new Date();
             const options = { timeZone: 'Australia/Sydney', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
@@ -422,7 +517,7 @@
             
             if (currentMinute !== lastRenderedMinute) {
                 lastRenderedMinute = currentMinute;
-                if (currentView === "dashboard") { renderTodayAgenda(true); }
+                if (currentView === "dashboard" && loaders.events) { renderTodayAgenda(true); }
                 
                 if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
                     const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -434,7 +529,6 @@
                     if(timeLine) timeLine.style.top = `${totalMins * TIME_SCALE}px`;
                 }
             }
-
             updateActiveTimers(now);
         }
         setInterval(updateSydneyTime, 1000);
@@ -464,27 +558,7 @@
             }
         }
 
-        const defaultTerms = [{ id: "T1-2026", name: "Term 1", startDate: "2026-02-16" }];
-        let terms = JSON.parse(localStorage.getItem('tp_terms')) || defaultTerms;
-        terms = terms.map(t => ({ ...t, startDate: t.startDate || "2026-02-16" }));
-
-        let currentTermId = localStorage.getItem('tp_active_term') || terms[0].id;
-        if (!terms.find(t => t.id === currentTermId)) { currentTermId = terms[0].id; }
-
-        let courses = JSON.parse(localStorage.getItem('tp_courses')) || [];
-        courses = courses.map(c => ({ ...c, termId: c.termId || currentTermId }));
-        
-        let events = JSON.parse(localStorage.getItem('tp_events')) || [];
-        events = events.map(e => ({
-            ...e, termId: e.termId || currentTermId, weeks: e.weeks || "All", skippedWeeks: e.skippedWeeks || [],
-            isCritical: e.isCritical === undefined ? ((e.title||"").toLowerCase().includes("exam") || (e.title||"").toLowerCase().includes("assignment")) : e.isCritical,
-            weight: e.weight || null
-        }));
-
-        let editingEventId = null; 
-        let modalInstanceId = null;
-        let modalInstanceWeek = null;
-
+        // --- HELPER LOGIC ---
         function toggleWeightInput(containerId, isChecked) {
             const container = document.getElementById(containerId);
             if(isChecked) {
@@ -495,12 +569,11 @@
             }
         }
 
-        // --- FAILSAFE DATA EXPORT/IMPORT ---
         function exportData() {
             const dataObj = { terms, courses, events };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj));
             const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href",     dataStr);
+            downloadAnchorNode.setAttribute("href", dataStr);
             downloadAnchorNode.setAttribute("download", "master_planner_backup.json");
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
@@ -511,30 +584,21 @@
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const dataObj = JSON.parse(e.target.result);
                     if(dataObj.terms && dataObj.courses && dataObj.events) {
-                        terms = dataObj.terms;
-                        courses = dataObj.courses;
-                        events = dataObj.events;
-                        currentTermId = terms[0].id;
-                        saveData();
-                        alert("Database successfully restored.");
+                        const batch = db.batch();
+                        dataObj.terms.forEach(t => batch.set(db.collection('terms').doc(t.id), t));
+                        dataObj.courses.forEach(c => batch.set(db.collection('courses').doc(c.termId + "_" + c.id), c));
+                        dataObj.events.forEach(ev => batch.set(db.collection('events').doc(ev.id), ev));
+                        await batch.commit();
+                        alert("Database successfully restored from JSON.");
                     } else { alert("Invalid file structure."); }
-                } catch (err) { alert("Error parsing JSON file."); }
-                event.target.value = '';
+                } catch (err) { alert("Error parsing JSON file."); console.error(err); }
+                event.target.value = ''; 
             };
             reader.readAsText(file);
-        }
-
-        function saveData() {
-            localStorage.setItem('tp_terms', JSON.stringify(terms));
-            localStorage.setItem('tp_active_term', currentTermId);
-            localStorage.setItem('tp_courses', JSON.stringify(courses));
-            localStorage.setItem('tp_events', JSON.stringify(events));
-            refreshUI();
-            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
         }
 
         function getSpecificDate(startDateStr, weekNum, dayString) {
@@ -558,17 +622,18 @@
             else { container.style.display = 'none'; icon.innerText = '▶'; }
         }
 
+        // --- FIRESTORE DELETION / SKIPPING LOGIC ---
         function skipEventOccurrence(eventId, weekNum) {
             const ev = events.find(e => e.id === eventId);
             if(ev) {
                 if(ev.weeks === "All") {
-                    if(!ev.skippedWeeks.includes(weekNum.toString())) {
-                        ev.skippedWeeks.push(weekNum.toString());
-                        saveData();
+                    let newSkipped = [...ev.skippedWeeks];
+                    if(!newSkipped.includes(weekNum.toString())) {
+                        newSkipped.push(weekNum.toString());
+                        db.collection('events').doc(eventId).update({ skippedWeeks: newSkipped });
                     }
                 } else {
-                    events = events.filter(e => e.id !== eventId);
-                    saveData();
+                    db.collection('events').doc(eventId).delete();
                 }
             }
         }
@@ -580,11 +645,6 @@
             }
         }
 
-        function restoreEvent(eventId) {
-            const ev = events.find(e => e.id === eventId);
-            if(ev) { ev.skippedWeeks = []; saveData(); }
-        }
-
         // --- MASTER EDITOR (Builder Tab) ---
         function editMasterEvent(id) {
             const ev = events.find(e => e.id === id);
@@ -592,8 +652,8 @@
             switchView('builder');
             document.getElementById('inp-ev-course').value = ev.courseId; document.getElementById('inp-ev-title').value = ev.title;
             document.getElementById('inp-ev-day').value = ev.day; document.getElementById('inp-ev-occurrence').value = ev.weeks;
-            document.getElementById('inp-ev-location').value = ev.location; document.getElementById('inp-ev-start').value = ev.start;
-            document.getElementById('inp-ev-end').value = ev.end; document.getElementById('inp-ev-desc').value = ev.desc;
+            document.getElementById('inp-ev-location').value = ev.location || ""; document.getElementById('inp-ev-start').value = ev.start;
+            document.getElementById('inp-ev-end').value = ev.end; document.getElementById('inp-ev-desc').value = ev.desc || "";
             
             const isCrit = ev.isCritical;
             document.getElementById('inp-ev-critical').checked = isCrit;
@@ -623,10 +683,10 @@
             document.getElementById('mod-ev-course').value = ev.courseId;
             document.getElementById('mod-ev-title').value = ev.title;
             document.getElementById('mod-ev-day').value = ev.day;
-            document.getElementById('mod-ev-location').value = ev.location;
+            document.getElementById('mod-ev-location').value = ev.location || "";
             document.getElementById('mod-ev-start').value = ev.start;
             document.getElementById('mod-ev-end').value = ev.end;
-            document.getElementById('mod-ev-desc').value = ev.desc;
+            document.getElementById('mod-ev-desc').value = ev.desc || "";
             
             const isCrit = ev.isCritical;
             document.getElementById('mod-ev-critical').checked = isCrit;
@@ -673,74 +733,88 @@
             const isCrit = document.getElementById('mod-ev-critical').checked;
             const weightVal = document.getElementById('mod-ev-weight').value;
 
+            const finalData = {
+                termId: currentTermId,
+                courseId: document.getElementById('mod-ev-course').value,
+                title: document.getElementById('mod-ev-title').value,
+                day: document.getElementById('mod-ev-day').value,
+                weeks: modalInstanceWeek,
+                location: document.getElementById('mod-ev-location').value,
+                start: document.getElementById('mod-ev-start').value,
+                end: document.getElementById('mod-ev-end').value,
+                desc: document.getElementById('mod-ev-desc').value,
+                isCritical: isCrit, 
+                weight: isCrit && weightVal ? parseInt(weightVal) : null,
+                skippedWeeks: []
+            };
+
             if (modalInstanceId) {
                 const originalEv = events.find(ev => ev.id === modalInstanceId);
                 if(!originalEv) return;
 
-                const isolatedData = {
-                    id: Date.now().toString(), termId: currentTermId, courseId: document.getElementById('mod-ev-course').value,
-                    title: document.getElementById('mod-ev-title').value, day: document.getElementById('mod-ev-day').value,
-                    weeks: modalInstanceWeek, location: document.getElementById('mod-ev-location').value,
-                    start: document.getElementById('mod-ev-start').value, end: document.getElementById('mod-ev-end').value,
-                    desc: document.getElementById('mod-ev-desc').value, isCritical: isCrit, weight: isCrit && weightVal ? parseInt(weightVal) : null,
-                    skippedWeeks: []
-                };
-
                 if (originalEv.weeks === "All") {
-                    if (!originalEv.skippedWeeks.includes(modalInstanceWeek)) originalEv.skippedWeeks.push(modalInstanceWeek);
-                    events.push(isolatedData);
+                    // Split
+                    let newSkipped = [...originalEv.skippedWeeks];
+                    if (!newSkipped.includes(modalInstanceWeek)) {
+                        newSkipped.push(modalInstanceWeek);
+                        db.collection('events').doc(originalEv.id).update({ skippedWeeks: newSkipped });
+                    }
+                    finalData.id = Date.now().toString();
+                    db.collection('events').doc(finalData.id).set(finalData);
                 } else {
-                    isolatedData.id = originalEv.id; 
-                    const idx = events.findIndex(ev => ev.id === modalInstanceId);
-                    events[idx] = isolatedData;
+                    // Update isolated
+                    finalData.id = originalEv.id; 
+                    db.collection('events').doc(finalData.id).set(finalData);
                 }
             } else {
-                const newData = {
-                    id: Date.now().toString(), termId: currentTermId, courseId: document.getElementById('mod-ev-course').value,
-                    title: document.getElementById('mod-ev-title').value, day: document.getElementById('mod-ev-day').value,
-                    weeks: modalInstanceWeek, location: document.getElementById('mod-ev-location').value,
-                    start: document.getElementById('mod-ev-start').value, end: document.getElementById('mod-ev-end').value,
-                    desc: document.getElementById('mod-ev-desc').value, isCritical: isCrit, weight: isCrit && weightVal ? parseInt(weightVal) : null,
-                    skippedWeeks: []
-                };
-                events.push(newData);
+                // Create new
+                finalData.id = Date.now().toString();
+                db.collection('events').doc(finalData.id).set(finalData);
             }
-
-            saveData();
             closeInstanceModal();
         };
 
         // --- TERM LOGIC ---
-        function switchTerm(newTermId) { currentTermId = newTermId; saveData(); }
+        function switchTerm(newTermId) { 
+            currentTermId = newTermId; 
+            localStorage.setItem('tp_active_term', currentTermId);
+            refreshUI(); 
+            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+        }
         function addTerm() {
             const name = prompt("Enter new Term Name (e.g. 'Term 3'):");
             if(name && name.trim()) {
                 const sDate = prompt("Enter Term Start Date (Monday, YYYY-MM-DD):", "2026-09-14");
                 const newId = `T${Date.now()}`;
-                terms.push({ id: newId, name: name.trim(), startDate: sDate || "2026-09-14" });
-                currentTermId = newId; saveData();
+                db.collection('terms').doc(newId).set({ id: newId, name: name.trim(), startDate: sDate || "2026-09-14" }).then(()=>{
+                    currentTermId = newId; localStorage.setItem('tp_active_term', currentTermId);
+                });
             }
         }
         function renameTerm() {
             const currentTerm = terms.find(t => t.id === currentTermId);
             const newName = prompt("Rename Term:", currentTerm.name);
-            if(newName && newName.trim()) { currentTerm.name = newName.trim(); saveData(); }
+            if(newName && newName.trim()) { db.collection('terms').doc(currentTermId).update({ name: newName.trim() }); }
         }
         function setTermDate() {
             const currentTerm = terms.find(t => t.id === currentTermId);
             const newDate = prompt("Set Term Start Date (Monday, YYYY-MM-DD):", currentTerm.startDate);
-            if(newDate && newDate.trim()) { currentTerm.startDate = newDate.trim(); saveData(); }
+            if(newDate && newDate.trim()) { db.collection('terms').doc(currentTermId).update({ startDate: newDate.trim() }); }
         }
-        function deleteCurrentTerm() {
+        async function deleteCurrentTerm() {
             if(terms.length === 1) {
                 alert("You cannot delete your only term. Add a new term first before deleting this one."); return;
             }
             const currentTerm = terms.find(t => t.id === currentTermId);
-            if(confirm(`Are you sure you want to delete '${currentTerm.name}'? This will permanently erase ALL courses and schedule blocks associated with this term.`)) {
-                terms = terms.filter(t => t.id !== currentTermId);
-                courses = courses.filter(c => c.termId !== currentTermId);
-                events = events.filter(e => e.termId !== currentTermId);
-                currentTermId = terms[0].id; saveData();
+            if(confirm(`Are you sure you want to delete '${currentTerm.name}'? This will permanently erase ALL courses and schedule blocks associated with this term from the cloud.`)) {
+                const batch = db.batch();
+                batch.delete(db.collection('terms').doc(currentTermId));
+                courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                events.filter(e => e.termId === currentTermId).forEach(e => batch.delete(db.collection('events').doc(e.id)));
+                
+                await batch.commit();
+                currentTermId = terms.filter(t => t.id !== currentTermId)[0].id; 
+                localStorage.setItem('tp_active_term', currentTermId);
             }
         }
 
@@ -752,7 +826,6 @@
             
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
-            
             if(!isTickUpdate) { container.innerHTML = ''; activeTimers = {}; }
 
             const now = new Date();
@@ -839,6 +912,8 @@
                         activeTimers[ev.id] = { endMins: endMins, element: document.getElementById(`timer-${ev.id}`) };
                     }
                 });
+                // Initialize timers immediately
+                updateActiveTimers(now);
             }
         }
 
@@ -926,8 +1001,6 @@
         }
 
         // --- UI REFRESH LOGIC ---
-        let currentView = "dashboard"; let currentFilter = "All";
-
         function refreshUI() {
             const termSelect = document.getElementById('inp-term-selector'); termSelect.innerHTML = '';
             terms.forEach(t => {
@@ -982,7 +1055,7 @@
                 li.innerHTML = `<div><strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${e.title} <br><small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
                     <div style="display:flex; gap: 8px;">
                         <button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button>
-                        <button class="btn-delete" onclick="deleteEvent('${e.id}')">Delete</button>
+                        <button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button>
                     </div>`;
                 if(eventList) eventList.appendChild(li);
             });
@@ -991,19 +1064,20 @@
             if (currentView === "dashboard") renderTodayAgenda(false);
         }
 
-        // --- CRUD ACTIONS ---
+        // --- CRUD ACTIONS (FIRESTORE) ---
         document.getElementById('form-course').onsubmit = (e) => {
             e.preventDefault();
             const name = document.getElementById('inp-course-name').value.trim();
+            const docId = currentTermId + "_" + name;
             if(!courses.find(c => c.id === name && c.termId === currentTermId)) {
-                courses.push({id: name, color: document.getElementById('inp-course-color').value, termId: currentTermId});
-                saveData(); document.getElementById('inp-course-name').value = '';
+                db.collection('courses').doc(docId).set({id: name, color: document.getElementById('inp-course-color').value, termId: currentTermId})
+                  .then(() => document.getElementById('inp-course-name').value = '');
             }
         };
 
         function deleteCourse(id) {
-            courses = courses.filter(c => !(c.id === id && c.termId === currentTermId));
-            events = events.filter(e => !(e.courseId === id && e.termId === currentTermId)); saveData();
+            db.collection('courses').doc(currentTermId + "_" + id).delete();
+            events.filter(e => e.courseId === id && e.termId === currentTermId).forEach(e => db.collection('events').doc(e.id).delete());
         }
 
         document.getElementById('form-event').onsubmit = (e) => {
@@ -1020,18 +1094,30 @@
 
             if (editingEventId) {
                 const idx = events.findIndex(ev => ev.id === editingEventId);
-                if (idx > -1) { eventData.id = editingEventId; eventData.skippedWeeks = events[idx].skippedWeeks; events[idx] = eventData; }
+                if (idx > -1) { 
+                    eventData.id = editingEventId; eventData.skippedWeeks = events[idx].skippedWeeks; 
+                    db.collection('events').doc(editingEventId).set(eventData);
+                }
                 cancelEdit();
             } else {
-                eventData.id = Date.now().toString(); eventData.skippedWeeks = []; events.push(eventData);
-                document.getElementById('inp-ev-title').value = ''; document.getElementById('inp-ev-desc').value = ''; 
-                document.getElementById('inp-ev-critical').checked = false; toggleWeightInput('inp-ev-weight-container', false);
+                eventData.id = Date.now().toString(); eventData.skippedWeeks = []; 
+                db.collection('events').doc(eventData.id).set(eventData).then(() => {
+                    document.getElementById('inp-ev-title').value = ''; document.getElementById('inp-ev-desc').value = ''; 
+                    document.getElementById('inp-ev-critical').checked = false; toggleWeightInput('inp-ev-weight-container', false);
+                });
             }
-            saveData();
         };
 
-        function deleteEvent(id) { events = events.filter(e => e.id !== id); if(editingEventId === id) cancelEdit(); saveData(); }
-        document.getElementById('btn-hard-reset').onclick = () => { if(confirm("This will delete ALL data. Are you absolutely sure?")) { localStorage.clear(); location.reload(); } };
+        document.getElementById('btn-hard-reset').onclick = async () => { 
+            if(confirm("This will permanently delete ALL data from the cloud. Are you absolutely sure?")) { 
+                const batch = db.batch();
+                terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
+                courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                events.forEach(e => batch.delete(db.collection('events').doc(e.id)));
+                await batch.commit();
+                localStorage.clear(); location.reload(); 
+            } 
+        };
 
         // --- CALENDAR GRID & DRAG LOGIC ---
         function switchView(view, btnElement) {
@@ -1227,7 +1313,6 @@
                 col.appendChild(eventCard);
             });
 
-            // ATTACH DRAG LISTENERS
             document.querySelectorAll('.day-column').forEach(col => {
                 col.addEventListener('mousedown', function(e) {
                     if(e.button !== 0) return; 
@@ -1266,13 +1351,6 @@
             }, 10);
         }
 
-        // Initialize Call
-        updateSydneyTime(); refreshUI();
-        document.querySelector('.course-filter-btn[data-filter="All"]').onclick = (e) => {
-            document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active'); currentFilter = "All";
-            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
-        };
     </script>
 </body>
 </html>
