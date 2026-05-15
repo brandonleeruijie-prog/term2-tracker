@@ -52,7 +52,7 @@
         .segmented-control {
             display: flex; flex: 1; border: 1px solid rgba(38, 198, 218, 0.4);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
-            min-width: 0; /* Prevents overflow pushing */
+            min-width: 0;
         }
         .segmented-control .tab-btn {
             flex: 1; background: transparent; border: none; border-radius: 0;
@@ -91,6 +91,27 @@
         .day-section { margin-bottom: 30px; }
         .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
         
+        .event-card {
+            background-color: var(--bg-panel); padding: 15px; border-radius: 8px;
+            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: stretch;
+            border-left: 4px solid var(--outline); border-top: 1px solid rgba(38, 198, 218, 0.2);
+            border-right: 1px solid rgba(38, 198, 218, 0.2); border-bottom: 1px solid rgba(38, 198, 218, 0.2);
+            box-sizing: border-box;
+        }
+        .event-info { flex: 1; padding-right: 15px; display: flex; flex-direction: column; justify-content: flex-start; }
+        .event-info strong { display: block; font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+        .event-info span { color: var(--text-muted); font-size: 16px; font-weight: 600; }
+        .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; flex: 1;}
+        
+        .event-time { 
+            font-family: 'Share Tech Mono', monospace; font-size: 18px; background: rgba(0,0,0,0.4); 
+            padding: 10px 15px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 90px;
+            box-sizing: border-box;
+        }
+
+        .btn-skip { background: transparent; border: none; font-size: 18px; cursor: pointer; opacity: 0.5; transition: 0.2s; padding: 0 5px; margin-left: 10px; }
+        .btn-skip:hover { opacity: 1; transform: scale(1.1); }
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
         
@@ -145,17 +166,6 @@
             border: 2px dashed var(--accent); border-radius: 4px; pointer-events: none; z-index: 100;
             display: flex; align-items: center; justify-content: center;
             color: var(--accent); font-weight: bold; font-size: 14px; text-shadow: 0 0 5px black;
-        }
-        
-        /* Time Line Indicator */
-        #current-time-line {
-            position: absolute; left: 0; right: 0; height: 2px; background-color: #ff5252;
-            z-index: 50; pointer-events: none;
-            box-shadow: 0 0 8px rgba(255,82,82,0.8);
-        }
-        #current-time-line::before {
-            content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px;
-            background-color: #ff5252; border-radius: 50%;
         }
     </style>
 </head>
@@ -266,7 +276,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Location</label>
-                                <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204" required>
+                                <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204">
                             </div>
                             <div class="form-group">
                                 <label>Time Block (Start & End 24H)</label>
@@ -335,7 +345,7 @@
                     </div>
                     <div class="form-group">
                         <label>Location</label>
-                        <input type="text" id="mod-ev-location" required>
+                        <input type="text" id="mod-ev-location">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Time Block (Start & End 24H)</label>
@@ -366,7 +376,6 @@
         let timeChartInstance = null;
         let lastRenderedMinute = -1;
 
-        // Initialize Week Tabs early to avoid vanishing UI
         function initWeekTabs() {
             const weekTabsContainer = document.getElementById('week-tabs-container');
             if(weekTabsContainer.children.length === 0) {
@@ -407,11 +416,12 @@
             const currentMinute = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' })).getMinutes();
             if (currentMinute !== lastRenderedMinute) {
                 lastRenderedMinute = currentMinute;
+                
                 if (currentView === "dashboard") {
                     renderTodayAgenda(true);
                 }
                 
-                // Update Time Line if looking at the current active week
+                // Update Time Line position if looking at the active week
                 if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
                     const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
                     const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
@@ -735,7 +745,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
                         </div>
-                        <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">📍 ${ev.location} &nbsp;&nbsp; ${statusBadge}</div>
+                        <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">📍 ${ev.location || "Location not set"} &nbsp;&nbsp; ${statusBadge}</div>
                         ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
                     </div>
                     <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
@@ -1001,12 +1011,18 @@
 
             let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
 
+            if(weekNum == 6 && currentFilter === "All" && events.filter(e => e.termId === currentTermId && e.weeks === "All").length > 0) {
+                 const flexNotice = document.createElement('div'); flexNotice.style.cssText = "text-align:center; background:rgba(38,198,218,0.1); padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--outline); flex-shrink: 0;";
+                 flexNotice.innerHTML = `<span style="color:var(--accent); font-weight: bold; margin-right: 10px;">Flexibility Week 🌴</span><span style="color:var(--text-muted); font-size:14px;">Click any block to edit, or drag to create high-yield study blocks.</span>`;
+                 container.appendChild(flexNotice);
+            }
+
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
-            // Build Calendar Grid HTML with Absolute Positioning overlay fixes
+            // Build Calendar Grid HTML with Layout Fixes
             let html = `
-                <div style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow: hidden;">
-                    <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(38,198,218,0.1);">
+                <div id="cal-scroll-container" style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; position: relative;">
+                    <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(17, 34, 34, 0.95); backdrop-filter: blur(5px); position: sticky; top: 0; z-index: 100;">
                         <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline);"></div>
             `;
             days.forEach(day => {
@@ -1016,37 +1032,40 @@
                          </div>`;
             });
             html += `</div>
-                    <div id="cal-body" style="display: flex; flex: 1; overflow-y: auto; position: relative;">
-                        <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; height: ${24 * 60 * TIME_SCALE}px;">`;
+                    <div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * 60 * TIME_SCALE}px;">
+                        <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;">`;
             for(let i=0; i<24; i++) {
                 html += `<div style="height: ${60 * TIME_SCALE}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;">
                             <span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span>
                          </div>`;
             }
-            
-            // Inject the Absolute Positioned Line Grid overlay
             html += `</div>
                         <div style="position: absolute; top: 0; left: 60px; right: 0; height: ${24 * 60 * TIME_SCALE}px; pointer-events: none; z-index: 1;">`;
             for(let i=0; i<24; i++) { html += `<div style="height: ${60 * TIME_SCALE}px; border-bottom: 1px solid rgba(38,198,218,0.1); box-sizing: border-box;"></div>`; }
-            
-            // Current Time Indicator Injection (If Current Week)
-            if (weekNum == getCurrentCalendarWeek()) {
-                const now = new Date();
-                const parts = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
-                let currentH = parseInt(parts.find(p => p.type === 'hour').value);
-                let currentM = parseInt(parts.find(p => p.type === 'minute').value);
-                const totalMins = currentH * 60 + currentM;
-                html += `<div id="current-time-line" style="position: absolute; left: 0; right: 0; top: ${totalMins * TIME_SCALE}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8);">
-                            <div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>
-                         </div>`;
-            }
-
             html += `</div>
-                        <div style="display: flex; flex: 1; position: relative; height: ${24 * 60 * TIME_SCALE}px;">`;
+                        <div style="display: flex; flex: 1; position: relative; height: ${24 * 60 * TIME_SCALE}px; margin-left: 0;">`;
             days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(38,198,218,0.2); z-index: 2; cursor: crosshair;"></div>`; });
             html += `</div></div></div>`;
             
             container.innerHTML += html;
+
+            // Plot the Time Line if this is the active week
+            if (weekNum == getCurrentCalendarWeek()) {
+                const now = new Date();
+                const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
+                const col = document.getElementById(`day-col-${currentDay}`);
+                if(col) {
+                    const parts = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
+                    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+                    let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+                    const totalMins = currentH * 60 + currentM;
+                    const timeLine = document.createElement('div');
+                    timeLine.id = 'current-time-line';
+                    timeLine.style.cssText = `position: absolute; left: 0; right: 0; top: ${totalMins * TIME_SCALE}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;`;
+                    timeLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                    col.appendChild(timeLine);
+                }
+            }
 
             const termCourses = courses.filter(c => c.termId === currentTermId);
             
@@ -1072,18 +1091,22 @@
                 
                 eventCard.onmouseenter = () => { eventCard.style.filter = 'brightness(1.3)'; eventCard.style.zIndex = 20; };
                 eventCard.onmouseleave = () => { eventCard.style.filter = 'none'; eventCard.style.zIndex = 10; };
-                eventCard.onmousedown = (e) => { e.stopPropagation(); }; // Prevent dragging when clicking an event
+                eventCard.onmousedown = (e) => { e.stopPropagation(); }; 
                 eventCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
 
                 eventCard.innerHTML = `
-                    <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${cColor}; margin-bottom: 2px;">
-                        ${criticalIcon}${ev.courseId}
-                    </div>
-                    <div style="white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px;">
-                        ${ev.title}
-                    </div>
-                    <div style="font-family: 'Share Tech Mono'; font-size: 11px; color: var(--text-muted); margin-top: auto;">
-                        ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
+                    <div style="display: flex; flex-direction: column; height: 100%;">
+                        <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${cColor}; margin-bottom: 2px; flex-shrink: 0;">
+                            ${criticalIcon}${ev.courseId}
+                        </div>
+                        <div style="white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; flex-shrink: 0;">
+                            ${ev.title}
+                        </div>
+                        ${ev.location ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0;">📍 ${ev.location}</div>` : ''}
+                        ${ev.desc ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1;">📝 ${ev.desc}</div>` : ''}
+                        <div style="font-family: 'Share Tech Mono'; font-size: 11px; color: var(--text-muted); margin-top: auto; flex-shrink: 0;">
+                            ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
+                        </div>
                     </div>
                 `;
                 col.appendChild(eventCard);
@@ -1103,7 +1126,7 @@
                     isDragging = true;
                     dragCurrentDay = this.dataset.day;
                     currentDragWeek = weekNum; 
-                    document.body.style.userSelect = 'none'; // Prevent text highlighting
+                    document.body.style.userSelect = 'none';
 
                     const rect = this.getBoundingClientRect();
                     let rawMins = (e.clientY - rect.top) / TIME_SCALE;
@@ -1123,12 +1146,11 @@
             });
             
             setTimeout(() => {
-                const calBody = document.getElementById('cal-body');
+                const calBody = document.getElementById('cal-scroll-container');
                 if(calBody) calBody.scrollTop = (8 * 60 * TIME_SCALE) - 20;
             }, 10);
         }
 
-        // Initialize Call
         updateSydneyTime(); refreshUI();
         document.querySelector('.course-filter-btn[data-filter="All"]').onclick = (e) => {
             document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
