@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Engineering Tracker Pro</title>
+    <title>The Master Planner</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -91,27 +91,6 @@
         .day-section { margin-bottom: 30px; }
         .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
         
-        .event-card {
-            background-color: var(--bg-panel); padding: 15px; border-radius: 8px;
-            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: stretch;
-            border-left: 4px solid var(--outline); border-top: 1px solid rgba(38, 198, 218, 0.2);
-            border-right: 1px solid rgba(38, 198, 218, 0.2); border-bottom: 1px solid rgba(38, 198, 218, 0.2);
-            box-sizing: border-box;
-        }
-        .event-info { flex: 1; padding-right: 15px; display: flex; flex-direction: column; justify-content: flex-start; }
-        .event-info strong { display: block; font-size: 20px; font-weight: 700; margin-bottom: 5px; }
-        .event-info span { color: var(--text-muted); font-size: 16px; font-weight: 600; }
-        .event-desc { color: #a0c4c4; font-size: 16px; margin-top: 8px; line-height: 1.4; border-left: 2px solid rgba(38, 198, 218, 0.3); padding-left: 10px; flex: 1;}
-        
-        .event-time { 
-            font-family: 'Share Tech Mono', monospace; font-size: 18px; background: rgba(0,0,0,0.4); 
-            padding: 10px 15px; border-radius: 5px; color: var(--accent); border: 1px solid var(--outline); white-space: nowrap; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 90px;
-            box-sizing: border-box;
-        }
-
-        .btn-skip { background: transparent; border: none; font-size: 18px; cursor: pointer; opacity: 0.5; transition: 0.2s; padding: 0 5px; margin-left: 10px; }
-        .btn-skip:hover { opacity: 1; transform: scale(1.1); }
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
         
@@ -167,12 +146,23 @@
             display: flex; align-items: center; justify-content: center;
             color: var(--accent); font-weight: bold; font-size: 14px; text-shadow: 0 0 5px black;
         }
+        
+        /* Time Line Indicator */
+        #current-time-line {
+            position: absolute; left: 0; right: 0; height: 2px; background-color: #ff5252;
+            z-index: 50; pointer-events: none;
+            box-shadow: 0 0 8px rgba(255,82,82,0.8);
+        }
+        #current-time-line::before {
+            content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px;
+            background-color: #ff5252; border-radius: 50%;
+        }
     </style>
 </head>
 <body>
 
     <div class="topbar">
-        <div class="logo">🎯 <span>Tracker Pro</span></div>
+        <div class="logo">🎯 <span>The Master Planner</span></div>
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
             <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="addTerm()" title="Add Term">+</button>
@@ -372,7 +362,7 @@
     </div>
 
     <script>
-        const TIME_SCALE = 1.2; // 1 minute = 1.2px
+        const TIME_SCALE = 1.2; 
         let timeChartInstance = null;
         let lastRenderedMinute = -1;
 
@@ -421,7 +411,6 @@
                     renderTodayAgenda(true);
                 }
                 
-                // Update Time Line position if looking at the active week
                 if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
                     const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
                     const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
@@ -600,7 +589,7 @@
                     courseId: document.getElementById('mod-ev-course').value,
                     title: document.getElementById('mod-ev-title').value,
                     day: document.getElementById('mod-ev-day').value,
-                    weeks: modalInstanceWeek,
+                    weeks: modalInstanceWeek, // Lock to specific week
                     location: document.getElementById('mod-ev-location').value,
                     start: document.getElementById('mod-ev-start').value,
                     end: document.getElementById('mod-ev-end').value,
@@ -610,9 +599,13 @@
                 };
 
                 if (originalEv.weeks === "All") {
-                    if (!originalEv.skippedWeeks.includes(modalInstanceWeek)) originalEv.skippedWeeks.push(modalInstanceWeek);
+                    // SPLIT LOGIC: Flag original as skipped for this week, insert new clone
+                    if (!originalEv.skippedWeeks.includes(modalInstanceWeek)) {
+                        originalEv.skippedWeeks.push(modalInstanceWeek);
+                    }
                     events.push(isolatedData);
                 } else {
+                    // UPDATE LOGIC: It's already an isolated event, just update it in place
                     isolatedData.id = originalEv.id; 
                     const idx = events.findIndex(ev => ev.id === modalInstanceId);
                     events[idx] = isolatedData;
@@ -744,8 +737,12 @@
                     <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                            <div>
+                                <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
+                                <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
+                            </div>
                         </div>
-                        <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">📍 ${ev.location || "Location not set"} &nbsp;&nbsp; ${statusBadge}</div>
+                        <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px;">${ev.location ? `📍 ${ev.location}` : ""} &nbsp;&nbsp; ${statusBadge}</div>
                         ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
                     </div>
                     <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
@@ -1151,6 +1148,7 @@
             }, 10);
         }
 
+        // Initialize Call
         updateSydneyTime(); refreshUI();
         document.querySelector('.course-filter-btn[data-filter="All"]').onclick = (e) => {
             document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
