@@ -355,7 +355,7 @@
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
                     <button type="submit" class="btn-submit" style="flex: 1;">Save Changes</button>
-                    <button type="button" id="mod-btn-skip" class="btn-delete" style="padding: 10px 20px;" onclick="skipModalEvent()">Skip Event</button>
+                    <button type="button" id="mod-btn-delete" class="btn-delete" style="padding: 10px 20px;" onclick="deleteModalEvent()">🗑️ Delete Block</button>
                 </div>
             </form>
         </div>
@@ -475,24 +475,27 @@
             else { container.style.display = 'none'; icon.innerText = '▶'; }
         }
 
+        // --- UPDATED SMART DELETION LOGIC ---
         function skipEventOccurrence(eventId, weekNum) {
             const ev = events.find(e => e.id === eventId);
-            if(ev && !ev.skippedWeeks.includes(weekNum.toString())) {
-                ev.skippedWeeks.push(weekNum.toString());
-                saveData();
+            if(ev) {
+                if(ev.weeks === "All") {
+                    if(!ev.skippedWeeks.includes(weekNum.toString())) {
+                        ev.skippedWeeks.push(weekNum.toString());
+                        saveData();
+                    }
+                } else {
+                    events = events.filter(e => e.id !== eventId);
+                    saveData();
+                }
             }
         }
         
-        function skipModalEvent() {
+        function deleteModalEvent() {
             if(modalInstanceId && modalInstanceWeek) {
                 skipEventOccurrence(modalInstanceId, modalInstanceWeek);
                 closeInstanceModal();
             }
-        }
-
-        function restoreEvent(eventId) {
-            const ev = events.find(e => e.id === eventId);
-            if(ev) { ev.skippedWeeks = []; saveData(); }
         }
 
         // --- MASTER EDITOR (Builder Tab) ---
@@ -535,7 +538,7 @@
             document.getElementById('mod-ev-critical').checked = ev.isCritical;
 
             document.getElementById('instance-modal-title').innerText = "Edit Specific Block";
-            document.getElementById('mod-btn-skip').style.display = 'block';
+            document.getElementById('mod-btn-delete').style.display = 'block';
 
             const warning = document.getElementById('modal-warning');
             if(ev.weeks === "All") {
@@ -565,7 +568,9 @@
 
             document.getElementById('modal-warning').style.display = 'none';
             document.getElementById('instance-modal-title').innerText = `Create Component (Week ${week})`;
-            document.getElementById('mod-btn-skip').style.display = 'none';
+            
+            // Hide delete button when creating a new block
+            document.getElementById('mod-btn-delete').style.display = 'none';
 
             document.getElementById('instance-edit-modal').style.display = 'flex';
         }
