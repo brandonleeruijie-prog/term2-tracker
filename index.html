@@ -38,7 +38,7 @@
         
         .subbar {
             background-color: var(--bg-panel); padding: 10px 20px; display: flex;
-            gap: 8px; overflow-x: auto; border-bottom: 1px solid var(--outline); align-items: center;
+            gap: 15px; overflow-x: auto; border-bottom: 1px solid var(--outline); align-items: center;
         }
         .tab-btn {
             background: rgba(0,0,0,0.2); border: 1px solid var(--outline); color: var(--text-muted);
@@ -47,7 +47,31 @@
         }
         .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
         .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
-        .action-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); margin-right: 10px; }
+        .action-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); }
+
+        /* SEGMENTED CONTROL FOR WEEKS */
+        .segmented-control {
+            display: flex;
+            border: 1px solid rgba(38, 198, 218, 0.4);
+            border-radius: 25px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.3);
+            margin-left: 5px;
+        }
+        .segmented-control .tab-btn {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            margin: 0;
+            padding: 6px 16px;
+        }
+        .segmented-control .tab-btn:hover {
+            background: rgba(38, 198, 218, 0.1);
+        }
+        .segmented-control .tab-btn.active {
+            background: var(--accent);
+            color: var(--bg-dark);
+        }
 
         .container { display: flex; flex: 1; overflow: hidden; }
 
@@ -160,9 +184,11 @@
         <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">Loading...</div>
     </div>
 
-    <div class="subbar" id="week-tabs">
+    <div class="subbar">
         <button class="tab-btn action-btn active" data-view="dashboard">🏠 Dashboard</button>
         <button class="tab-btn action-btn" data-view="builder">⚙️ Builder</button>
+        
+        <div class="segmented-control" id="week-tabs-container"></div>
     </div>
 
     <div class="container">
@@ -367,7 +393,6 @@
 
         let currentTermId = localStorage.getItem('tp_active_term') || terms[0].id;
         
-        // Safety check if currentTermId was deleted somehow but still in cache
         if (!terms.find(t => t.id === currentTermId)) {
             currentTermId = terms[0].id;
         }
@@ -825,16 +850,22 @@
         document.getElementById('btn-hard-reset').onclick = () => { if(confirm("This will delete ALL data. Are you absolutely sure?")) { localStorage.clear(); location.reload(); } };
 
         // --- NAVIGATION & RENDERING ---
-        const weekTabs = document.getElementById('week-tabs');
+        
+        // Build the Segmented Control Container for Weeks
+        const weekTabs = document.getElementById('week-tabs-container');
         for(let i=1; i<=10; i++) {
-            const btn = document.createElement('button'); btn.className = 'tab-btn'; btn.innerText = `Week ${i}`; btn.dataset.view = i;
-            btn.onclick = () => switchView(i, btn); weekTabs.appendChild(btn);
+            const btn = document.createElement('button'); 
+            btn.className = 'tab-btn'; 
+            btn.innerText = `W${i}`; 
+            btn.dataset.view = i;
+            btn.onclick = () => switchView(i, btn); 
+            weekTabs.appendChild(btn);
         }
 
         document.querySelectorAll('.action-btn').forEach(btn => { btn.onclick = () => switchView(btn.dataset.view, btn); });
 
         function switchView(view, btnElement) {
-            document.querySelectorAll('#week-tabs button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
             if(btnElement) btnElement.classList.add('active'); else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
             
             document.getElementById('view-dashboard').style.display = 'none'; document.getElementById('view-builder').style.display = 'none'; document.getElementById('view-schedule').style.display = 'none';
