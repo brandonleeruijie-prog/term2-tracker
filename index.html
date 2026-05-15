@@ -514,7 +514,10 @@
         };
 
         // --- TERM LOGIC ---
-        function switchTerm(newTermId) { currentTermId = newTermId; saveData(); }
+        function switchTerm(newTermId) { 
+            currentTermId = newTermId; 
+            saveData(); 
+        }
         function addTerm() {
             const name = prompt("Enter new Term Name (e.g. 'Term 3'):");
             if(name && name.trim()) {
@@ -708,15 +711,21 @@
 
             const termCourses = courses.filter(c => c.termId === currentTermId);
             const selectEl = document.getElementById('inp-ev-course');
-            const modSelectEl = document.getElementById('mod-ev-course'); // Also populate modal dropdown
+            const modSelectEl = document.getElementById('mod-ev-course');
             const filterContainer = document.getElementById('dynamic-filters');
             const builderCourseList = document.getElementById('builder-course-list');
             
-            selectEl.innerHTML = ''; modSelectEl.innerHTML = ''; filterContainer.innerHTML = ''; builderCourseList.innerHTML = ''; 
+            if(selectEl) selectEl.innerHTML = ''; 
+            if(modSelectEl) modSelectEl.innerHTML = ''; 
+            if(filterContainer) filterContainer.innerHTML = ''; 
+            if(builderCourseList) builderCourseList.innerHTML = ''; 
 
             termCourses.forEach(c => {
-                const opt = document.createElement('option'); opt.value = c.id; opt.innerText = c.id; selectEl.appendChild(opt);
-                const opt2 = document.createElement('option'); opt2.value = c.id; opt2.innerText = c.id; modSelectEl.appendChild(opt2);
+                const opt = document.createElement('option'); opt.value = c.id; opt.innerText = c.id; 
+                if(selectEl) selectEl.appendChild(opt);
+                
+                const opt2 = document.createElement('option'); opt2.value = c.id; opt2.innerText = c.id; 
+                if(modSelectEl) modSelectEl.appendChild(opt2);
 
                 const fBtn = document.createElement('button'); fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
                 fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
@@ -725,14 +734,15 @@
                     fBtn.classList.add('active'); currentFilter = c.id;
                     if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
                 };
-                filterContainer.appendChild(fBtn);
+                if(filterContainer) filterContainer.appendChild(fBtn);
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
                 li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
-                builderCourseList.appendChild(li);
+                if(builderCourseList) builderCourseList.appendChild(li);
             });
 
-            const eventList = document.getElementById('builder-event-list'); eventList.innerHTML = '';
+            const eventList = document.getElementById('builder-event-list'); 
+            if(eventList) eventList.innerHTML = '';
             const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
             termEvents.forEach(e => {
@@ -747,7 +757,7 @@
                         <button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button>
                         <button class="btn-delete" onclick="deleteEvent('${e.id}')">Delete</button>
                     </div>`;
-                eventList.appendChild(li);
+                if(eventList) eventList.appendChild(li);
             });
 
             updateKeyDates();
