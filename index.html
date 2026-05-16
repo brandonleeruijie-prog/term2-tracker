@@ -104,21 +104,21 @@
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
         
-        .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group input[type="date"], .form-group select, .form-group textarea { 
+        /* UPDATED: Added textarea to input styles */
+        .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group select, .form-group textarea { 
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; 
             padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px; 
         }
         .form-group textarea {
-            resize: vertical; 
-            min-height: 80px; 
+            resize: vertical; /* Allows dragging vertically */
+            min-height: 80px; /* Base height for readability */
             line-height: 1.4;
         }
 
         .btn-submit { 
             background: var(--accent); color: var(--bg-dark); border: none; padding: 10px 20px; 
-            font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; transition: 0.2s;
+            font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;
         }
-        .btn-submit:hover { filter: brightness(1.2); }
         .btn-delete { background: #ff5252; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; }
         .btn-edit-list { background: #26c6da; color: var(--bg-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
 
@@ -181,18 +181,6 @@
         .sync-pulse {
             width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite;
         }
-
-        /* Radio Toggle Styles */
-        .type-toggle-container {
-            display: flex; gap: 15px; background: rgba(0,0,0,0.3); padding: 10px 15px; 
-            border-radius: 4px; border: 1px solid var(--outline);
-        }
-        .type-toggle-label {
-            cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-main); margin: 0; font-weight: 600;
-        }
-        .type-toggle-label input[type="radio"] {
-            accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -201,9 +189,10 @@
         <div class="logo">🎯 <span>The Master Planner</span></div>
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
-            <button class="tab-btn" style="padding: 4px 10px; font-size: 15px;" onclick="openNewPlanModal()" title="Create New Plan">➕ New Plan</button>
-            <button class="tab-btn" style="padding: 4px 10px; font-size: 15px;" onclick="openEditPlanModal()" title="Edit Plan Settings">⚙️ Settings</button>
-            <button class="tab-btn" style="padding: 4px 10px; font-size: 15px; border-color: #ff5252; color: #ff5252;" onclick="deleteCurrentTerm()" title="Delete Plan">🗑️ Delete</button>
+            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="addTerm()" title="Add Term">+</button>
+            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="renameTerm()" title="Rename Term">✎</button>
+            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="setTermDate()" title="Set Start Date">📅</button>
+            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px; border-color: #ff5252; color: #ff5252;" onclick="deleteCurrentTerm()" title="Delete Term">🗑️</button>
         </div>
         <div id="sync-status" title="Firebase Cloud Sync is Active"><div class="sync-pulse"></div> Cloud Sync</div>
         <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">Loading...</div>
@@ -218,7 +207,7 @@
     <div class="container">
         <div class="sidebar" id="sidebar">
             <h3>Filters</h3>
-            <button id="btn-filter-all" class="course-filter-btn active" onclick="setFilter('All', this)">All Subjects</button>
+            <button class="course-filter-btn active" data-filter="All">All Subjects</button>
             <div id="dynamic-filters"></div>
             <h3 style="margin-top: 20px;">Key Dates</h3>
             <div id="key-dates-container"></div>
@@ -228,7 +217,7 @@
             
             <div id="view-dashboard">
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Loading Database...</h2>
-                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this plan. It will automatically populate across your weeks based on your recurrence settings.</p>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term. It will automatically populate across your weeks based on your recurrence settings.</p>
                 
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.05); border-color: var(--accent); padding: 25px;">
                     <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); padding-bottom: 10px;">
@@ -268,7 +257,7 @@
                 </div>
 
                 <div class="builder-section">
-                    <h2>1. Define Your Courses / Routines (Current Plan)</h2>
+                    <h2>1. Define Your Courses / Routines (Current Term)</h2>
                     <form id="form-course" style="display: flex; gap: 10px; align-items: flex-end;">
                         <div class="form-group" style="flex: 1;">
                             <label>Course Code / Routine Name</label>
@@ -285,11 +274,1044 @@
                 </div>
 
                 <div class="builder-section">
-                    <h2>2. Add Master Component (Current Plan)</h2>
+                    <h2>2. Add Master Component (Current Term)</h2>
                     <form id="form-event">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>Select Course</label>
+                                <select id="inp-ev-course" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Component Type & Title</label>
+                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Day of Week</label>
+                                <select id="inp-ev-day">
+                                    <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
+                                    <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
+                                    <option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Occurrence</label>
+                                <select id="inp-ev-occurrence">
+                                    <option value="All">Repeat: All Weeks</option>
+                                    <option value="1">Standalone: Week 1</option><option value="2">Standalone: Week 2</option>
+                                    <option value="3">Standalone: Week 3</option><option value="4">Standalone: Week 4</option>
+                                    <option value="5">Standalone: Week 5</option><option value="6">Standalone: Week 6</option>
+                                    <option value="7">Standalone: Week 7</option><option value="8">Standalone: Week 8</option>
+                                    <option value="9">Standalone: Week 9</option><option value="10">Standalone: Week 10</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Location</label>
+                                <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204">
+                            </div>
+                            <div class="form-group">
+                                <label>Time Block (Start & End 24H)</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="time" id="inp-ev-start" required style="flex: 1;">
+                                    <input type="time" id="inp-ev-end" required style="flex: 1;">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" style="grid-column: span 2; margin-bottom: 20px;">
+                                <label>Strategic Description</label>
+                                <textarea id="inp-ev-desc" placeholder="e.g. Deep work block. No AI allowed. Task: Read Chapter 4..."></textarea>
+                            </div>
+                            
+                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
+                                <input type="checkbox" id="inp-ev-critical" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff5252; margin: 0;" onchange="toggleWeightInput('inp-ev-weight-container', this.checked)">
+                                <label for="inp-ev-critical" style="margin: 0; color: #ffb4b4; font-weight: bold; cursor: pointer; font-size: 16px;">🚨 Mark as Important (Adds to Key Dates)</label>
+                                
+                                <div id="inp-ev-weight-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
+                                    <label style="margin:0; color:#ffb4b4; font-size:14px;">Weight %:</label>
+                                    <input type="number" id="inp-ev-weight" min="0" max="100" style="width: 60px; padding: 4px; font-size: 14px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="submit" id="btn-submit-event" class="btn-submit" style="flex: 1;">Add to Master Schedule</button>
+                            <button type="button" id="btn-cancel-edit" class="btn-delete" style="display: none; padding: 10px 20px;" onclick="cancelEdit()">Cancel Master Edit</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="builder-section">
+                    <h2 class="collapsible-header" onclick="toggleActiveComponents()">
+                        Current Active Components (Master List) 
+                        <span id="collapse-icon" style="font-size: 14px; color: var(--text-muted);">▼</span>
+                    </h2>
+                    <div id="active-components-container">
+                        <ul id="builder-event-list" class="mgmt-list"></ul>
+                    </div>
+                </div>
+
+                <button id="btn-hard-reset" style="background: transparent; border: 1px solid #ff5252; color: #ff5252; padding: 10px; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani';">⚠️ Hard Reset Cloud Database</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="instance-edit-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeInstanceModal()">✖</button>
+            <h2 id="instance-modal-title" style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Edit Specific Block</h2>
+            <p id="modal-warning" style="font-size: 15px; color: #ffb4b4; background: rgba(255,82,82,0.1); padding: 8px; border-radius: 4px; display: none;">
+                ⚠️ You are editing a recurring event. Saving changes will isolate this update to <b>Week <span id="modal-week-num"></span></b> only.
+            </p>
+            
+            <form id="form-instance-edit">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                    <div class="form-group">
+                        <label>Course</label>
+                        <select id="mod-ev-course" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Component Title</label>
+                        <input type="text" id="mod-ev-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Day of Week</label>
+                        <select id="mod-ev-day">
+                            <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" id="mod-ev-location">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Time Block (Start & End 24H)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="time" id="mod-ev-start" required style="flex: 1;">
+                            <input type="time" id="mod-ev-end" required style="flex: 1;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: span 2; margin-bottom: 25px;">
+                        <label>Strategic Description</label>
+                        <textarea id="mod-ev-desc" placeholder="Notes, tasks, or strict protocols..."></textarea>
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="mod-ev-critical" style="width: 18px; height: 18px; accent-color: #ff5252; margin: 0;" onchange="toggleWeightInput('mod-ev-weight-container', this.checked)">
+                        <label for="mod-ev-critical" style="margin: 0; color: #ffb4b4;">🚨 Mark as Important</label>
                         
-                        <div class="form-group type-toggle-container">
-                            <label class="type-toggle-label">
-                                <input type="radio" name="inp-ev-type" value="block" checked onchange="toggleEventType('inp')"> 🔲 Time Block
-                            </label>
-                            <label class="type-toggle-label
+                        <div id="mod-ev-weight-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
+                            <label style="margin:0; color:#ffb4b4; font-size:14px;">Weight %:</label>
+                            <input type="number" id="mod-ev-weight" min="0" max="100" style="width: 60px; padding: 4px; font-size: 14px;">
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button type="submit" class="btn-submit" style="flex: 1;">Save Changes</button>
+                    <button type="button" id="mod-btn-delete" class="btn-delete" style="padding: 10px 20px;" onclick="deleteModalEvent()">🗑️ Delete Block</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAzQghlZIMFFhxj4szLWyE461qXkWsdQFo",
+            authDomain: "master-planner-6687b.firebaseapp.com",
+            projectId: "master-planner-6687b",
+            storageBucket: "master-planner-6687b.firebasestorage.app",
+            messagingSenderId: "1035219779102",
+            appId: "1:1035219779102:web:f761fef6fd46ade3ef780f"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Enable offline persistence
+        db.enablePersistence().catch(function(err) {
+            console.log("Firebase Persistence Error: ", err.code);
+        });
+
+        // Global Data Stores
+        let terms = [];
+        let courses = [];
+        let events = [];
+        let currentTermId = localStorage.getItem('tp_active_term') || null;
+        let loaders = { terms: false, courses: false, events: false };
+
+        let timeScale = 1.2; 
+        let timeChartInstance = null;
+        let activeTimers = {};
+        let lastRenderedMinute = -1;
+        let currentView = "dashboard"; 
+        let currentFilter = "All";
+
+        let editingEventId = null; 
+        let modalInstanceId = null;
+        let modalInstanceWeek = null;
+
+        // --- REAL-TIME LISTENERS ---
+        function checkLoaders() {
+            if(loaders.terms && loaders.courses && loaders.events) {
+                if(terms.length === 0) {
+                    const defaultId = `T${Date.now()}`;
+                    db.collection('terms').doc(defaultId).set({ id: defaultId, name: "Term 1", startDate: "2026-02-16" });
+                } else {
+                    if (!currentTermId || !terms.find(t => t.id === currentTermId)) {
+                        currentTermId = terms[0].id;
+                        localStorage.setItem('tp_active_term', currentTermId);
+                    }
+                    refreshUI();
+                    if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+                }
+            }
+        }
+
+        db.collection("terms").onSnapshot(snapshot => {
+            terms = snapshot.docs.map(doc => doc.data());
+            loaders.terms = true; checkLoaders();
+        });
+
+        db.collection("courses").onSnapshot(snapshot => {
+            courses = snapshot.docs.map(doc => doc.data());
+            loaders.courses = true; checkLoaders();
+        });
+
+        db.collection("events").onSnapshot(snapshot => {
+            events = snapshot.docs.map(doc => {
+                let e = doc.data();
+                return {
+                    ...e,
+                    weeks: e.weeks || "All", 
+                    skippedWeeks: e.skippedWeeks || [],
+                    isCritical: e.isCritical || false,
+                    weight: e.weight || null
+                };
+            });
+            loaders.events = true; checkLoaders();
+        });
+
+        // --- UI SETUP ---
+        function initWeekTabs() {
+            const weekTabsContainer = document.getElementById('week-tabs-container');
+            if(weekTabsContainer.children.length === 0) {
+                for(let i=1; i<=10; i++) {
+                    const btn = document.createElement('button'); 
+                    btn.className = 'tab-btn'; 
+                    btn.innerText = `W${i}`; 
+                    btn.dataset.view = i;
+                    btn.onclick = () => switchView(i, btn); 
+                    weekTabsContainer.appendChild(btn);
+                }
+            }
+        }
+        initWeekTabs();
+
+        document.querySelectorAll('.action-btn').forEach(btn => { 
+            btn.onclick = () => switchView(btn.dataset.view, btn); 
+        });
+
+        function changeScale(val) {
+            timeScale = parseFloat(val);
+            if(currentView !== "dashboard" && currentView !== "builder") {
+                renderSchedule(currentView);
+            }
+        }
+
+        function getCurrentCalendarWeek() {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return -1;
+            const now = new Date();
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyToday = new Date(sY, sM - 1, sD);
+            const [y, m, d] = currentTerm.startDate.split('-').map(Number);
+            const termStart = new Date(y, m - 1, d);
+            const diffDays = getDaysDiff(termStart, sydneyToday);
+            return Math.floor(diffDays / 7) + 1;
+        }
+
+        // --- TICK ENGINE ---
+        function updateSydneyTime() {
+            const now = new Date();
+            const options = { timeZone: 'Australia/Sydney', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+            document.getElementById('sydney-clock').innerText = new Intl.DateTimeFormat('en-AU', options).format(now);
+            
+            const currentMinute = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Sydney' })).getMinutes();
+            
+            if (currentMinute !== lastRenderedMinute) {
+                lastRenderedMinute = currentMinute;
+                if (currentView === "dashboard" && loaders.events) { renderTodayAgenda(true); }
+                
+                if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
+                    const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+                    const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+                    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+                    let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+                    const totalMins = currentH * 60 + currentM;
+                    const timeLine = document.getElementById('current-time-line');
+                    if(timeLine) timeLine.style.top = `${totalMins * timeScale}px`;
+                }
+            }
+            updateActiveTimers(now);
+        }
+        setInterval(updateSydneyTime, 1000);
+
+        function updateActiveTimers(nowDate) {
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(nowDate);
+            let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+            let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+            let currentS = parseInt(parts.find(p => p.type === 'second').value);
+            
+            let totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
+
+            for (const [id, data] of Object.entries(activeTimers)) {
+                if(data.element) {
+                    let totalEndSeconds = data.endMins * 60;
+                    let diff = totalEndSeconds - totalCurrentSeconds;
+                    if(diff > 0) {
+                        let h = Math.floor(diff / 3600).toString().padStart(2, '0');
+                        let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                        let s = (diff % 60).toString().padStart(2, '0');
+                        data.element.innerText = `⏳ ${h}:${m}:${s}`;
+                    } else {
+                        data.element.innerText = `DONE`;
+                    }
+                }
+            }
+        }
+
+        // --- HELPER LOGIC ---
+        function toggleWeightInput(containerId, isChecked) {
+            const container = document.getElementById(containerId);
+            if(isChecked) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById(containerId.replace('-container', '')).value = '';
+            }
+        }
+
+        function exportData() {
+            const dataObj = { terms, courses, events };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "master_planner_backup.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const dataObj = JSON.parse(e.target.result);
+                    if(dataObj.terms && dataObj.courses && dataObj.events) {
+                        const batch = db.batch();
+                        dataObj.terms.forEach(t => batch.set(db.collection('terms').doc(t.id), t));
+                        dataObj.courses.forEach(c => batch.set(db.collection('courses').doc(c.termId + "_" + c.id), c));
+                        dataObj.events.forEach(ev => batch.set(db.collection('events').doc(ev.id), ev));
+                        await batch.commit();
+                        alert("Database successfully restored from JSON.");
+                    } else { alert("Invalid file structure."); }
+                } catch (err) { alert("Error parsing JSON file."); console.error(err); }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        function getSpecificDate(startDateStr, weekNum, dayString) {
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            const [y, m, d] = startDateStr.split('-').map(Number);
+            const targetDate = new Date(y, m - 1, d);
+            targetDate.setDate(targetDate.getDate() + ((weekNum - 1) * 7) + days.indexOf(dayString));
+            return targetDate;
+        }
+
+        function getDaysDiff(d1, d2) {
+            const date1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+            const date2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+            return Math.floor((date2 - date1) / (1000 * 60 * 60 * 24));
+        }
+
+        function toggleActiveComponents() {
+            const container = document.getElementById('active-components-container');
+            const icon = document.getElementById('collapse-icon');
+            if (container.style.display === 'none') { container.style.display = 'block'; icon.innerText = '▼'; } 
+            else { container.style.display = 'none'; icon.innerText = '▶'; }
+        }
+
+        // --- FIRESTORE DELETION / SKIPPING LOGIC ---
+        function skipEventOccurrence(eventId, weekNum) {
+            const ev = events.find(e => e.id === eventId);
+            if(ev) {
+                if(ev.weeks === "All") {
+                    let newSkipped = [...ev.skippedWeeks];
+                    if(!newSkipped.includes(weekNum.toString())) {
+                        newSkipped.push(weekNum.toString());
+                        db.collection('events').doc(eventId).update({ skippedWeeks: newSkipped });
+                    }
+                } else {
+                    db.collection('events').doc(eventId).delete();
+                }
+            }
+        }
+        
+        function deleteModalEvent() {
+            if(modalInstanceId && modalInstanceWeek) {
+                skipEventOccurrence(modalInstanceId, modalInstanceWeek);
+                closeInstanceModal();
+            }
+        }
+
+        // --- MASTER EDITOR (Builder Tab) ---
+        function editMasterEvent(id) {
+            const ev = events.find(e => e.id === id);
+            if(!ev) return;
+            switchView('builder');
+            document.getElementById('inp-ev-course').value = ev.courseId; document.getElementById('inp-ev-title').value = ev.title;
+            document.getElementById('inp-ev-day').value = ev.day; document.getElementById('inp-ev-occurrence').value = ev.weeks;
+            document.getElementById('inp-ev-location').value = ev.location || ""; document.getElementById('inp-ev-start').value = ev.start;
+            document.getElementById('inp-ev-end').value = ev.end; document.getElementById('inp-ev-desc').value = ev.desc || "";
+            
+            const isCrit = ev.isCritical;
+            document.getElementById('inp-ev-critical').checked = isCrit;
+            toggleWeightInput('inp-ev-weight-container', isCrit);
+            if(isCrit) document.getElementById('inp-ev-weight').value = ev.weight || '';
+
+            editingEventId = id;
+            document.getElementById('btn-submit-event').innerText = "Update Master Component";
+            document.getElementById('btn-cancel-edit').style.display = "block";
+            document.getElementById('form-event').scrollIntoView({behavior: "smooth"});
+        }
+
+        function cancelEdit() {
+            editingEventId = null; document.getElementById('form-event').reset();
+            document.getElementById('btn-submit-event').innerText = "Add to Master Schedule";
+            document.getElementById('btn-cancel-edit').style.display = "none";
+            toggleWeightInput('inp-ev-weight-container', false);
+        }
+
+        // --- INSTANCE MODAL EDITOR (Radar & Schedule View) ---
+        function openInstanceModal(id, week) {
+            const ev = events.find(e => e.id === id);
+            if(!ev) return;
+            
+            modalInstanceId = id; modalInstanceWeek = week.toString();
+            
+            document.getElementById('mod-ev-course').value = ev.courseId;
+            document.getElementById('mod-ev-title').value = ev.title;
+            document.getElementById('mod-ev-day').value = ev.day;
+            document.getElementById('mod-ev-location').value = ev.location || "";
+            document.getElementById('mod-ev-start').value = ev.start;
+            document.getElementById('mod-ev-end').value = ev.end;
+            document.getElementById('mod-ev-desc').value = ev.desc || "";
+            
+            const isCrit = ev.isCritical;
+            document.getElementById('mod-ev-critical').checked = isCrit;
+            toggleWeightInput('mod-ev-weight-container', isCrit);
+            if(isCrit) document.getElementById('mod-ev-weight').value = ev.weight || '';
+
+            document.getElementById('instance-modal-title').innerText = "Edit Specific Block";
+            document.getElementById('mod-btn-delete').style.display = 'block';
+
+            const warning = document.getElementById('modal-warning');
+            if(ev.weeks === "All") {
+                document.getElementById('modal-week-num').innerText = week; warning.style.display = 'block';
+            } else { warning.style.display = 'none'; }
+
+            document.getElementById('instance-edit-modal').style.display = 'flex';
+        }
+
+        function openCreateModal(day, startMins, endMins, week) {
+            modalInstanceId = null; modalInstanceWeek = week.toString();
+            const courseDrop = document.getElementById('mod-ev-course');
+            if(courseDrop.options.length > 0) courseDrop.selectedIndex = 0;
+
+            document.getElementById('mod-ev-title').value = ''; document.getElementById('mod-ev-day').value = day;
+            document.getElementById('mod-ev-location').value = ''; document.getElementById('mod-ev-start').value = minsToTimeStr(startMins);
+            document.getElementById('mod-ev-end').value = minsToTimeStr(endMins); document.getElementById('mod-ev-desc').value = '';
+            
+            document.getElementById('mod-ev-critical').checked = false;
+            toggleWeightInput('mod-ev-weight-container', false);
+
+            document.getElementById('modal-warning').style.display = 'none';
+            document.getElementById('instance-modal-title').innerText = `Create Component (Week ${week})`;
+            document.getElementById('mod-btn-delete').style.display = 'none';
+            document.getElementById('instance-edit-modal').style.display = 'flex';
+        }
+
+        function closeInstanceModal() {
+            document.getElementById('instance-edit-modal').style.display = 'none';
+            modalInstanceId = null; modalInstanceWeek = null;
+        }
+
+        document.getElementById('form-instance-edit').onsubmit = (e) => {
+            e.preventDefault();
+            
+            const isCrit = document.getElementById('mod-ev-critical').checked;
+            const weightVal = document.getElementById('mod-ev-weight').value;
+
+            const finalData = {
+                termId: currentTermId,
+                courseId: document.getElementById('mod-ev-course').value,
+                title: document.getElementById('mod-ev-title').value,
+                day: document.getElementById('mod-ev-day').value,
+                weeks: modalInstanceWeek,
+                location: document.getElementById('mod-ev-location').value,
+                start: document.getElementById('mod-ev-start').value,
+                end: document.getElementById('mod-ev-end').value,
+                desc: document.getElementById('mod-ev-desc').value,
+                isCritical: isCrit, 
+                weight: isCrit && weightVal ? parseInt(weightVal) : null,
+                skippedWeeks: []
+            };
+
+            if (modalInstanceId) {
+                const originalEv = events.find(ev => ev.id === modalInstanceId);
+                if(!originalEv) return;
+
+                if (originalEv.weeks === "All") {
+                    let newSkipped = [...originalEv.skippedWeeks];
+                    if (!newSkipped.includes(modalInstanceWeek)) {
+                        newSkipped.push(modalInstanceWeek);
+                        db.collection('events').doc(originalEv.id).update({ skippedWeeks: newSkipped });
+                    }
+                    finalData.id = Date.now().toString();
+                    db.collection('events').doc(finalData.id).set(finalData);
+                } else {
+                    finalData.id = originalEv.id; 
+                    db.collection('events').doc(finalData.id).set(finalData);
+                }
+            } else {
+                finalData.id = Date.now().toString();
+                db.collection('events').doc(finalData.id).set(finalData);
+            }
+            closeInstanceModal();
+        };
+
+        // --- TERM LOGIC ---
+        function switchTerm(newTermId) { 
+            currentTermId = newTermId; 
+            localStorage.setItem('tp_active_term', currentTermId);
+            refreshUI(); 
+            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+        }
+        function addTerm() {
+            const name = prompt("Enter new Term Name (e.g. 'Term 3'):");
+            if(name && name.trim()) {
+                const sDate = prompt("Enter Term Start Date (Monday, YYYY-MM-DD):", "2026-09-14");
+                const newId = `T${Date.now()}`;
+                db.collection('terms').doc(newId).set({ id: newId, name: name.trim(), startDate: sDate || "2026-09-14" }).then(()=>{
+                    currentTermId = newId; localStorage.setItem('tp_active_term', currentTermId);
+                });
+            }
+        }
+        function renameTerm() {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            const newName = prompt("Rename Term:", currentTerm.name);
+            if(newName && newName.trim()) { db.collection('terms').doc(currentTermId).update({ name: newName.trim() }); }
+        }
+        function setTermDate() {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            const newDate = prompt("Set Term Start Date (Monday, YYYY-MM-DD):", currentTerm.startDate);
+            if(newDate && newDate.trim()) { db.collection('terms').doc(currentTermId).update({ startDate: newDate.trim() }); }
+        }
+        async function deleteCurrentTerm() {
+            if(terms.length === 1) {
+                alert("You cannot delete your only term. Add a new term first before deleting this one."); return;
+            }
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(confirm(`Are you sure you want to delete '${currentTerm.name}'? This will permanently erase ALL courses and schedule blocks associated with this term from the cloud.`)) {
+                const batch = db.batch();
+                batch.delete(db.collection('terms').doc(currentTermId));
+                courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                events.filter(e => e.termId === currentTermId).forEach(e => batch.delete(db.collection('events').doc(e.id)));
+                
+                await batch.commit();
+                currentTermId = terms.filter(t => t.id !== currentTermId)[0].id; 
+                localStorage.setItem('tp_active_term', currentTermId);
+            }
+        }
+
+        // --- TODAY'S RADAR & GRAPH LOGIC ---
+        function renderTodayAgenda(isTickUpdate = false) {
+            const container = document.getElementById('dashboard-today-agenda');
+            const dayLabel = document.getElementById('radar-day');
+            if(!container) return;
+            
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+            if(!isTickUpdate) { container.innerHTML = ''; activeTimers = {}; }
+
+            const now = new Date();
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyToday = new Date(sY, sM - 1, sD);
+            const [y, m, d] = currentTerm.startDate.split('-').map(Number);
+            const termStart = new Date(y, m - 1, d);
+            
+            const diffDays = getDaysDiff(termStart, sydneyToday);
+            const currentWeek = Math.floor(diffDays / 7) + 1;
+
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+            
+            let currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
+            let currentTotalMinutes = (parseInt(parts.find(p => p.type === 'hour').value) * 60) + parseInt(parts.find(p => p.type === 'minute').value);
+            const fullDateString = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
+            
+            if (currentWeek < 1 || currentWeek > 10) {
+                dayLabel.innerText = `(${fullDateString})`;
+                if (!isTickUpdate) renderTimeGraph([]); 
+                if (!isTickUpdate) container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
+                return;
+            }
+
+            dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
+
+            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())));
+            
+            if (!isTickUpdate) renderTimeGraph(todayEvents);
+
+            if (todayEvents.length === 0) {
+                if (!isTickUpdate) container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
+                return;
+            }
+
+            todayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+
+            if(!isTickUpdate) {
+                todayEvents.forEach(ev => {
+                    const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
+                    const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
+                    
+                    const isActiveNow = (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
+                    const isPast = (currentTotalMinutes > endMins);
+                    const displayStart = format12Hour(ev.start); const displayEnd = format12Hour(ev.end);
+                    
+                    let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box;`;
+                    
+                    let timerHTML = "";
+                    if (isActiveNow) {
+                        cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
+                        timerHTML = `<span id="timer-${ev.id}" style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px;">⏳ Calc...</span>`;
+                    } else if (isPast) {
+                        cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
+                    }
+
+                    let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
+
+                    const card = document.createElement('div');
+                    card.style.cssText = cardStyle;
+                    card.innerHTML = `
+                        <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                                <div>
+                                    <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
+                                    <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
+                                </div>
+                            </div>
+                            <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""} ${timerHTML}</div>
+                            ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
+                        </div>
+                        <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
+                            <span>${displayStart}</span>
+                            <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
+                            <span>${displayEnd}</span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+
+                    if (isActiveNow) {
+                        activeTimers[ev.id] = { endMins: endMins, element: document.getElementById(`timer-${ev.id}`) };
+                    }
+                });
+                updateActiveTimers(now);
+            }
+        }
+
+        function renderTimeGraph(todayEvents) {
+            const courseTimeMap = {};
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            todayEvents.forEach(ev => {
+                const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
+            });
+
+            const labels = Object.keys(courseTimeMap);
+            const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); 
+            const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
+
+            const ctx = document.getElementById('todayTimeChart');
+            if (timeChartInstance) timeChartInstance.destroy();
+            
+            if (labels.length > 0 && ctx) {
+                ctx.style.display = 'block'; document.getElementById('empty-chart-msg').style.display = 'none';
+                timeChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#b2ebf2', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' }
+                });
+            } else if (ctx) {
+                ctx.style.display = 'none'; document.getElementById('empty-chart-msg').style.display = 'block';
+            }
+        }
+
+        // --- KEY DATES LOGIC ---
+        function updateKeyDates() {
+            const container = document.getElementById('key-dates-container');
+            container.innerHTML = '';
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+
+            let keyDatesList = [];
+            const termEvents = events.filter(e => e.termId === currentTermId);
+            const today = new Date(); today.setHours(0,0,0,0);
+
+            termEvents.forEach(ev => {
+                if(ev.isCritical) {
+                    if(ev.weeks !== "All") {
+                        const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
+                        const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                        if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
+                    } else {
+                        for(let w=1; w<=10; w++) {
+                            if(!ev.skippedWeeks.includes(w.toString())) {
+                                const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
+                                const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                                if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
+                            }
+                        }
+                    }
+                }
+            });
+
+            keyDatesList.sort((a,b) => a.diffDays - b.diffDays);
+            if(keyDatesList.length === 0) {
+                container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; return;
+            }
+
+            keyDatesList.forEach(kd => {
+                const item = document.createElement('div');
+                let colorClass = 'kd-green'; let urgencyText = `In ${kd.diffDays} days`;
+                if (kd.diffDays === 0) { colorClass = 'kd-red'; urgencyText = "TODAY"; } 
+                else if (kd.diffDays <= 3) { colorClass = 'kd-red'; } 
+                else if (kd.diffDays <= 7) { colorClass = 'kd-yellow'; }
+
+                const displayDate = kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'});
+                const weightText = kd.ev.weight ? `<span style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 5px;">${kd.ev.weight}%</span>` : '';
+                
+                item.className = `key-date-item ${colorClass}`;
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>${kd.ev.courseId} ${kd.ev.title} ${weightText}</span>
+                        <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
+                    </div>
+                    <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // --- UI REFRESH LOGIC ---
+        function refreshUI() {
+            const termSelect = document.getElementById('inp-term-selector'); termSelect.innerHTML = '';
+            terms.forEach(t => {
+                const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name;
+                if(t.id === currentTermId) opt.selected = true; termSelect.appendChild(opt);
+            });
+            document.getElementById('dash-welcome-title').innerText = `Welcome to ${terms.find(t => t.id === currentTermId)?.name || "Current Term"}`;
+
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            const selectEl = document.getElementById('inp-ev-course');
+            const modSelectEl = document.getElementById('mod-ev-course');
+            const filterContainer = document.getElementById('dynamic-filters');
+            const builderCourseList = document.getElementById('builder-course-list');
+            
+            if(selectEl) selectEl.innerHTML = ''; 
+            if(modSelectEl) modSelectEl.innerHTML = ''; 
+            if(filterContainer) filterContainer.innerHTML = ''; 
+            if(builderCourseList) builderCourseList.innerHTML = ''; 
+
+            termCourses.forEach(c => {
+                const opt = document.createElement('option'); opt.value = c.id; opt.innerText = c.id; 
+                if(selectEl) selectEl.appendChild(opt);
+                
+                const opt2 = document.createElement('option'); opt2.value = c.id; opt2.innerText = c.id; 
+                if(modSelectEl) modSelectEl.appendChild(opt2);
+
+                const fBtn = document.createElement('button'); fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
+                fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
+                fBtn.onclick = () => {
+                    document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
+                    fBtn.classList.add('active'); currentFilter = c.id;
+                    if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+                };
+                if(filterContainer) filterContainer.appendChild(fBtn);
+
+                const li = document.createElement('li'); li.className = "mgmt-item";
+                li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
+                if(builderCourseList) builderCourseList.appendChild(li);
+            });
+
+            const eventList = document.getElementById('builder-event-list'); 
+            if(eventList) eventList.innerHTML = '';
+            const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
+            
+            termEvents.forEach(e => {
+                const cColor = termCourses.find(c => c.id === e.courseId)?.color || "#fff";
+                const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
+                const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` : "";
+                const criticalBadge = e.isCritical ? `<span style="margin-right: 5px;" title="Important Component">🚨</span>` : "";
+
+                const li = document.createElement('li'); li.className = "mgmt-item";
+                li.innerHTML = `<div><strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${e.title} <br><small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button>
+                        <button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button>
+                    </div>`;
+                if(eventList) eventList.appendChild(li);
+            });
+
+            updateKeyDates();
+            if (currentView === "dashboard") renderTodayAgenda(false);
+        }
+
+        // --- CALENDAR GRID & DRAG LOGIC ---
+        function switchView(view, btnElement) {
+            document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active'); else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
+            
+            document.getElementById('view-dashboard').style.display = 'none'; document.getElementById('view-builder').style.display = 'none'; document.getElementById('view-schedule').style.display = 'none';
+            currentView = view;
+
+            if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; renderTodayAgenda(false); } 
+            else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
+            else { document.getElementById('view-schedule').style.display = 'flex'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
+        }
+
+        function format12Hour(timeStr) {
+            let [h, m] = timeStr.split(':'); h = parseInt(h); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${m.toString().padStart(2,'0')} ${ampm}`;
+        }
+        function timeToMinutes(timeStr) { const [h, m] = timeStr.split(':').map(Number); return h * 60 + m; }
+        function minsToTimeStr(mins) {
+            const h = Math.floor(mins / 60).toString().padStart(2, '0');
+            const m = (mins % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        function checkOverlap(event1, event2) {
+            if(event1.day !== event2.day) return false;
+            const s1 = timeToMinutes(event1.start); const e1 = timeToMinutes(event1.end);
+            const s2 = timeToMinutes(event2.start); const e2 = timeToMinutes(event2.end);
+            return (s1 < e2 && s2 < e1);
+        }
+
+        let isDragging = false;
+        let dragStartMins = 0;
+        let dragCurrentDay = '';
+        let currentDragWeek = null;
+        let ghostEl = null;
+
+        function onDragMove(e) {
+            if(!isDragging || !ghostEl) return;
+            const col = document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`);
+            if(!col) return;
+            const rect = col.getBoundingClientRect();
+            
+            let rawMins = (e.clientY - rect.top) / timeScale;
+            let currentMins = Math.ceil(rawMins / 15) * 15;
+
+            let start = Math.min(dragStartMins, currentMins);
+            let end = Math.max(dragStartMins + 15, currentMins);
+            if(start < 0) start = 0;
+            if(end > 24 * 60) end = 24 * 60;
+
+            ghostEl.style.top = `${start * timeScale}px`;
+            ghostEl.style.height = `${(end - start) * timeScale}px`;
+            ghostEl.dataset.startMins = start;
+            ghostEl.dataset.endMins = end;
+            ghostEl.innerText = `${minsToTimeStr(start)} - ${minsToTimeStr(end)}`;
+        }
+
+        function onDragEnd(e) {
+            if(!isDragging) return;
+            isDragging = false;
+            window.removeEventListener('mousemove', onDragMove);
+            window.removeEventListener('mouseup', onDragEnd);
+            document.body.style.userSelect = '';
+
+            if(!ghostEl) return;
+            const startMins = parseInt(ghostEl.dataset.startMins || dragStartMins);
+            const endMins = parseInt(ghostEl.dataset.endMins || dragStartMins + 15);
+            ghostEl.remove();
+            ghostEl = null;
+
+            openCreateModal(dragCurrentDay, startMins, endMins, currentDragWeek);
+        }
+
+        function renderSchedule(weekNum) {
+            const container = document.getElementById('weekly-schedule-content'); container.innerHTML = '';
+            const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
+
+            let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
+
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            
+            let html = `
+                <div id="cal-scroll-container" style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; position: relative;">
+                    <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(17, 34, 34, 0.95); backdrop-filter: blur(5px); position: sticky; top: 0; z-index: 100;">
+                        <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline);"></div>
+            `;
+            days.forEach(day => {
+                const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
+                html += `<div style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(38,198,218,0.2); font-weight: bold; color: var(--text-muted);">
+                            ${day.substring(0,3).toUpperCase()} <br> <span style="font-size: 24px; color: var(--accent);">${targetDate.getDate()}</span>
+                         </div>`;
+            });
+            html += `</div>
+                    <div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * 60 * timeScale}px;">
+                        <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;">`;
+            for(let i=0; i<24; i++) {
+                html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;">
+                            <span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span>
+                         </div>`;
+            }
+            
+            html += `</div>
+                        <div style="position: absolute; top: 0; left: 60px; right: 0; height: ${24 * 60 * timeScale}px; pointer-events: none; z-index: 1;">`;
+            for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid rgba(38,198,218,0.1); box-sizing: border-box;"></div>`; }
+            
+            html += `</div>
+                        <div style="display: flex; flex: 1; position: relative; height: ${24 * 60 * timeScale}px; margin-left: 0;">`;
+            days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(38,198,218,0.2); z-index: 2; cursor: crosshair;"></div>`; });
+            html += `</div></div></div>`;
+            
+            container.innerHTML += html;
+
+            if (weekNum == getCurrentCalendarWeek()) {
+                const now = new Date();
+                const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
+                const col = document.getElementById(`day-col-${currentDay}`);
+                if(col) {
+                    const parts = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
+                    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+                    let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+                    const totalMins = currentH * 60 + currentM;
+                    const timeLine = document.createElement('div');
+                    timeLine.id = 'current-time-line';
+                    timeLine.style.cssText = `position: absolute; left: 0; right: 0; top: ${totalMins * timeScale}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;`;
+                    timeLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                    col.appendChild(timeLine);
+                }
+            }
+
+            let conflictIds = new Set();
+            for (let i = 0; i < filteredEvents.length; i++) {
+                for (let j = i + 1; j < filteredEvents.length; j++) {
+                    if (checkOverlap(filteredEvents[i], filteredEvents[j])) {
+                        conflictIds.add(filteredEvents[i].id);
+                        conflictIds.add(filteredEvents[j].id);
+                    }
+                }
+            }
+
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            
+            filteredEvents.forEach(ev => {
+                const col = document.getElementById(`day-col-${ev.day}`);
+                if(!col) return;
+                
+                const cColor = termCourses.find(c => c.id === ev.courseId)?.color || "#fff";
+                const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
+                const duration = endMins - startMins; 
+                
+                const isConflicted = conflictIds.has(ev.id);
+                let criticalBg = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid var(--bg-dark);`;
+                if(isConflicted) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
+
+                const criticalIcon = ev.isCritical ? `🚨 ` : '';
+                const showDetails = duration > 60; 
+                
+                const topPos = (startMins * timeScale) + 1;
+                const blockHeight = (duration * timeScale) - 2;
+
+                const eventCard = document.createElement('div');
+                eventCard.className = 'event-card-grid';
+                eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; // Hover failsafe
+                eventCard.style.cssText = `
+                    position: absolute; top: ${topPos}px; height: ${blockHeight}px; left: 2px; right: 2px;
+                    border-left: 4px solid ${cColor}; ${criticalBg} color: var(--text-main); padding: 4px 6px; border-radius: 4px;
+                    font-size: 13px; overflow: hidden; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    display: flex; flex-direction: column; transition: 0.1s; box-sizing: border-box; z-index: ${isConflicted ? 15 : 10};
+                `;
+                
+                eventCard.onmouseenter = () => { eventCard.style.filter = 'brightness(1.3)'; eventCard.style.zIndex = 20; };
+                eventCard.onmouseleave = () => { eventCard.style.filter = 'none'; eventCard.style.zIndex = isConflicted ? 15 : 10; };
+                eventCard.onmousedown = (e) => { e.stopPropagation(); }; 
+                eventCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
+
+                eventCard.innerHTML = `
+                    <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: column; overflow: hidden;">
+                            <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">
+                                ${criticalIcon}${ev.courseId} <span style="font-weight: 600; color: var(--text-main);">| ${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}
+                            </div>
+                            ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
+                            ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
+                        </div>
+                        <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: auto; flex-shrink: 0; line-height: 1.1;">
+                            ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
+                        </div>
+                    </div>
+                `;
+                col.appendChild(eventCard);
+            });
+
+            document.querySelectorAll('.day-column').forEach(col => {
+                col.addEventListener('mousedown', function(e) {
+                    if(e.button !== 0) return; 
+                    
+                    const termCourses = courses.filter(c => c.termId === currentTermId);
+                    if (termCourses.length === 0) {
+                        alert("You must define a Course in the Builder tab before scheduling blocks.");
+                        return;
+                    }
+
+                    isDragging = true;
+                    dragCurrentDay = this.dataset.day;
+                    currentDragWeek = weekNum; 
+                    document.body.style.userSelect = 'none';
+
+                    const rect = this.getBoundingClientRect();
+                    let rawMins = (e.clientY - rect.top) / timeScale;
+                    dragStartMins = Math.floor(rawMins / 15) * 15;
+
+                    ghostEl = document.createElement('div');
+                    ghostEl.className = 'ghost-event';
+                    ghostEl.style.top = `${dragStartMins * timeScale}px`;
+                    ghostEl.style.height = `${15 * timeScale}px`;
+                    ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
+                    
+                    this.appendChild(ghostEl);
+
+                    window.addEventListener('mousemove', onDragMove);
+                    window.addEventListener('mouseup', onDragEnd);
+                });
+            });
+            
+            setTimeout(() => {
+                const calBody = document.getElementById('cal-scroll-container');
+                if(calBody) calBody.scrollTop = (8 * 60 * timeScale) - 20;
+            }, 10);
+        }
+    </script>
+</body>
+</html>
