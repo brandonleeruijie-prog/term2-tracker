@@ -101,7 +101,7 @@
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
         
-        .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group select, .form-group textarea { 
+        .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group input[type="date"], .form-group select, .form-group textarea { 
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; 
             padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px; 
         }
@@ -178,10 +178,7 @@
         <div class="logo">🎯 <span>The Master Planner</span></div>
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
-            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="addTerm()" title="Add Term">+</button>
-            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="renameTerm()" title="Rename Term">✎</button>
-            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px;" onclick="setTermDate()" title="Set Start Date">📅</button>
-            <button class="tab-btn" style="padding: 2px 10px; font-size: 16px; border-color: #ff5252; color: #ff5252;" onclick="deleteCurrentTerm()" title="Delete Term">🗑️</button>
+            <button class="tab-btn action-btn" style="padding: 4px 12px; font-size: 16px;" onclick="openTermModal()" title="Manage Terms">⚙️ Create/Edit Plan</button>
         </div>
         <div id="sync-status" title="Firebase Cloud Sync is Active"><div class="sync-pulse"></div> Cloud Sync</div>
         <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">Loading...</div>
@@ -349,6 +346,7 @@
         </div>
     </div>
 
+    <!-- INSTANCE EDIT MODAL -->
     <div id="instance-edit-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="close-modal" onclick="closeInstanceModal()">✖</button>
@@ -414,6 +412,43 @@
                     <button type="button" id="mod-btn-delete" class="btn-delete" style="padding: 10px 20px;" onclick="deleteModalEvent()">🗑️ Delete Block</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- TERM MANAGEMENT MODAL -->
+    <div id="term-mgmt-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <button class="close-modal" onclick="closeTermModal()">✖</button>
+            <h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Plan Management</h2>
+            
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: var(--text-main); margin-bottom: 10px; font-size: 18px; text-transform: uppercase;">Edit Current Plan</h3>
+                <div class="form-group">
+                    <label>Plan Name</label>
+                    <input type="text" id="edit-term-name">
+                </div>
+                <div class="form-group">
+                    <label>Start Date (Select a Monday)</label>
+                    <input type="date" id="edit-term-date">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-submit" style="flex: 1;" onclick="saveCurrentTerm()">Save Changes</button>
+                    <button class="btn-delete" style="padding: 10px 20px;" onclick="deleteActiveTerm()">🗑️ Delete Plan</button>
+                </div>
+            </div>
+
+            <div style="border-top: 1px dashed var(--outline); padding-top: 20px;">
+                <h3 style="color: var(--text-main); margin-bottom: 10px; font-size: 18px; text-transform: uppercase;">Create New Plan</h3>
+                <div class="form-group">
+                    <label>New Plan Name</label>
+                    <input type="text" id="new-term-name" placeholder="e.g. Term 3">
+                </div>
+                <div class="form-group">
+                    <label>Start Date (Select a Monday)</label>
+                    <input type="date" id="new-term-date">
+                </div>
+                <button class="btn-submit" style="width: 100%; background: #26c6da; color: var(--bg-dark);" onclick="createNewTerm()">+ Initialize New Plan</button>
+            </div>
         </div>
     </div>
 
@@ -681,6 +716,71 @@
             }
         }
 
+        // --- TERM / PLAN MANAGEMENT LOGIC ---
+        function switchTerm(newTermId) { 
+            currentTermId = newTermId; 
+            localStorage.setItem('tp_active_term', currentTermId);
+            refreshUI(); 
+            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+        }
+
+        function openTermModal() {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(currentTerm) {
+                document.getElementById('edit-term-name').value = currentTerm.name;
+                document.getElementById('edit-term-date').value = currentTerm.startDate;
+            }
+            document.getElementById('new-term-name').value = '';
+            document.getElementById('new-term-date').value = '';
+            document.getElementById('term-mgmt-modal').style.display = 'flex';
+        }
+
+        function closeTermModal() {
+            document.getElementById('term-mgmt-modal').style.display = 'none';
+        }
+
+        function saveCurrentTerm() {
+            const newName = document.getElementById('edit-term-name').value.trim();
+            const newDate = document.getElementById('edit-term-date').value;
+            if(newName && newDate) {
+                db.collection('terms').doc(currentTermId).update({ name: newName, startDate: newDate }).then(() => {
+                    closeTermModal();
+                });
+            }
+        }
+
+        function createNewTerm() {
+            const name = document.getElementById('new-term-name').value.trim();
+            const sDate = document.getElementById('new-term-date').value;
+            if(name && sDate) {
+                const newId = `T${Date.now()}`;
+                db.collection('terms').doc(newId).set({ id: newId, name: name, startDate: sDate }).then(() => {
+                    currentTermId = newId; 
+                    localStorage.setItem('tp_active_term', currentTermId);
+                    closeTermModal();
+                });
+            }
+        }
+
+        async function deleteActiveTerm() {
+            if(terms.length <= 1) {
+                alert("Anti-Performative Check: You cannot delete your only plan. Create a new one first so you don't break the timeline."); 
+                return;
+            }
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(confirm(`Are you sure you want to burn '${currentTerm.name}' to the ground? This wipes ALL related cloud blocks permanently.`)) {
+                const batch = db.batch();
+                batch.delete(db.collection('terms').doc(currentTermId));
+                courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                events.filter(e => e.termId === currentTermId).forEach(e => batch.delete(db.collection('events').doc(e.id)));
+                
+                await batch.commit();
+                currentTermId = terms.filter(t => t.id !== currentTermId)[0].id; 
+                localStorage.setItem('tp_active_term', currentTermId);
+                closeTermModal();
+            }
+        }
+
         // --- MASTER EDITOR (Builder Tab) ---
         function editMasterEvent(id) {
             const ev = events.find(e => e.id === id);
@@ -883,49 +983,6 @@
                       .forEach(e => db.collection('events').doc(e.id).delete());
             }
         };
-
-        function switchTerm(newTermId) { 
-            currentTermId = newTermId; 
-            localStorage.setItem('tp_active_term', currentTermId);
-            refreshUI(); 
-            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
-        }
-        function addTerm() {
-            const name = prompt("Enter new Term Name (e.g. 'Term 3'):");
-            if(name && name.trim()) {
-                const sDate = prompt("Enter Term Start Date (Monday, YYYY-MM-DD):", "2026-09-14");
-                const newId = `T${Date.now()}`;
-                db.collection('terms').doc(newId).set({ id: newId, name: name.trim(), startDate: sDate || "2026-09-14" }).then(()=>{
-                    currentTermId = newId; localStorage.setItem('tp_active_term', currentTermId);
-                });
-            }
-        }
-        function renameTerm() {
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            const newName = prompt("Rename Term:", currentTerm.name);
-            if(newName && newName.trim()) { db.collection('terms').doc(currentTermId).update({ name: newName.trim() }); }
-        }
-        function setTermDate() {
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            const newDate = prompt("Set Term Start Date (Monday, YYYY-MM-DD):", currentTerm.startDate);
-            if(newDate && newDate.trim()) { db.collection('terms').doc(currentTermId).update({ startDate: newDate.trim() }); }
-        }
-        async function deleteCurrentTerm() {
-            if(terms.length === 1) {
-                alert("You cannot delete your only term. Add a new term first before deleting this one."); return;
-            }
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(confirm(`Are you sure you want to delete '${currentTerm.name}'?`)) {
-                const batch = db.batch();
-                batch.delete(db.collection('terms').doc(currentTermId));
-                courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
-                events.filter(e => e.termId === currentTermId).forEach(e => batch.delete(db.collection('events').doc(e.id)));
-                
-                await batch.commit();
-                currentTermId = terms.filter(t => t.id !== currentTermId)[0].id; 
-                localStorage.setItem('tp_active_term', currentTermId);
-            }
-        }
 
         // --- TODAY'S RADAR & GRAPH LOGIC ---
         function renderTodayAgenda(isTickUpdate = false) {
