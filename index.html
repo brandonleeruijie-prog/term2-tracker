@@ -501,6 +501,11 @@
         let modalInstanceWeek = null;
         let editingPlanId = null;
 
+        // Static Listeners
+        document.querySelectorAll('.action-btn').forEach(btn => { 
+            btn.onclick = () => switchView(btn.dataset.view, btn); 
+        });
+
         // --- REAL-TIME LISTENERS ---
         function checkLoaders() {
             if(loaders.terms && loaders.courses && loaders.events) {
@@ -639,10 +644,6 @@
             }
             inp.value = currentVal || 'All';
         }
-
-        document.querySelectorAll('.action-btn').forEach(btn => { 
-            btn.onclick = () => switchView(btn.dataset.view, btn); 
-        });
 
         function changeScale(val) {
             timeScale = parseFloat(val);
@@ -881,7 +882,7 @@
         }
 
         function openCreateModal(day, startMins, endMins, week, isReminder = false) {
-            if(!week) return; // Failsafe
+            if(!week) return; 
             modalInstanceId = null; modalInstanceWeek = week.toString();
             const courseDrop = document.getElementById('mod-ev-course');
             if(courseDrop.options.length > 0) courseDrop.selectedIndex = 0;
@@ -957,227 +958,6 @@
             closeInstanceModal();
         };
 
-        // --- TERM LOGIC ---
-        function switchTerm(newTermId) { 
-            currentTermId = newTermId; 
-            localStorage.setItem('tp_active_term', currentTermId);
-            refreshUI(); 
-            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
-        }
-        
-        async function deleteCurrentTerm() {
-            if(terms.length === 1) {
-                alert("You cannot delete your only plan. Add a new plan first before deleting this one."); return;
-            }
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(confirm(`Are you sure you want to delete '${currentTerm.name}'? This will permanently erase ALL courses and schedule blocks associated with this plan from the cloud.`)) {
-                const batch = db.batch();
-                batch.delete(db.collection('terms').doc(currentTermId));
-                courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
-                events.filter(e => e.termId === currentTermId).forEach(e => batch.delete(db.collection('events').doc(e.id)));
-                
-                await batch.commit();
-                currentTermId = terms.filter(t => t.id !== currentTermId)[0].id; 
-                localStorage.setItem('tp_active_term', currentTermId);
-            }
-        }
-
-        // --- TODAY'S RADAR & GRAPH LOGIC ---
-        function renderTodayAgenda(isTickUpdate = false) {
-            const container = document.getElementById('dashboard-today-agenda');
-            const dayLabel = document.getElementById('radar-day');
-            if(!container) return;
-            
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(!currentTerm) return;
-            const numWeeks = currentTerm.weeks;
-
-            if(!isTickUpdate) { container.innerHTML = ''; activeTimers = {}; }
-
-            const now = new Date();
-            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-            const [sM, sD, sY] = sydneyDateString.split('/');
-            const sydneyToday = new Date(sY, sM - 1, sD);
-            const [y, m, d] = currentTerm.startDate.split('-').map(Number);
-            const termStart = new Date(y, m - 1, d);
-            
-            const diffDays = getDaysDiff(termStart, sydneyToday);
-            const currentWeek = Math.floor(diffDays / 7) + 1;
-
-            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
-            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
-            
-            let currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
-            let currentTotalMinutes = (parseInt(parts.find(p => p.type === 'hour').value) * 60) + parseInt(parts.find(p => p.type === 'minute').value);
-            const fullDateString = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
-            
-            if (currentWeek < 1 || currentWeek > numWeeks) {
-                dayLabel.innerText = `(${fullDateString})`;
-                if (!isTickUpdate) renderTimeGraph([]); 
-                if (!isTickUpdate) container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
-                return;
-            }
-
-            dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
-
-            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())));
-            
-            if (!isTickUpdate) renderTimeGraph(todayEvents);
-
-            if (todayEvents.length === 0) {
-                if (!isTickUpdate) container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
-                return;
-            }
-
-            todayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-
-            if(!isTickUpdate) {
-                todayEvents.forEach(ev => {
-                    const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
-                    const startMins = timeToMinutes(ev.start); 
-                    const endMins = timeToMinutes(ev.end);
-                    const isRem = ev.isReminder;
-                    
-                    const isActiveNow = isRem 
-                        ? (currentTotalMinutes >= startMins && currentTotalMinutes <= startMins + 15)
-                        : (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
-                        
-                    const isPast = isRem ? (currentTotalMinutes > startMins + 15) : (currentTotalMinutes > endMins);
-                    
-                    const displayStart = format12Hour(ev.start); 
-                    const displayEnd = isRem ? '' : format12Hour(ev.end);
-                    
-                    let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box;`;
-                    
-                    let timerHTML = "";
-                    if (isActiveNow) {
-                        cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
-                        if(!isRem) {
-                            timerHTML = `<span id="timer-${ev.id}" style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px;">⏳ Calc...</span>`;
-                        } else {
-                            timerHTML = `<span style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px; animation: pulse 2s infinite;">ACTIVE</span>`;
-                        }
-                    } else if (isPast) {
-                        cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
-                    }
-
-                    let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
-                    let titleHTML = isRem ? `🔔 ${ev.courseId} | ${ev.title}` : `${criticalIcon}${ev.courseId} | ${ev.title}`;
-
-                    const card = document.createElement('div');
-                    card.style.cssText = cardStyle;
-                    card.innerHTML = `
-                        <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${titleHTML}</strong>
-                                <div>
-                                    <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
-                                    <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
-                                </div>
-                            </div>
-                            <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""} ${timerHTML}</div>
-                            ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
-                        </div>
-                        <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
-                            <span>${displayStart}</span>
-                            ${!isRem ? `<span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span><span>${displayEnd}</span>` : ''}
-                        </div>
-                    `;
-                    container.appendChild(card);
-
-                    if (isActiveNow && !isRem) {
-                        activeTimers[ev.id] = { endMins: endMins, element: document.getElementById(`timer-${ev.id}`) };
-                    }
-                });
-                updateActiveTimers(now);
-            }
-        }
-
-        function renderTimeGraph(todayEvents) {
-            const courseTimeMap = {};
-            const termCourses = courses.filter(c => c.termId === currentTermId);
-            todayEvents.forEach(ev => {
-                if(!ev.isReminder) {
-                    const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
-                    if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
-                }
-            });
-
-            const labels = Object.keys(courseTimeMap);
-            const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); 
-            const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
-
-            const ctx = document.getElementById('todayTimeChart');
-            if (timeChartInstance) timeChartInstance.destroy();
-            
-            if (labels.length > 0 && ctx) {
-                ctx.style.display = 'block'; document.getElementById('empty-chart-msg').style.display = 'none';
-                timeChartInstance = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#b2ebf2', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' }
-                });
-            } else if (ctx) {
-                ctx.style.display = 'none'; document.getElementById('empty-chart-msg').style.display = 'block';
-            }
-        }
-
-        // --- KEY DATES LOGIC ---
-        function updateKeyDates() {
-            const container = document.getElementById('key-dates-container');
-            container.innerHTML = '';
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(!currentTerm) return;
-
-            let keyDatesList = [];
-            const termEvents = events.filter(e => e.termId === currentTermId);
-            const today = new Date(); today.setHours(0,0,0,0);
-
-            termEvents.forEach(ev => {
-                if(ev.isCritical) {
-                    if(ev.weeks !== "All") {
-                        const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
-                        const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                        if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
-                    } else {
-                        for(let w=1; w<=currentTerm.weeks; w++) {
-                            if(!ev.skippedWeeks.includes(w.toString())) {
-                                const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
-                                const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                                if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
-                            }
-                        }
-                    }
-                }
-            });
-
-            keyDatesList.sort((a,b) => a.diffDays - b.diffDays);
-            if(keyDatesList.length === 0) {
-                container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; return;
-            }
-
-            keyDatesList.forEach(kd => {
-                const item = document.createElement('div');
-                let colorClass = 'kd-green'; let urgencyText = `In ${kd.diffDays} days`;
-                if (kd.diffDays === 0) { colorClass = 'kd-red'; urgencyText = "TODAY"; } 
-                else if (kd.diffDays <= 3) { colorClass = 'kd-red'; } 
-                else if (kd.diffDays <= 7) { colorClass = 'kd-yellow'; }
-
-                const displayDate = kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'});
-                const weightText = kd.ev.weight ? `<span style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 5px;">${kd.ev.weight}%</span>` : '';
-                
-                item.className = `key-date-item ${colorClass}`;
-                item.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${kd.ev.isReminder ? '🔔 ' : ''}${kd.ev.courseId} ${kd.ev.title} ${weightText}</span>
-                        <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
-                    </div>
-                    <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
         // --- UI REFRESH LOGIC ---
         function refreshUI() {
             const currentTerm = terms.find(t => t.id === currentTermId);
@@ -1221,6 +1001,13 @@
                 if(builderCourseList) builderCourseList.appendChild(li);
             });
 
+            // Ensure "All Subjects" stays correctly active if it's the current filter
+            if(currentFilter === "All" && document.getElementById('btn-filter-all')) {
+                document.getElementById('btn-filter-all').classList.add('active');
+            } else if (document.getElementById('btn-filter-all')) {
+                document.getElementById('btn-filter-all').classList.remove('active');
+            }
+
             const eventList = document.getElementById('builder-event-list'); 
             if(eventList) eventList.innerHTML = '';
             const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
@@ -1247,20 +1034,86 @@
             if (currentView === "dashboard") renderTodayAgenda(false);
         }
 
-        function timeToMinutes(timeStr) { 
-            if(!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return 0;
-            const [h, m] = timeStr.split(':').map(Number); 
-            return h * 60 + m; 
+        // --- CRUD ACTIONS (FIRESTORE) ---
+        document.getElementById('form-course').onsubmit = (e) => {
+            e.preventDefault();
+            const name = document.getElementById('inp-course-name').value.trim();
+            const docId = currentTermId + "_" + name;
+            if(!courses.find(c => c.id === name && c.termId === currentTermId)) {
+                db.collection('courses').doc(docId).set({id: name, color: document.getElementById('inp-course-color').value, termId: currentTermId})
+                  .then(() => document.getElementById('inp-course-name').value = '');
+            }
+        };
+
+        function deleteCourse(id) {
+            db.collection('courses').doc(currentTermId + "_" + id).delete();
+            events.filter(e => e.courseId === id && e.termId === currentTermId).forEach(e => db.collection('events').doc(e.id).delete());
+        }
+
+        document.getElementById('form-event').onsubmit = (e) => {
+            e.preventDefault();
+            const isCrit = document.getElementById('inp-ev-critical').checked;
+            const weightVal = document.getElementById('inp-ev-weight').value;
+            const isReminder = document.querySelector('input[name="inp-ev-type"]:checked').value === 'reminder';
+            
+            let startT = document.getElementById('inp-ev-start').value;
+            let endT = isReminder ? startT : document.getElementById('inp-ev-end').value;
+
+            const eventData = {
+                termId: currentTermId, courseId: document.getElementById('inp-ev-course').value, title: document.getElementById('inp-ev-title').value,
+                day: document.getElementById('inp-ev-day').value, weeks: document.getElementById('inp-ev-occurrence').value, start: startT,
+                end: endT, location: document.getElementById('inp-ev-location').value, desc: document.getElementById('inp-ev-desc').value,
+                isCritical: isCrit, weight: isCrit && weightVal ? parseInt(weightVal) : null, isReminder: isReminder
+            };
+
+            if (editingEventId) {
+                const idx = events.findIndex(ev => ev.id === editingEventId);
+                if (idx > -1) { 
+                    eventData.id = editingEventId; eventData.skippedWeeks = events[idx].skippedWeeks; 
+                    db.collection('events').doc(editingEventId).set(eventData);
+                }
+                cancelEdit();
+            } else {
+                eventData.id = Date.now().toString(); eventData.skippedWeeks = []; 
+                db.collection('events').doc(eventData.id).set(eventData).then(() => {
+                    document.getElementById('inp-ev-title').value = ''; document.getElementById('inp-ev-desc').value = ''; 
+                    document.getElementById('inp-ev-critical').checked = false; toggleWeightInput('inp-ev-weight-container', false);
+                });
+            }
+        };
+
+        document.getElementById('btn-hard-reset').onclick = async () => { 
+            if(confirm("This will permanently delete ALL data from the cloud. Are you absolutely sure?")) { 
+                const batch = db.batch();
+                terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
+                courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                events.forEach(e => batch.delete(db.collection('events').doc(e.id)));
+                await batch.commit();
+                localStorage.clear(); location.reload(); 
+            } 
+        };
+
+        // --- CALENDAR GRID & DRAG LOGIC ---
+        function switchView(view, btnElement) {
+            document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active'); else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
+            
+            document.getElementById('view-dashboard').style.display = 'none'; document.getElementById('view-builder').style.display = 'none'; document.getElementById('view-schedule').style.display = 'none';
+            currentView = view;
+
+            if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; renderTodayAgenda(false); } 
+            else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
+            else { document.getElementById('view-schedule').style.display = 'flex'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
         }
 
         function format12Hour(timeStr) {
             if(!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return '';
-            let [h, m] = timeStr.split(':'); 
-            h = parseInt(h); 
-            const ampm = h >= 12 ? 'PM' : 'AM'; 
-            return `${h % 12 || 12}:${m.toString().padStart(2,'0')} ${ampm}`;
+            let [h, m] = timeStr.split(':'); h = parseInt(h); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${m.toString().padStart(2,'0')} ${ampm}`;
         }
-
+        function timeToMinutes(timeStr) { 
+            if(!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return 0;
+            const [h, m] = timeStr.split(':').map(Number); return h * 60 + m; 
+        }
         function minsToTimeStr(mins) {
             const h = Math.floor(mins / 60).toString().padStart(2, '0');
             const m = (mins % 60).toString().padStart(2, '0');
@@ -1274,6 +1127,13 @@
             return (s1 < e2 && s2 < e1);
         }
 
+        let isDragging = false;
+        let dragStartY = 0;
+        let dragStartMins = 0;
+        let dragCurrentDay = '';
+        let currentDragWeek = null;
+        let ghostEl = null;
+
         function onDragMove(e) {
             if(!isDragging) return;
             
@@ -1282,7 +1142,9 @@
                     ghostEl = document.createElement('div');
                     ghostEl.className = 'ghost-event';
                     document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`).appendChild(ghostEl);
-                } else { return; }
+                } else {
+                    return; 
+                }
             }
 
             const col = document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`);
@@ -1312,7 +1174,7 @@
             document.body.style.userSelect = '';
 
             if(!ghostEl) {
-                if(!currentDragWeek) return; // Failsafe
+                if(!currentDragWeek) return; 
                 openCreateModal(dragCurrentDay, dragStartMins, dragStartMins + 15, currentDragWeek, true);
                 return;
             }
@@ -1331,6 +1193,12 @@
             const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
 
             let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
+
+            if(weekNum == 6 && currentFilter === "All" && events.filter(e => e.termId === currentTermId && e.weeks === "All").length > 0) {
+                 const flexNotice = document.createElement('div'); flexNotice.style.cssText = "text-align:center; background:rgba(38,198,218,0.1); padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--outline); flex-shrink: 0;";
+                 flexNotice.innerHTML = `<span style="color:var(--accent); font-weight: bold; margin-right: 10px;">Flexibility Week 🌴</span><span style="color:var(--text-muted); font-size:14px;">Click any block to edit, or drag to create high-yield study blocks.</span>`;
+                 container.appendChild(flexNotice);
+            }
 
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
@@ -1478,7 +1346,7 @@
                     isDragging = true;
                     dragCurrentDay = this.dataset.day;
                     currentDragWeek = weekNum; 
-                    dragStartY = e.clientY;
+                    dragStartY = e.clientY; 
                     document.body.style.userSelect = 'none';
 
                     const rect = this.getBoundingClientRect();
