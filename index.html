@@ -316,7 +316,8 @@
                             </div>
                             <div class="form-group">
                                 <label>Occurrence</label>
-                                <select id="inp-ev-occurrence"></select>
+                                <select id="inp-ev-occurrence">
+                                    </select>
                             </div>
                             <div class="form-group">
                                 <label>Location</label>
@@ -716,6 +717,16 @@
         }
 
         // --- HELPER LOGIC ---
+        function toggleWeightInput(containerId, isChecked) {
+            const container = document.getElementById(containerId);
+            if(isChecked) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById(containerId.replace('-container', '')).value = '';
+            }
+        }
+
         function exportData() {
             const dataObj = { terms, courses, events };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj));
@@ -904,7 +915,6 @@
             const weightVal = document.getElementById('mod-ev-weight').value;
             const isReminder = document.querySelector('input[name="mod-ev-type"]:checked').value === 'reminder';
             
-            // If it's a reminder, force the end time to match the start time for the database.
             let startT = document.getElementById('mod-ev-start').value;
             let endT = isReminder ? startT : document.getElementById('mod-ev-end').value;
 
@@ -946,6 +956,31 @@
             }
             closeInstanceModal();
         };
+
+        // --- TERM LOGIC ---
+        function switchTerm(newTermId) { 
+            currentTermId = newTermId; 
+            localStorage.setItem('tp_active_term', currentTermId);
+            refreshUI(); 
+            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
+        }
+        
+        async function deleteCurrentTerm() {
+            if(terms.length === 1) {
+                alert("You cannot delete your only plan. Add a new plan first before deleting this one."); return;
+            }
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(confirm(`Are you sure you want to delete '${currentTerm.name}'? This will permanently erase ALL courses and schedule blocks associated with this plan from the cloud.`)) {
+                const batch = db.batch();
+                batch.delete(db.collection('terms').doc(currentTermId));
+                courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                events.filter(e => e.termId === currentTermId).forEach(e => batch.delete(db.collection('events').doc(e.id)));
+                
+                await batch.commit();
+                currentTermId = terms.filter(t => t.id !== currentTermId)[0].id; 
+                localStorage.setItem('tp_active_term', currentTermId);
+            }
+        }
 
         // --- TODAY'S RADAR & GRAPH LOGIC ---
         function renderTodayAgenda(isTickUpdate = false) {
@@ -1004,7 +1039,7 @@
                     const isRem = ev.isReminder;
                     
                     const isActiveNow = isRem 
-                        ? (currentTotalMinutes >= startMins && currentTotalMinutes <= startMins + 15) // Reminder active window
+                        ? (currentTotalMinutes >= startMins && currentTotalMinutes <= startMins + 15)
                         : (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
                         
                     const isPast = isRem ? (currentTotalMinutes > startMins + 15) : (currentTotalMinutes > endMins);
@@ -1331,8 +1366,8 @@
             }
 
             // Was a drag -> Create Block
-            const startMins = parseInt(ghostEl.dataset.startMins);
-            const endMins = parseInt(ghostEl.dataset.endMins);
+            const startMins = parseInt(ghostEl.dataset.startMins || dragStartMins);
+            const endMins = parseInt(ghostEl.dataset.endMins || dragStartMins + 15);
             ghostEl.remove();
             ghostEl = null;
 
@@ -1423,14 +1458,12 @@
                 if(isConflicted && !isRem) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
 
                 const criticalIcon = ev.isCritical ? `🚨 ` : '';
-                const showDetails = duration > 60; 
                 
                 const eventCard = document.createElement('div');
                 eventCard.className = 'event-card-grid';
                 
                 if (isRem) {
-                    // REMINDER RENDER
-                    const topPos = (startMins * timeScale) - 12; // Center on time line
+                    const topPos = (startMins * timeScale) - 12; 
                     eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)}`;
                     eventCard.style.cssText = `
                         position: absolute; top: ${topPos}px; height: 24px; left: 5px; right: 5px;
@@ -1444,7 +1477,6 @@
                         <span style="font-family:'Share Tech Mono'; flex-shrink:0; margin-left:8px;">${format12Hour(ev.start)}</span>
                     `;
                 } else {
-                    // BLOCK RENDER
                     const topPos = (startMins * timeScale) + 1;
                     const blockHeight = (duration * timeScale) - 2;
                     eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; 
@@ -1460,8 +1492,6 @@
                                 <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">
                                     ${criticalIcon}${ev.courseId} <span style="font-weight: 600; color: var(--text-main);">| ${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}
                                 </div>
-                                ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
-                                ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
                             </div>
                             <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: auto; flex-shrink: 0; line-height: 1.1;">
                                 ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
@@ -1478,7 +1508,6 @@
                 col.appendChild(eventCard);
             });
 
-            // ATTACH MOUSE LISTENERS FOR DRAG/CLICK
             document.querySelectorAll('.day-column').forEach(col => {
                 col.addEventListener('mousedown', function(e) {
                     if(e.button !== 0) return; 
