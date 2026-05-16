@@ -178,7 +178,7 @@
         <div class="logo">🎯 <span>The Master Planner</span></div>
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
-            <button class="tab-btn action-btn" style="padding: 4px 12px; font-size: 16px;" onclick="openTermModal()" title="Manage Terms">⚙️ Create/Edit Plan</button>
+            <button class="tab-btn" style="padding: 4px 12px; font-size: 16px; background: rgba(38, 198, 218, 0.2); border-color: var(--accent); color: var(--accent);" onclick="openTermModal()" title="Manage Terms">⚙️ Create/Edit Plan</button>
         </div>
         <div id="sync-status" title="Firebase Cloud Sync is Active"><div class="sync-pulse"></div> Cloud Sync</div>
         <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">Loading...</div>
@@ -346,7 +346,6 @@
         </div>
     </div>
 
-    <!-- INSTANCE EDIT MODAL -->
     <div id="instance-edit-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="close-modal" onclick="closeInstanceModal()">✖</button>
@@ -415,7 +414,6 @@
         </div>
     </div>
 
-    <!-- TERM MANAGEMENT MODAL -->
     <div id="term-mgmt-modal" class="modal-overlay">
         <div class="modal-content" style="max-width: 500px;">
             <button class="close-modal" onclick="closeTermModal()">✖</button>
