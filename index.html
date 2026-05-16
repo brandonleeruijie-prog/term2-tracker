@@ -104,14 +104,13 @@
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
         
-        /* UPDATED: Added textarea to input styles */
         .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group select, .form-group textarea { 
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; 
             padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px; 
         }
         .form-group textarea {
-            resize: vertical; /* Allows dragging vertically */
-            min-height: 80px; /* Base height for readability */
+            resize: vertical;
+            min-height: 80px;
             line-height: 1.4;
         }
 
@@ -133,7 +132,6 @@
         }
         .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
 
-        /* MODAL CSS */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); z-index: 2000; justify-content: center; align-items: center;
@@ -150,7 +148,6 @@
         }
         .close-modal:hover { color: #ff5252; }
 
-        /* CALENDAR DRAG CLASSES */
         .day-column { user-select: none; position: relative; }
         .ghost-event {
             position: absolute; left: 2px; right: 2px; background: rgba(38, 198, 218, 0.2); 
@@ -159,7 +156,6 @@
             color: var(--accent); font-weight: bold; font-size: 14px; text-shadow: 0 0 5px black;
         }
         
-        /* Time Line Indicator */
         #current-time-line {
             position: absolute; left: 0; right: 0; height: 2px; background-color: #ff5252;
             z-index: 50; pointer-events: none;
@@ -170,10 +166,8 @@
             background-color: #ff5252; border-radius: 50%;
         }
         
-        /* Utility */
         .hidden { display: none !important; }
         
-        /* Sync Status Indicator */
         #sync-status {
             font-family: 'Share Tech Mono', monospace; font-size: 14px; margin-left: 15px; color: #4caf50;
             display: flex; align-items: center; gap: 5px;
@@ -793,6 +787,68 @@
                 db.collection('events').doc(finalData.id).set(finalData);
             }
             closeInstanceModal();
+        };
+
+        // --- BUILDER FORM SUBMISSION HANDLERS ---
+        
+        // 1. Add Course Handler
+        document.getElementById('form-course').onsubmit = (e) => {
+            e.preventDefault(); // Prevents the page from reloading
+            
+            const courseId = document.getElementById('inp-course-name').value.trim().toUpperCase();
+            const color = document.getElementById('inp-course-color').value;
+
+            if (courseId) {
+                const newCourse = { id: courseId, termId: currentTermId, color: color };
+                db.collection('courses').doc(currentTermId + "_" + courseId).set(newCourse).then(() => {
+                    document.getElementById('form-course').reset(); // Clear the input
+                }).catch(err => console.error("Error adding course: ", err));
+            }
+        };
+
+        // 2. Add/Edit Master Component Handler
+        document.getElementById('form-event').onsubmit = (e) => {
+            e.preventDefault(); // Prevents the page from reloading
+
+            const isCrit = document.getElementById('inp-ev-critical').checked;
+            const weightVal = document.getElementById('inp-ev-weight').value;
+
+            const newEvent = {
+                id: editingEventId || Date.now().toString(),
+                termId: currentTermId,
+                courseId: document.getElementById('inp-ev-course').value,
+                title: document.getElementById('inp-ev-title').value,
+                day: document.getElementById('inp-ev-day').value,
+                weeks: document.getElementById('inp-ev-occurrence').value,
+                location: document.getElementById('inp-ev-location').value,
+                start: document.getElementById('inp-ev-start').value,
+                end: document.getElementById('inp-ev-end').value,
+                desc: document.getElementById('inp-ev-desc').value,
+                isCritical: isCrit,
+                weight: isCrit && weightVal ? parseInt(weightVal) : null,
+                skippedWeeks: []
+            };
+
+            db.collection('events').doc(newEvent.id).set(newEvent).then(() => {
+                if (editingEventId) {
+                    cancelEdit();
+                } else {
+                    // Keep course and times, just wipe title and description for rapid data entry
+                    document.getElementById('inp-ev-title').value = '';
+                    document.getElementById('inp-ev-desc').value = '';
+                    document.getElementById('inp-ev-critical').checked = false;
+                    toggleWeightInput('inp-ev-weight-container', false);
+                }
+            }).catch(err => console.error("Error adding component: ", err));
+        };
+
+        // 3. Delete Course Function
+        window.deleteCourse = function(courseId) {
+            if(confirm(`Delete ${courseId} and ALL its scheduled blocks?`)) {
+                db.collection('courses').doc(currentTermId + "_" + courseId).delete();
+                events.filter(e => e.termId === currentTermId && e.courseId === courseId)
+                      .forEach(e => db.collection('events').doc(e.id).delete());
+            }
         };
 
         // --- TERM LOGIC ---
