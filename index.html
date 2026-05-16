@@ -92,9 +92,6 @@
 
         .content { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
         
-        .day-section { margin-bottom: 30px; }
-        .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
-        
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
         
@@ -108,11 +105,7 @@
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; 
             padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px; 
         }
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-            line-height: 1.4;
-        }
+        .form-group textarea { resize: vertical; min-height: 80px; line-height: 1.4; }
 
         .btn-submit { 
             background: var(--accent); color: var(--bg-dark); border: none; padding: 10px 20px; 
@@ -175,6 +168,8 @@
         .sync-pulse {
             width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite;
         }
+        .btn-skip { background: transparent; border: 1px solid var(--outline); border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 12px; transition: 0.2s; }
+        .btn-skip:hover { background: rgba(38, 198, 218, 0.2); }
     </style>
 </head>
 <body>
@@ -211,7 +206,7 @@
             
             <div id="view-dashboard">
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Loading Database...</h2>
-                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term. It will automatically populate across your weeks based on your recurrence settings.</p>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term.</p>
                 
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.05); border-color: var(--accent); padding: 25px;">
                     <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); padding-bottom: 10px;">
@@ -270,14 +265,21 @@
                 <div class="builder-section">
                     <h2>2. Add Master Component (Current Term)</h2>
                     <form id="form-event">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        
+                        <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(38,198,218,0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--outline);">
+                            <strong style="color: var(--accent);">Entry Type:</strong>
+                            <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="block" checked onchange="toggleReminder('inp', false)" style="accent-color: var(--accent);"> 🧱 Time Block</label>
+                            <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="reminder" onchange="toggleReminder('inp', true)" style="accent-color: var(--accent);"> 🔔 Reminder (No Duration)</label>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                             <div class="form-group">
-                                <label>Select Course</label>
+                                <label>Select Course (Optional for Reminders)</label>
                                 <select id="inp-ev-course" required></select>
                             </div>
                             <div class="form-group">
                                 <label>Component Type & Title</label>
-                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint" required>
+                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, Python Logic Prep" required>
                             </div>
                             <div class="form-group">
                                 <label>Day of Week</label>
@@ -303,7 +305,7 @@
                                 <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204">
                             </div>
                             <div class="form-group">
-                                <label>Time Block (Start & End 24H)</label>
+                                <label>Time (Start / End 24H)</label>
                                 <div style="display: flex; gap: 10px;">
                                     <input type="time" id="inp-ev-start" required style="flex: 1;">
                                     <input type="time" id="inp-ev-end" required style="flex: 1;">
@@ -312,7 +314,7 @@
                             
                             <div class="form-group" style="grid-column: span 2; margin-bottom: 20px;">
                                 <label>Strategic Description</label>
-                                <textarea id="inp-ev-desc" placeholder="e.g. Deep work block. No AI allowed. Task: Read Chapter 4..."></textarea>
+                                <textarea id="inp-ev-desc" placeholder="e.g. Do 3 hard problems with a blank page. Do not look at the solution until the timer rings."></textarea>
                             </div>
                             
                             <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
@@ -356,9 +358,16 @@
             </p>
             
             <form id="form-instance-edit">
+                
+                <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(38,198,218,0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--outline); margin-top: 15px;">
+                    <strong style="color: var(--accent);">Entry Type:</strong>
+                    <label style="cursor:pointer;"><input type="radio" name="mod-ev-type" value="block" checked onchange="toggleReminder('mod', false)" style="accent-color: var(--accent);"> 🧱 Time Block</label>
+                    <label style="cursor:pointer;"><input type="radio" name="mod-ev-type" value="reminder" onchange="toggleReminder('mod', true)" style="accent-color: var(--accent);"> 🔔 Reminder (No Duration)</label>
+                </div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                     <div class="form-group">
-                        <label>Course</label>
+                        <label>Course (Optional for Reminders)</label>
                         <select id="mod-ev-course" required></select>
                     </div>
                     <div class="form-group">
@@ -378,7 +387,7 @@
                         <input type="text" id="mod-ev-location">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
-                        <label>Time Block (Start & End 24H)</label>
+                        <label>Time (Start / End 24H)</label>
                         <div style="display: flex; gap: 10px;">
                             <input type="time" id="mod-ev-start" required style="flex: 1;">
                             <input type="time" id="mod-ev-end" required style="flex: 1;">
@@ -421,12 +430,10 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Enable offline persistence
         db.enablePersistence().catch(function(err) {
             console.log("Firebase Persistence Error: ", err.code);
         });
 
-        // Global Data Stores
         let terms = [];
         let courses = [];
         let events = [];
@@ -444,7 +451,6 @@
         let modalInstanceId = null;
         let modalInstanceWeek = null;
 
-        // --- REAL-TIME LISTENERS ---
         function checkLoaders() {
             if(loaders.terms && loaders.courses && loaders.events) {
                 if(terms.length === 0) {
@@ -479,13 +485,13 @@
                     weeks: e.weeks || "All", 
                     skippedWeeks: e.skippedWeeks || [],
                     isCritical: e.isCritical || false,
+                    isReminder: e.isReminder || false,
                     weight: e.weight || null
                 };
             });
             loaders.events = true; checkLoaders();
         });
 
-        // --- UI SETUP ---
         function initWeekTabs() {
             const weekTabsContainer = document.getElementById('week-tabs-container');
             if(weekTabsContainer.children.length === 0) {
@@ -525,7 +531,6 @@
             return Math.floor(diffDays / 7) + 1;
         }
 
-        // --- TICK ENGINE ---
         function updateSydneyTime() {
             const now = new Date();
             const options = { timeZone: 'Australia/Sydney', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
@@ -587,6 +592,20 @@
             }
         }
 
+        function toggleReminder(prefix, isReminder) {
+            const endContainer = document.getElementById(`${prefix}-ev-end`);
+            const courseSelect = document.getElementById(`${prefix}-ev-course`);
+            if(isReminder) {
+                endContainer.style.display = 'none';
+                endContainer.required = false;
+                courseSelect.required = false;
+            } else {
+                endContainer.style.display = 'inline-block';
+                endContainer.required = true;
+                courseSelect.required = true;
+            }
+        }
+
         function exportData() {
             const dataObj = { terms, courses, events };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj));
@@ -640,7 +659,6 @@
             else { container.style.display = 'none'; icon.innerText = '▶'; }
         }
 
-        // --- FIRESTORE DELETION / SKIPPING LOGIC ---
         function skipEventOccurrence(eventId, weekNum) {
             const ev = events.find(e => e.id === eventId);
             if(ev) {
@@ -668,10 +686,19 @@
             const ev = events.find(e => e.id === id);
             if(!ev) return;
             switchView('builder');
-            document.getElementById('inp-ev-course').value = ev.courseId; document.getElementById('inp-ev-title').value = ev.title;
-            document.getElementById('inp-ev-day').value = ev.day; document.getElementById('inp-ev-occurrence').value = ev.weeks;
-            document.getElementById('inp-ev-location').value = ev.location || ""; document.getElementById('inp-ev-start').value = ev.start;
-            document.getElementById('inp-ev-end').value = ev.end; document.getElementById('inp-ev-desc').value = ev.desc || "";
+            
+            const isRem = ev.isReminder || false;
+            document.querySelector(`input[name="inp-ev-type"][value="${isRem ? 'reminder' : 'block'}"]`).checked = true;
+            toggleReminder('inp', isRem);
+
+            document.getElementById('inp-ev-course').value = ev.courseId || ""; 
+            document.getElementById('inp-ev-title').value = ev.title;
+            document.getElementById('inp-ev-day').value = ev.day; 
+            document.getElementById('inp-ev-occurrence').value = ev.weeks;
+            document.getElementById('inp-ev-location').value = ev.location || ""; 
+            document.getElementById('inp-ev-start').value = ev.start;
+            document.getElementById('inp-ev-end').value = ev.end || ev.start; 
+            document.getElementById('inp-ev-desc').value = ev.desc || "";
             
             const isCrit = ev.isCritical;
             document.getElementById('inp-ev-critical').checked = isCrit;
@@ -689,6 +716,7 @@
             document.getElementById('btn-submit-event').innerText = "Add to Master Schedule";
             document.getElementById('btn-cancel-edit').style.display = "none";
             toggleWeightInput('inp-ev-weight-container', false);
+            toggleReminder('inp', false);
         }
 
         // --- INSTANCE MODAL EDITOR (Radar & Schedule View) ---
@@ -698,12 +726,16 @@
             
             modalInstanceId = id; modalInstanceWeek = week.toString();
             
-            document.getElementById('mod-ev-course').value = ev.courseId;
+            const isRem = ev.isReminder || false;
+            document.querySelector(`input[name="mod-ev-type"][value="${isRem ? 'reminder' : 'block'}"]`).checked = true;
+            toggleReminder('mod', isRem);
+
+            document.getElementById('mod-ev-course').value = ev.courseId || "";
             document.getElementById('mod-ev-title').value = ev.title;
             document.getElementById('mod-ev-day').value = ev.day;
             document.getElementById('mod-ev-location').value = ev.location || "";
             document.getElementById('mod-ev-start').value = ev.start;
-            document.getElementById('mod-ev-end').value = ev.end;
+            document.getElementById('mod-ev-end').value = ev.end || ev.start;
             document.getElementById('mod-ev-desc').value = ev.desc || "";
             
             const isCrit = ev.isCritical;
@@ -726,6 +758,9 @@
             modalInstanceId = null; modalInstanceWeek = week.toString();
             const courseDrop = document.getElementById('mod-ev-course');
             if(courseDrop.options.length > 0) courseDrop.selectedIndex = 0;
+
+            document.querySelector('input[name="mod-ev-type"][value="block"]').checked = true;
+            toggleReminder('mod', false);
 
             document.getElementById('mod-ev-title').value = ''; document.getElementById('mod-ev-day').value = day;
             document.getElementById('mod-ev-location').value = ''; document.getElementById('mod-ev-start').value = minsToTimeStr(startMins);
@@ -750,6 +785,7 @@
             
             const isCrit = document.getElementById('mod-ev-critical').checked;
             const weightVal = document.getElementById('mod-ev-weight').value;
+            const isReminder = document.querySelector('input[name="mod-ev-type"]:checked').value === 'reminder';
 
             const finalData = {
                 termId: currentTermId,
@@ -759,9 +795,10 @@
                 weeks: modalInstanceWeek,
                 location: document.getElementById('mod-ev-location').value,
                 start: document.getElementById('mod-ev-start').value,
-                end: document.getElementById('mod-ev-end').value,
+                end: isReminder ? document.getElementById('mod-ev-start').value : document.getElementById('mod-ev-end').value,
                 desc: document.getElementById('mod-ev-desc').value,
                 isCritical: isCrit, 
+                isReminder: isReminder,
                 weight: isCrit && weightVal ? parseInt(weightVal) : null,
                 skippedWeeks: []
             };
@@ -790,28 +827,25 @@
         };
 
         // --- BUILDER FORM SUBMISSION HANDLERS ---
-        
-        // 1. Add Course Handler
         document.getElementById('form-course').onsubmit = (e) => {
-            e.preventDefault(); // Prevents the page from reloading
-            
+            e.preventDefault();
             const courseId = document.getElementById('inp-course-name').value.trim().toUpperCase();
             const color = document.getElementById('inp-course-color').value;
 
             if (courseId) {
                 const newCourse = { id: courseId, termId: currentTermId, color: color };
                 db.collection('courses').doc(currentTermId + "_" + courseId).set(newCourse).then(() => {
-                    document.getElementById('form-course').reset(); // Clear the input
-                }).catch(err => console.error("Error adding course: ", err));
+                    document.getElementById('form-course').reset();
+                });
             }
         };
 
-        // 2. Add/Edit Master Component Handler
         document.getElementById('form-event').onsubmit = (e) => {
-            e.preventDefault(); // Prevents the page from reloading
+            e.preventDefault();
 
             const isCrit = document.getElementById('inp-ev-critical').checked;
             const weightVal = document.getElementById('inp-ev-weight').value;
+            const isReminder = document.querySelector('input[name="inp-ev-type"]:checked').value === 'reminder';
 
             const newEvent = {
                 id: editingEventId || Date.now().toString(),
@@ -822,9 +856,10 @@
                 weeks: document.getElementById('inp-ev-occurrence').value,
                 location: document.getElementById('inp-ev-location').value,
                 start: document.getElementById('inp-ev-start').value,
-                end: document.getElementById('inp-ev-end').value,
+                end: isReminder ? document.getElementById('inp-ev-start').value : document.getElementById('inp-ev-end').value,
                 desc: document.getElementById('inp-ev-desc').value,
                 isCritical: isCrit,
+                isReminder: isReminder,
                 weight: isCrit && weightVal ? parseInt(weightVal) : null,
                 skippedWeeks: []
             };
@@ -833,16 +868,14 @@
                 if (editingEventId) {
                     cancelEdit();
                 } else {
-                    // Keep course and times, just wipe title and description for rapid data entry
                     document.getElementById('inp-ev-title').value = '';
                     document.getElementById('inp-ev-desc').value = '';
                     document.getElementById('inp-ev-critical').checked = false;
                     toggleWeightInput('inp-ev-weight-container', false);
                 }
-            }).catch(err => console.error("Error adding component: ", err));
+            });
         };
 
-        // 3. Delete Course Function
         window.deleteCourse = function(courseId) {
             if(confirm(`Delete ${courseId} and ALL its scheduled blocks?`)) {
                 db.collection('courses').doc(currentTermId + "_" + courseId).delete();
@@ -851,7 +884,6 @@
             }
         };
 
-        // --- TERM LOGIC ---
         function switchTerm(newTermId) { 
             currentTermId = newTermId; 
             localStorage.setItem('tp_active_term', currentTermId);
@@ -883,7 +915,7 @@
                 alert("You cannot delete your only term. Add a new term first before deleting this one."); return;
             }
             const currentTerm = terms.find(t => t.id === currentTermId);
-            if(confirm(`Are you sure you want to delete '${currentTerm.name}'? This will permanently erase ALL courses and schedule blocks associated with this term from the cloud.`)) {
+            if(confirm(`Are you sure you want to delete '${currentTerm.name}'?`)) {
                 const batch = db.batch();
                 batch.delete(db.collection('terms').doc(currentTermId));
                 courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
@@ -944,50 +976,67 @@
 
             if(!isTickUpdate) {
                 todayEvents.forEach(ev => {
-                    const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
+                    const cColor = ev.courseId ? (courses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
                     const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
-                    
-                    const isActiveNow = (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
-                    const isPast = (currentTotalMinutes > endMins);
-                    const displayStart = format12Hour(ev.start); const displayEnd = format12Hour(ev.end);
-                    
-                    let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box;`;
-                    
-                    let timerHTML = "";
-                    if (isActiveNow) {
-                        cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
-                        timerHTML = `<span id="timer-${ev.id}" style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px;">⏳ Calc...</span>`;
-                    } else if (isPast) {
-                        cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
-                    }
-
+                    const isPast = (currentTotalMinutes > endMins) || (ev.isReminder && currentTotalMinutes > startMins);
+                    const displayStart = format12Hour(ev.start); const displayEnd = ev.isReminder ? "" : format12Hour(ev.end);
                     let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
 
                     const card = document.createElement('div');
-                    card.style.cssText = cardStyle;
-                    card.innerHTML = `
-                        <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
-                                <div>
-                                    <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
-                                    <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
-                                </div>
+                    
+                    if (ev.isReminder) {
+                        const cardStyle = `background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; padding: 10px 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.3s;`;
+                        card.style.cssText = cardStyle;
+                        card.innerHTML = `
+                            <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;">
+                                <span style="font-size:20px;">🔔</span>
+                                <strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
+                                    ${criticalIcon}${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}
+                                </strong>
                             </div>
-                            <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""} ${timerHTML}</div>
-                            ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
-                        </div>
-                        <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
-                            <span>${displayStart}</span>
-                            <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
-                            <span>${displayEnd}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
+                            <div style="display:flex; align-items:center; gap: 10px; flex-shrink:0;">
+                                <span style="font-family:'Share Tech Mono'; font-weight:bold;">${displayStart}</span>
+                                <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit">✏️</button>
+                                <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip">🚫</button>
+                            </div>
+                        `;
+                    } else {
+                        const isActiveNow = (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
+                        let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box;`;
+                        
+                        let timerHTML = "";
+                        if (isActiveNow) {
+                            cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
+                            timerHTML = `<span id="timer-${ev.id}" style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px;">⏳ Calc...</span>`;
+                        } else if (isPast) {
+                            cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
+                        }
 
-                    if (isActiveNow) {
-                        activeTimers[ev.id] = { endMins: endMins, element: document.getElementById(`timer-${ev.id}`) };
+                        card.style.cssText = cardStyle;
+                        card.innerHTML = `
+                            <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                                    <div>
+                                        <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
+                                        <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
+                                    </div>
+                                </div>
+                                <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""} ${timerHTML}</div>
+                                ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
+                            </div>
+                            <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
+                                <span>${displayStart}</span>
+                                <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
+                                <span>${displayEnd}</span>
+                            </div>
+                        `;
+
+                        if (isActiveNow) {
+                            activeTimers[ev.id] = { endMins: endMins, element: document.getElementById(`timer-${ev.id}`) };
+                        }
                     }
+                    container.appendChild(card);
                 });
                 updateActiveTimers(now);
             }
@@ -997,6 +1046,7 @@
             const courseTimeMap = {};
             const termCourses = courses.filter(c => c.termId === currentTermId);
             todayEvents.forEach(ev => {
+                if(ev.isReminder) return; // Exclude reminders from pie chart
                 const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
                 if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
             });
@@ -1020,7 +1070,6 @@
             }
         }
 
-        // --- KEY DATES LOGIC ---
         function updateKeyDates() {
             const container = document.getElementById('key-dates-container');
             container.innerHTML = '';
@@ -1067,7 +1116,7 @@
                 item.className = `key-date-item ${colorClass}`;
                 item.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${kd.ev.courseId} ${kd.ev.title} ${weightText}</span>
+                        <span>${kd.ev.courseId ? kd.ev.courseId + ' ' : ''}${kd.ev.title} ${weightText}</span>
                         <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
                     </div>
                     <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
@@ -1076,7 +1125,6 @@
             });
         }
 
-        // --- UI REFRESH LOGIC ---
         function refreshUI() {
             const termSelect = document.getElementById('inp-term-selector'); termSelect.innerHTML = '';
             terms.forEach(t => {
@@ -1091,8 +1139,8 @@
             const filterContainer = document.getElementById('dynamic-filters');
             const builderCourseList = document.getElementById('builder-course-list');
             
-            if(selectEl) selectEl.innerHTML = ''; 
-            if(modSelectEl) modSelectEl.innerHTML = ''; 
+            if(selectEl) selectEl.innerHTML = '<option value="">-- No Course (General) --</option>'; 
+            if(modSelectEl) modSelectEl.innerHTML = '<option value="">-- No Course (General) --</option>'; 
             if(filterContainer) filterContainer.innerHTML = ''; 
             if(builderCourseList) builderCourseList.innerHTML = ''; 
 
@@ -1122,13 +1170,14 @@
             const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
             termEvents.forEach(e => {
-                const cColor = termCourses.find(c => c.id === e.courseId)?.color || "#fff";
+                const cColor = e.courseId ? (termCourses.find(c => c.id === e.courseId)?.color || "var(--accent)") : "var(--accent)";
                 const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
-                const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` : "";
+                const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')})</span>` : "";
                 const criticalBadge = e.isCritical ? `<span style="margin-right: 5px;" title="Important Component">🚨</span>` : "";
+                const remBadge = e.isReminder ? `<span style="margin-right: 5px;" title="Reminder">🔔</span>` : "";
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
-                li.innerHTML = `<div><strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${e.title} <br><small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
+                li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} <br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
                     <div style="display:flex; gap: 8px;">
                         <button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button>
                         <button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button>
@@ -1165,6 +1214,7 @@
 
         function checkOverlap(event1, event2) {
             if(event1.day !== event2.day) return false;
+            if(event1.isReminder || event2.isReminder) return false;
             const s1 = timeToMinutes(event1.start); const e1 = timeToMinutes(event1.end);
             const s2 = timeToMinutes(event2.start); const e2 = timeToMinutes(event2.end);
             return (s1 < e2 && s2 < e1);
@@ -1285,9 +1335,33 @@
                 const col = document.getElementById(`day-col-${ev.day}`);
                 if(!col) return;
                 
-                const cColor = termCourses.find(c => c.id === ev.courseId)?.color || "#fff";
-                const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
+                const startMins = timeToMinutes(ev.start);
+                
+                if (ev.isReminder) {
+                    const topPos = (startMins * timeScale) - 10; 
+                    const rColor = ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                    
+                    const reminderCard = document.createElement('div');
+                    reminderCard.title = `${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}\n${format12Hour(ev.start)}`;
+                    reminderCard.style.cssText = `
+                        position: absolute; top: ${topPos}px; height: 22px; left: 2px; right: 2px;
+                        background: ${rColor}; color: #000; font-weight: bold; font-size: 12px;
+                        border-radius: 4px; overflow: hidden; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+                        display: flex; align-items: center; padding: 0 6px; z-index: 40; transition: 0.1s;
+                        white-space: nowrap; text-overflow: ellipsis;
+                    `;
+                    reminderCard.onmouseenter = () => { reminderCard.style.filter = 'brightness(1.2)'; };
+                    reminderCard.onmouseleave = () => { reminderCard.style.filter = 'none'; };
+                    reminderCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
+                    
+                    reminderCard.innerHTML = `<span style="margin-right:5px;">🔔</span> <span style="text-overflow:ellipsis; overflow:hidden;">${ev.courseId ? ev.courseId + ' ' : ''}${ev.title}</span>`;
+                    col.appendChild(reminderCard);
+                    return; 
+                }
+
+                const endMins = timeToMinutes(ev.end);
                 const duration = endMins - startMins; 
+                const cColor = termCourses.find(c => c.id === ev.courseId)?.color || "#fff";
                 
                 const isConflicted = conflictIds.has(ev.id);
                 let criticalBg = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid var(--bg-dark);`;
@@ -1301,7 +1375,7 @@
 
                 const eventCard = document.createElement('div');
                 eventCard.className = 'event-card-grid';
-                eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; // Hover failsafe
+                eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; 
                 eventCard.style.cssText = `
                     position: absolute; top: ${topPos}px; height: ${blockHeight}px; left: 2px; right: 2px;
                     border-left: 4px solid ${cColor}; ${criticalBg} color: var(--text-main); padding: 4px 6px; border-radius: 4px;
@@ -1334,12 +1408,6 @@
             document.querySelectorAll('.day-column').forEach(col => {
                 col.addEventListener('mousedown', function(e) {
                     if(e.button !== 0) return; 
-                    
-                    const termCourses = courses.filter(c => c.termId === currentTermId);
-                    if (termCourses.length === 0) {
-                        alert("You must define a Course in the Builder tab before scheduling blocks.");
-                        return;
-                    }
 
                     isDragging = true;
                     dragCurrentDay = this.dataset.day;
