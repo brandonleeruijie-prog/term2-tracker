@@ -38,16 +38,16 @@
         .logo { font-size: 24px; font-weight: 700; color: var(--accent); margin-right: 10px; }
         
         .term-controls { display: flex; gap: 8px; align-items: center; margin-left: 20px; border-left: 1px solid var(--outline); padding-left: 15px; }
-        .term-select { background: var(--bg-panel); color: var(--accent); border: 1px solid var(--outline); padding: 4px 8px; border-radius: 4px; font-family: 'Share Tech Mono'; font-size: 16px; cursor: pointer; max-width: 150px; text-overflow: ellipsis;}
+        .term-select { background: var(--bg-panel); color: var(--accent); border: 1px solid var(--outline); padding: 4px 8px; border-radius: 4px; font-family: 'Share Tech Mono'; font-size: 16px; cursor: pointer;}
         
         .subbar {
             background-color: var(--bg-panel); padding: 10px 20px; display: flex;
-            gap: 15px; border-bottom: 1px solid var(--outline); align-items: center; overflow-x: auto;
+            gap: 15px; border-bottom: 1px solid var(--outline); align-items: center;
         }
         .tab-btn {
             background: rgba(0,0,0,0.2); border: 1px solid var(--outline); color: var(--text-muted);
             padding: 6px 14px; border-radius: 15px; cursor: pointer; font-weight: 700; font-size: 15px;
-            transition: 0.2s; white-space: nowrap; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; flex-shrink: 0;
+            transition: 0.2s; white-space: nowrap; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
         }
         .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
         .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
@@ -56,12 +56,12 @@
         .segmented-control {
             display: flex; flex: 1; border: 1px solid rgba(38, 198, 218, 0.4);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
-            min-width: max-content; /* Ensure tabs scroll if too many */
+            min-width: 0;
         }
         .segmented-control .tab-btn {
             flex: 1; background: transparent; border: none; border-radius: 0;
-            border-right: 1px solid rgba(38, 198, 218, 0.4); margin: 0; padding: 6px 16px;
-            text-align: center; font-size: 16px; min-width: max-content;
+            border-right: 1px solid rgba(38, 198, 218, 0.4); margin: 0; padding: 6px 0;
+            text-align: center; font-size: 16px; min-width: 0;
         }
         .segmented-control .tab-btn:last-child { border-right: none; }
         .segmented-control .tab-btn:hover { background: rgba(38, 198, 218, 0.15); color: var(--accent); }
@@ -91,6 +91,9 @@
         .kd-green { background: rgba(76, 175, 80, 0.1); border-color: #4caf50; color: #a5d6a7; }
 
         .content { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        .day-section { margin-bottom: 30px; }
+        .day-title { border-bottom: 2px solid var(--outline); padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-size: 24px;}
         
         .builder-section { background: var(--bg-panel); padding: 20px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 30px; }
         .builder-section h2 { margin-top: 0; color: var(--accent); }
@@ -177,6 +180,18 @@
         }
         .sync-pulse {
             width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite;
+        }
+
+        /* Radio Toggle Styles */
+        .type-toggle-container {
+            display: flex; gap: 15px; background: rgba(0,0,0,0.3); padding: 10px 15px; 
+            border-radius: 4px; border: 1px solid var(--outline);
+        }
+        .type-toggle-label {
+            cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-main); margin: 0; font-weight: 600;
+        }
+        .type-toggle-label input[type="radio"] {
+            accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;
         }
     </style>
 </head>
@@ -272,14 +287,24 @@
                 <div class="builder-section">
                     <h2>2. Add Master Component (Current Plan)</h2>
                     <form id="form-event">
+                        
+                        <div class="form-group type-toggle-container">
+                            <label class="type-toggle-label">
+                                <input type="radio" name="inp-ev-type" value="block" checked onchange="toggleEventType('inp')"> 🔲 Time Block
+                            </label>
+                            <label class="type-toggle-label">
+                                <input type="radio" name="inp-ev-type" value="reminder" onchange="toggleEventType('inp')"> 🔔 Reminder (No Duration)
+                            </label>
+                        </div>
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div class="form-group">
                                 <label>Select Course</label>
                                 <select id="inp-ev-course" required></select>
                             </div>
                             <div class="form-group">
-                                <label>Component Type & Title</label>
-                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, CAD Sprint" required>
+                                <label>Component Title</label>
+                                <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, Submit Assignment" required>
                             </div>
                             <div class="form-group">
                                 <label>Day of Week</label>
@@ -291,17 +316,18 @@
                             </div>
                             <div class="form-group">
                                 <label>Occurrence</label>
-                                <select id="inp-ev-occurrence">
-                                    </select>
+                                <select id="inp-ev-occurrence"></select>
                             </div>
                             <div class="form-group">
                                 <label>Location</label>
                                 <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204">
                             </div>
+                            
                             <div class="form-group">
-                                <label>Time Block (Start & End 24H)</label>
-                                <div style="display: flex; gap: 10px;">
+                                <label>Time (24H)</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
                                     <input type="time" id="inp-ev-start" required style="flex: 1;">
+                                    <span id="inp-ev-to" style="color: var(--text-muted);">to</span>
                                     <input type="time" id="inp-ev-end" required style="flex: 1;">
                                 </div>
                             </div>
@@ -377,6 +403,16 @@
             </p>
             
             <form id="form-instance-edit">
+                
+                <div class="form-group type-toggle-container" style="margin-top: 15px;">
+                    <label class="type-toggle-label">
+                        <input type="radio" name="mod-ev-type" value="block" checked onchange="toggleEventType('mod')"> 🔲 Time Block
+                    </label>
+                    <label class="type-toggle-label">
+                        <input type="radio" name="mod-ev-type" value="reminder" onchange="toggleEventType('mod')"> 🔔 Reminder
+                    </label>
+                </div>
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                     <div class="form-group">
                         <label>Course</label>
@@ -398,10 +434,12 @@
                         <label>Location</label>
                         <input type="text" id="mod-ev-location">
                     </div>
+                    
                     <div class="form-group" style="grid-column: span 2;">
-                        <label>Time Block (Start & End 24H)</label>
-                        <div style="display: flex; gap: 10px;">
+                        <label>Time (24H)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
                             <input type="time" id="mod-ev-start" required style="flex: 1;">
+                            <span id="mod-ev-to" style="color: var(--text-muted);">to</span>
                             <input type="time" id="mod-ev-end" required style="flex: 1;">
                         </div>
                     </div>
@@ -423,7 +461,7 @@
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
                     <button type="submit" class="btn-submit" style="flex: 1;">Save Changes</button>
-                    <button type="button" id="mod-btn-delete" class="btn-delete" style="padding: 10px 20px;" onclick="deleteModalEvent()">🗑️ Delete Block</button>
+                    <button type="button" id="mod-btn-delete" class="btn-delete" style="padding: 10px 20px;" onclick="deleteModalEvent()">🗑️ Delete</button>
                 </div>
             </form>
         </div>
@@ -483,7 +521,7 @@
         db.collection("terms").onSnapshot(snapshot => {
             terms = snapshot.docs.map(doc => {
                 let t = doc.data();
-                return { ...t, weeks: t.weeks || 10 }; // Legacy fallback
+                return { ...t, weeks: t.weeks || 10 };
             });
             loaders.terms = true; checkLoaders();
         });
@@ -501,11 +539,29 @@
                     weeks: e.weeks || "All", 
                     skippedWeeks: e.skippedWeeks || [],
                     isCritical: e.isCritical || false,
-                    weight: e.weight || null
+                    weight: e.weight || null,
+                    isReminder: e.isReminder || false // New Type
                 };
             });
             loaders.events = true; checkLoaders();
         });
+
+        // --- TYPE TOGGLE LOGIC ---
+        function toggleEventType(prefix) {
+            const isReminder = document.querySelector(`input[name="${prefix}-ev-type"]:checked`).value === 'reminder';
+            const endInput = document.getElementById(`${prefix}-ev-end`);
+            const toText = document.getElementById(`${prefix}-ev-to`);
+            
+            if (isReminder) {
+                endInput.style.display = 'none';
+                toText.style.display = 'none';
+                endInput.required = false;
+            } else {
+                endInput.style.display = 'block';
+                toText.style.display = 'block';
+                endInput.required = true;
+            }
+        }
 
         // --- PLAN MODAL LOGIC ---
         function openNewPlanModal() {
@@ -557,10 +613,7 @@
             const weekTabsContainer = document.getElementById('week-tabs-container');
             weekTabsContainer.innerHTML = '';
             
-            // Failsafe: if currently viewing a week that was just deleted (e.g. shrunk plan from 10 to 4 weeks)
-            if(!isNaN(currentView) && currentView > numWeeks) {
-                switchView('dashboard');
-            }
+            if(!isNaN(currentView) && currentView > numWeeks) { switchView('dashboard'); }
 
             for(let i=1; i<=numWeeks; i++) {
                 const btn = document.createElement('button'); 
@@ -749,10 +802,19 @@
             const ev = events.find(e => e.id === id);
             if(!ev) return;
             switchView('builder');
-            document.getElementById('inp-ev-course').value = ev.courseId; document.getElementById('inp-ev-title').value = ev.title;
-            document.getElementById('inp-ev-day').value = ev.day; document.getElementById('inp-ev-occurrence').value = ev.weeks;
-            document.getElementById('inp-ev-location').value = ev.location || ""; document.getElementById('inp-ev-start').value = ev.start;
-            document.getElementById('inp-ev-end').value = ev.end; document.getElementById('inp-ev-desc').value = ev.desc || "";
+            
+            const isRem = ev.isReminder || false;
+            document.querySelector(`input[name="inp-ev-type"][value="${isRem ? 'reminder' : 'block'}"]`).checked = true;
+            toggleEventType('inp');
+
+            document.getElementById('inp-ev-course').value = ev.courseId; 
+            document.getElementById('inp-ev-title').value = ev.title;
+            document.getElementById('inp-ev-day').value = ev.day; 
+            document.getElementById('inp-ev-occurrence').value = ev.weeks;
+            document.getElementById('inp-ev-location').value = ev.location || ""; 
+            document.getElementById('inp-ev-start').value = ev.start;
+            document.getElementById('inp-ev-end').value = ev.end; 
+            document.getElementById('inp-ev-desc').value = ev.desc || "";
             
             const isCrit = ev.isCritical;
             document.getElementById('inp-ev-critical').checked = isCrit;
@@ -767,6 +829,8 @@
 
         function cancelEdit() {
             editingEventId = null; document.getElementById('form-event').reset();
+            document.querySelector(`input[name="inp-ev-type"][value="block"]`).checked = true;
+            toggleEventType('inp');
             document.getElementById('btn-submit-event').innerText = "Add to Master Schedule";
             document.getElementById('btn-cancel-edit').style.display = "none";
             toggleWeightInput('inp-ev-weight-container', false);
@@ -779,6 +843,10 @@
             
             modalInstanceId = id; modalInstanceWeek = week.toString();
             
+            const isRem = ev.isReminder || false;
+            document.querySelector(`input[name="mod-ev-type"][value="${isRem ? 'reminder' : 'block'}"]`).checked = true;
+            toggleEventType('mod');
+
             document.getElementById('mod-ev-course').value = ev.courseId;
             document.getElementById('mod-ev-title').value = ev.title;
             document.getElementById('mod-ev-day').value = ev.day;
@@ -803,10 +871,13 @@
             document.getElementById('instance-edit-modal').style.display = 'flex';
         }
 
-        function openCreateModal(day, startMins, endMins, week) {
+        function openCreateModal(day, startMins, endMins, week, isReminder = false) {
             modalInstanceId = null; modalInstanceWeek = week.toString();
             const courseDrop = document.getElementById('mod-ev-course');
             if(courseDrop.options.length > 0) courseDrop.selectedIndex = 0;
+
+            document.querySelector(`input[name="mod-ev-type"][value="${isReminder ? 'reminder' : 'block'}"]`).checked = true;
+            toggleEventType('mod');
 
             document.getElementById('mod-ev-title').value = ''; document.getElementById('mod-ev-day').value = day;
             document.getElementById('mod-ev-location').value = ''; document.getElementById('mod-ev-start').value = minsToTimeStr(startMins);
@@ -831,6 +902,11 @@
             
             const isCrit = document.getElementById('mod-ev-critical').checked;
             const weightVal = document.getElementById('mod-ev-weight').value;
+            const isReminder = document.querySelector('input[name="mod-ev-type"]:checked').value === 'reminder';
+            
+            // If it's a reminder, force the end time to match the start time for the database.
+            let startT = document.getElementById('mod-ev-start').value;
+            let endT = isReminder ? startT : document.getElementById('mod-ev-end').value;
 
             const finalData = {
                 termId: currentTermId,
@@ -839,11 +915,12 @@
                 day: document.getElementById('mod-ev-day').value,
                 weeks: modalInstanceWeek,
                 location: document.getElementById('mod-ev-location').value,
-                start: document.getElementById('mod-ev-start').value,
-                end: document.getElementById('mod-ev-end').value,
+                start: startT,
+                end: endT,
                 desc: document.getElementById('mod-ev-desc').value,
                 isCritical: isCrit, 
                 weight: isCrit && weightVal ? parseInt(weightVal) : null,
+                isReminder: isReminder,
                 skippedWeeks: []
             };
 
@@ -869,31 +946,6 @@
             }
             closeInstanceModal();
         };
-
-        // --- TERM LOGIC ---
-        function switchTerm(newTermId) { 
-            currentTermId = newTermId; 
-            localStorage.setItem('tp_active_term', currentTermId);
-            refreshUI(); 
-            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
-        }
-        
-        async function deleteCurrentTerm() {
-            if(terms.length === 1) {
-                alert("You cannot delete your only plan. Add a new plan first before deleting this one."); return;
-            }
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(confirm(`Are you sure you want to delete '${currentTerm.name}'? This will permanently erase ALL courses and schedule blocks associated with this plan from the cloud.`)) {
-                const batch = db.batch();
-                batch.delete(db.collection('terms').doc(currentTermId));
-                courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
-                events.filter(e => e.termId === currentTermId).forEach(e => batch.delete(db.collection('events').doc(e.id)));
-                
-                await batch.commit();
-                currentTermId = terms.filter(t => t.id !== currentTermId)[0].id; 
-                localStorage.setItem('tp_active_term', currentTermId);
-            }
-        }
 
         // --- TODAY'S RADAR & GRAPH LOGIC ---
         function renderTodayAgenda(isTickUpdate = false) {
@@ -947,30 +999,42 @@
             if(!isTickUpdate) {
                 todayEvents.forEach(ev => {
                     const cColor = courses.find(c => c.id === ev.courseId)?.color || "#fff";
-                    const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
+                    const startMins = timeToMinutes(ev.start); 
+                    const endMins = timeToMinutes(ev.end);
+                    const isRem = ev.isReminder;
                     
-                    const isActiveNow = (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
-                    const isPast = (currentTotalMinutes > endMins);
-                    const displayStart = format12Hour(ev.start); const displayEnd = format12Hour(ev.end);
+                    const isActiveNow = isRem 
+                        ? (currentTotalMinutes >= startMins && currentTotalMinutes <= startMins + 15) // Reminder active window
+                        : (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
+                        
+                    const isPast = isRem ? (currentTotalMinutes > startMins + 15) : (currentTotalMinutes > endMins);
+                    
+                    const displayStart = format12Hour(ev.start); 
+                    const displayEnd = isRem ? '' : format12Hour(ev.end);
                     
                     let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box;`;
                     
                     let timerHTML = "";
                     if (isActiveNow) {
                         cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
-                        timerHTML = `<span id="timer-${ev.id}" style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px;">⏳ Calc...</span>`;
+                        if(!isRem) {
+                            timerHTML = `<span id="timer-${ev.id}" style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px;">⏳ Calc...</span>`;
+                        } else {
+                            timerHTML = `<span style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px; animation: pulse 2s infinite;">ACTIVE</span>`;
+                        }
                     } else if (isPast) {
                         cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
                     }
 
-                    let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
+                    let criticalIcon = ev.isCritical ? `🚨 ` : '';
+                    let titleHTML = isRem ? `🔔 ${ev.courseId} | ${ev.title}` : `${criticalIcon}${ev.courseId} | ${ev.title}`;
 
                     const card = document.createElement('div');
                     card.style.cssText = cardStyle;
                     card.innerHTML = `
                         <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                                <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${titleHTML}</strong>
                                 <div>
                                     <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
                                     <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
@@ -981,13 +1045,12 @@
                         </div>
                         <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
                             <span>${displayStart}</span>
-                            <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
-                            <span>${displayEnd}</span>
+                            ${!isRem ? `<span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span><span>${displayEnd}</span>` : ''}
                         </div>
                     `;
                     container.appendChild(card);
 
-                    if (isActiveNow) {
+                    if (isActiveNow && !isRem) {
                         activeTimers[ev.id] = { endMins: endMins, element: document.getElementById(`timer-${ev.id}`) };
                     }
                 });
@@ -999,8 +1062,10 @@
             const courseTimeMap = {};
             const termCourses = courses.filter(c => c.termId === currentTermId);
             todayEvents.forEach(ev => {
-                const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
-                if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
+                if(!ev.isReminder) {
+                    const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                    if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
+                }
             });
 
             const labels = Object.keys(courseTimeMap);
@@ -1028,7 +1093,6 @@
             container.innerHTML = '';
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
-            const numWeeks = currentTerm.weeks;
 
             let keyDatesList = [];
             const termEvents = events.filter(e => e.termId === currentTermId);
@@ -1041,7 +1105,7 @@
                         const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
                         if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
                     } else {
-                        for(let w=1; w<=numWeeks; w++) {
+                        for(let w=1; w<=currentTerm.weeks; w++) {
                             if(!ev.skippedWeeks.includes(w.toString())) {
                                 const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
                                 const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
@@ -1070,7 +1134,7 @@
                 item.className = `key-date-item ${colorClass}`;
                 item.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${kd.ev.courseId} ${kd.ev.title} ${weightText}</span>
+                        <span>${kd.ev.isReminder ? '🔔 ' : ''}${kd.ev.courseId} ${kd.ev.title} ${weightText}</span>
                         <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
                     </div>
                     <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
@@ -1135,9 +1199,12 @@
                 const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
                 const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')}) <a href="#" onclick="restoreEvent('${e.id}')" style="color:var(--accent); margin-left:5px;">Restore</a></span>` : "";
                 const criticalBadge = e.isCritical ? `<span style="margin-right: 5px;" title="Important Component">🚨</span>` : "";
+                
+                const timeText = e.isReminder ? `${e.day} | ${e.start}` : `${e.day} | ${e.start} - ${e.end}`;
+                const titleText = e.isReminder ? `🔔 ${e.title}` : e.title;
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
-                li.innerHTML = `<div><strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${e.title} <br><small style="color:var(--text-muted)">${e.day} | ${e.start} - ${e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
+                li.innerHTML = `<div><strong style="color:${cColor}">${criticalBadge}${e.courseId}</strong> | ${titleText} <br><small style="color:var(--text-muted)">${timeText} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
                     <div style="display:flex; gap: 8px;">
                         <button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button>
                         <button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button>
@@ -1169,12 +1236,16 @@
             e.preventDefault();
             const isCrit = document.getElementById('inp-ev-critical').checked;
             const weightVal = document.getElementById('inp-ev-weight').value;
+            const isReminder = document.querySelector('input[name="inp-ev-type"]:checked').value === 'reminder';
+            
+            let startT = document.getElementById('inp-ev-start').value;
+            let endT = isReminder ? startT : document.getElementById('inp-ev-end').value;
 
             const eventData = {
                 termId: currentTermId, courseId: document.getElementById('inp-ev-course').value, title: document.getElementById('inp-ev-title').value,
-                day: document.getElementById('inp-ev-day').value, weeks: document.getElementById('inp-ev-occurrence').value, start: document.getElementById('inp-ev-start').value,
-                end: document.getElementById('inp-ev-end').value, location: document.getElementById('inp-ev-location').value, desc: document.getElementById('inp-ev-desc').value,
-                isCritical: isCrit, weight: isCrit && weightVal ? parseInt(weightVal) : null
+                day: document.getElementById('inp-ev-day').value, weeks: document.getElementById('inp-ev-occurrence').value, start: startT,
+                end: endT, location: document.getElementById('inp-ev-location').value, desc: document.getElementById('inp-ev-desc').value,
+                isCritical: isCrit, weight: isCrit && weightVal ? parseInt(weightVal) : null, isReminder: isReminder
             };
 
             if (editingEventId) {
@@ -1193,17 +1264,6 @@
             }
         };
 
-        document.getElementById('btn-hard-reset').onclick = async () => { 
-            if(confirm("This will permanently delete ALL data from the cloud. Are you absolutely sure?")) { 
-                const batch = db.batch();
-                terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
-                courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
-                events.forEach(e => batch.delete(db.collection('events').doc(e.id)));
-                await batch.commit();
-                localStorage.clear(); location.reload(); 
-            } 
-        };
-
         // --- CALENDAR GRID & DRAG LOGIC ---
         function switchView(view, btnElement) {
             document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
@@ -1217,31 +1277,27 @@
             else { document.getElementById('view-schedule').style.display = 'flex'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
         }
 
-        function format12Hour(timeStr) {
-            let [h, m] = timeStr.split(':'); h = parseInt(h); const ampm = h >= 12 ? 'PM' : 'AM'; return `${h % 12 || 12}:${m.toString().padStart(2,'0')} ${ampm}`;
-        }
-        function timeToMinutes(timeStr) { const [h, m] = timeStr.split(':').map(Number); return h * 60 + m; }
-        function minsToTimeStr(mins) {
-            const h = Math.floor(mins / 60).toString().padStart(2, '0');
-            const m = (mins % 60).toString().padStart(2, '0');
-            return `${h}:${m}`;
-        }
-
-        function checkOverlap(event1, event2) {
-            if(event1.day !== event2.day) return false;
-            const s1 = timeToMinutes(event1.start); const e1 = timeToMinutes(event1.end);
-            const s2 = timeToMinutes(event2.start); const e2 = timeToMinutes(event2.end);
-            return (s1 < e2 && s2 < e1);
-        }
-
         let isDragging = false;
+        let dragStartY = 0;
         let dragStartMins = 0;
         let dragCurrentDay = '';
         let currentDragWeek = null;
         let ghostEl = null;
 
         function onDragMove(e) {
-            if(!isDragging || !ghostEl) return;
+            if(!isDragging) return;
+            
+            // Drag threshold check to differentiate click from drag
+            if(!ghostEl) {
+                if(Math.abs(e.clientY - dragStartY) > 5) {
+                    ghostEl = document.createElement('div');
+                    ghostEl.className = 'ghost-event';
+                    document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`).appendChild(ghostEl);
+                } else {
+                    return; 
+                }
+            }
+
             const col = document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`);
             if(!col) return;
             const rect = col.getBoundingClientRect();
@@ -1268,13 +1324,19 @@
             window.removeEventListener('mouseup', onDragEnd);
             document.body.style.userSelect = '';
 
-            if(!ghostEl) return;
-            const startMins = parseInt(ghostEl.dataset.startMins || dragStartMins);
-            const endMins = parseInt(ghostEl.dataset.endMins || dragStartMins + 15);
+            if(!ghostEl) {
+                // Was just a click -> Create Reminder
+                openCreateModal(dragCurrentDay, dragStartMins, dragStartMins + 15, currentDragWeek, true);
+                return;
+            }
+
+            // Was a drag -> Create Block
+            const startMins = parseInt(ghostEl.dataset.startMins);
+            const endMins = parseInt(ghostEl.dataset.endMins);
             ghostEl.remove();
             ghostEl = null;
 
-            openCreateModal(dragCurrentDay, startMins, endMins, currentDragWeek);
+            openCreateModal(dragCurrentDay, startMins, endMins, currentDragWeek, false);
         }
 
         function renderSchedule(weekNum) {
@@ -1334,11 +1396,12 @@
             }
 
             let conflictIds = new Set();
-            for (let i = 0; i < filteredEvents.length; i++) {
-                for (let j = i + 1; j < filteredEvents.length; j++) {
-                    if (checkOverlap(filteredEvents[i], filteredEvents[j])) {
-                        conflictIds.add(filteredEvents[i].id);
-                        conflictIds.add(filteredEvents[j].id);
+            let filteredTasks = filteredEvents.filter(e => !e.isReminder);
+            for (let i = 0; i < filteredTasks.length; i++) {
+                for (let j = i + 1; j < filteredTasks.length; j++) {
+                    if (checkOverlap(filteredTasks[i], filteredTasks[j])) {
+                        conflictIds.add(filteredTasks[i].id);
+                        conflictIds.add(filteredTasks[j].id);
                     }
                 }
             }
@@ -1354,47 +1417,68 @@
                 const duration = endMins - startMins; 
                 
                 const isConflicted = conflictIds.has(ev.id);
+                const isRem = ev.isReminder;
+
                 let criticalBg = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid var(--bg-dark);`;
-                if(isConflicted) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
+                if(isConflicted && !isRem) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
 
                 const criticalIcon = ev.isCritical ? `🚨 ` : '';
                 const showDetails = duration > 60; 
                 
-                const topPos = (startMins * timeScale) + 1;
-                const blockHeight = (duration * timeScale) - 2;
-
                 const eventCard = document.createElement('div');
                 eventCard.className = 'event-card-grid';
-                eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; // Hover failsafe
-                eventCard.style.cssText = `
-                    position: absolute; top: ${topPos}px; height: ${blockHeight}px; left: 2px; right: 2px;
-                    border-left: 4px solid ${cColor}; ${criticalBg} color: var(--text-main); padding: 4px 6px; border-radius: 4px;
-                    font-size: 13px; overflow: hidden; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                    display: flex; flex-direction: column; transition: 0.1s; box-sizing: border-box; z-index: ${isConflicted ? 15 : 10};
-                `;
                 
-                eventCard.onmouseenter = () => { eventCard.style.filter = 'brightness(1.3)'; eventCard.style.zIndex = 20; };
-                eventCard.onmouseleave = () => { eventCard.style.filter = 'none'; eventCard.style.zIndex = isConflicted ? 15 : 10; };
+                if (isRem) {
+                    // REMINDER RENDER
+                    const topPos = (startMins * timeScale) - 12; // Center on time line
+                    eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)}`;
+                    eventCard.style.cssText = `
+                        position: absolute; top: ${topPos}px; height: 24px; left: 5px; right: 5px;
+                        background-color: ${cColor}; color: var(--bg-dark); padding: 0 8px; border-radius: 12px;
+                        font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+                        display: flex; align-items: center; justify-content: space-between; z-index: 30;
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(255,255,255,0.2);
+                    `;
+                    eventCard.innerHTML = `
+                        <span style="overflow:hidden; text-overflow:ellipsis;">🔔 ${ev.courseId} | ${ev.title}</span>
+                        <span style="font-family:'Share Tech Mono'; flex-shrink:0; margin-left:8px;">${format12Hour(ev.start)}</span>
+                    `;
+                } else {
+                    // BLOCK RENDER
+                    const topPos = (startMins * timeScale) + 1;
+                    const blockHeight = (duration * timeScale) - 2;
+                    eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; 
+                    eventCard.style.cssText = `
+                        position: absolute; top: ${topPos}px; height: ${blockHeight}px; left: 2px; right: 2px;
+                        border-left: 4px solid ${cColor}; ${criticalBg} color: var(--text-main); padding: 4px 6px; border-radius: 4px;
+                        font-size: 13px; overflow: hidden; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        display: flex; flex-direction: column; transition: 0.1s; box-sizing: border-box; z-index: ${isConflicted ? 15 : 10};
+                    `;
+                    eventCard.innerHTML = `
+                        <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+                            <div style="display: flex; flex-direction: column; overflow: hidden;">
+                                <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">
+                                    ${criticalIcon}${ev.courseId} <span style="font-weight: 600; color: var(--text-main);">| ${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}
+                                </div>
+                                ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
+                                ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
+                            </div>
+                            <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: auto; flex-shrink: 0; line-height: 1.1;">
+                                ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                eventCard.onmouseenter = () => { eventCard.style.filter = 'brightness(1.3)'; eventCard.style.zIndex = ev.isReminder ? 40 : 20; };
+                eventCard.onmouseleave = () => { eventCard.style.filter = 'none'; eventCard.style.zIndex = ev.isReminder ? 30 : (isConflicted ? 15 : 10); };
                 eventCard.onmousedown = (e) => { e.stopPropagation(); }; 
                 eventCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
 
-                eventCard.innerHTML = `
-                    <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
-                        <div style="display: flex; flex-direction: column; overflow: hidden;">
-                            <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">
-                                ${criticalIcon}${ev.courseId} <span style="font-weight: 600; color: var(--text-main);">| ${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}
-                            </div>
-                            ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
-                            ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
-                        </div>
-                        <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: auto; flex-shrink: 0; line-height: 1.1;">
-                            ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
-                        </div>
-                    </div>
-                `;
                 col.appendChild(eventCard);
             });
 
+            // ATTACH MOUSE LISTENERS FOR DRAG/CLICK
             document.querySelectorAll('.day-column').forEach(col => {
                 col.addEventListener('mousedown', function(e) {
                     if(e.button !== 0) return; 
@@ -1408,19 +1492,12 @@
                     isDragging = true;
                     dragCurrentDay = this.dataset.day;
                     currentDragWeek = weekNum; 
+                    dragStartY = e.clientY; 
                     document.body.style.userSelect = 'none';
 
                     const rect = this.getBoundingClientRect();
                     let rawMins = (e.clientY - rect.top) / timeScale;
                     dragStartMins = Math.floor(rawMins / 15) * 15;
-
-                    ghostEl = document.createElement('div');
-                    ghostEl.className = 'ghost-event';
-                    ghostEl.style.top = `${dragStartMins * timeScale}px`;
-                    ghostEl.style.height = `${15 * timeScale}px`;
-                    ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
-                    
-                    this.appendChild(ghostEl);
 
                     window.addEventListener('mousemove', onDragMove);
                     window.addEventListener('mouseup', onDragEnd);
