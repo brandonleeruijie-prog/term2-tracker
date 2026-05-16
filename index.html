@@ -218,7 +218,7 @@
     <div class="container">
         <div class="sidebar" id="sidebar">
             <h3>Filters</h3>
-            <button class="course-filter-btn active" data-filter="All">All Subjects</button>
+            <button id="btn-filter-all" class="course-filter-btn active" onclick="setFilter('All', this)">All Subjects</button>
             <div id="dynamic-filters"></div>
             <h3 style="margin-top: 20px;">Key Dates</h3>
             <div id="key-dates-container"></div>
@@ -316,8 +316,7 @@
                             </div>
                             <div class="form-group">
                                 <label>Occurrence</label>
-                                <select id="inp-ev-occurrence">
-                                    </select>
+                                <select id="inp-ev-occurrence"></select>
                             </div>
                             <div class="form-group">
                                 <label>Location</label>
@@ -541,7 +540,7 @@
                     skippedWeeks: e.skippedWeeks || [],
                     isCritical: e.isCritical || false,
                     weight: e.weight || null,
-                    isReminder: e.isReminder || false // New Type
+                    isReminder: e.isReminder || false 
                 };
             });
             loaders.events = true; checkLoaders();
@@ -717,14 +716,13 @@
         }
 
         // --- HELPER LOGIC ---
-        function toggleWeightInput(containerId, isChecked) {
-            const container = document.getElementById(containerId);
-            if(isChecked) {
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-                document.getElementById(containerId.replace('-container', '')).value = '';
-            }
+        function setFilter(filterId, btnEl) {
+            document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
+            if(btnEl) btnEl.classList.add('active');
+            else document.getElementById('btn-filter-all').classList.add('active');
+            
+            currentFilter = filterId;
+            if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
         }
 
         function exportData() {
@@ -883,11 +881,13 @@
         }
 
         function openCreateModal(day, startMins, endMins, week, isReminder = false) {
+            if(!week) return; // Failsafe
             modalInstanceId = null; modalInstanceWeek = week.toString();
             const courseDrop = document.getElementById('mod-ev-course');
             if(courseDrop.options.length > 0) courseDrop.selectedIndex = 0;
 
-            document.querySelector(`input[name="mod-ev-type"][value="${isReminder ? 'reminder' : 'block'}"]`).checked = true;
+            const typeRad = document.querySelector(`input[name="mod-ev-type"][value="${isReminder ? 'reminder' : 'block'}"]`);
+            if(typeRad) typeRad.checked = true;
             toggleEventType('mod');
 
             document.getElementById('mod-ev-title').value = ''; document.getElementById('mod-ev-day').value = day;
@@ -1061,7 +1061,7 @@
                         cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
                     }
 
-                    let criticalIcon = ev.isCritical ? `🚨 ` : '';
+                    let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
                     let titleHTML = isRem ? `🔔 ${ev.courseId} | ${ev.title}` : `${criticalIcon}${ev.courseId} | ${ev.title}`;
 
                     const card = document.createElement('div');
@@ -1213,11 +1213,7 @@
 
                 const fBtn = document.createElement('button'); fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
                 fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
-                fBtn.onclick = () => {
-                    document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
-                    fBtn.classList.add('active'); currentFilter = c.id;
-                    if(currentView !== "dashboard" && currentView !== "builder") renderSchedule(currentView);
-                };
+                fBtn.onclick = () => setFilter(c.id, fBtn);
                 if(filterContainer) filterContainer.appendChild(fBtn);
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
@@ -1251,86 +1247,42 @@
             if (currentView === "dashboard") renderTodayAgenda(false);
         }
 
-        // --- CRUD ACTIONS (FIRESTORE) ---
-        document.getElementById('form-course').onsubmit = (e) => {
-            e.preventDefault();
-            const name = document.getElementById('inp-course-name').value.trim();
-            const docId = currentTermId + "_" + name;
-            if(!courses.find(c => c.id === name && c.termId === currentTermId)) {
-                db.collection('courses').doc(docId).set({id: name, color: document.getElementById('inp-course-color').value, termId: currentTermId})
-                  .then(() => document.getElementById('inp-course-name').value = '');
-            }
-        };
-
-        function deleteCourse(id) {
-            db.collection('courses').doc(currentTermId + "_" + id).delete();
-            events.filter(e => e.courseId === id && e.termId === currentTermId).forEach(e => db.collection('events').doc(e.id).delete());
+        function timeToMinutes(timeStr) { 
+            if(!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return 0;
+            const [h, m] = timeStr.split(':').map(Number); 
+            return h * 60 + m; 
         }
 
-        document.getElementById('form-event').onsubmit = (e) => {
-            e.preventDefault();
-            const isCrit = document.getElementById('inp-ev-critical').checked;
-            const weightVal = document.getElementById('inp-ev-weight').value;
-            const isReminder = document.querySelector('input[name="inp-ev-type"]:checked').value === 'reminder';
-            
-            let startT = document.getElementById('inp-ev-start').value;
-            let endT = isReminder ? startT : document.getElementById('inp-ev-end').value;
-
-            const eventData = {
-                termId: currentTermId, courseId: document.getElementById('inp-ev-course').value, title: document.getElementById('inp-ev-title').value,
-                day: document.getElementById('inp-ev-day').value, weeks: document.getElementById('inp-ev-occurrence').value, start: startT,
-                end: endT, location: document.getElementById('inp-ev-location').value, desc: document.getElementById('inp-ev-desc').value,
-                isCritical: isCrit, weight: isCrit && weightVal ? parseInt(weightVal) : null, isReminder: isReminder
-            };
-
-            if (editingEventId) {
-                const idx = events.findIndex(ev => ev.id === editingEventId);
-                if (idx > -1) { 
-                    eventData.id = editingEventId; eventData.skippedWeeks = events[idx].skippedWeeks; 
-                    db.collection('events').doc(editingEventId).set(eventData);
-                }
-                cancelEdit();
-            } else {
-                eventData.id = Date.now().toString(); eventData.skippedWeeks = []; 
-                db.collection('events').doc(eventData.id).set(eventData).then(() => {
-                    document.getElementById('inp-ev-title').value = ''; document.getElementById('inp-ev-desc').value = ''; 
-                    document.getElementById('inp-ev-critical').checked = false; toggleWeightInput('inp-ev-weight-container', false);
-                });
-            }
-        };
-
-        // --- CALENDAR GRID & DRAG LOGIC ---
-        function switchView(view, btnElement) {
-            document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
-            if(btnElement) btnElement.classList.add('active'); else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
-            
-            document.getElementById('view-dashboard').style.display = 'none'; document.getElementById('view-builder').style.display = 'none'; document.getElementById('view-schedule').style.display = 'none';
-            currentView = view;
-
-            if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; renderTodayAgenda(false); } 
-            else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
-            else { document.getElementById('view-schedule').style.display = 'flex'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
+        function format12Hour(timeStr) {
+            if(!timeStr || typeof timeStr !== 'string' || !timeStr.includes(':')) return '';
+            let [h, m] = timeStr.split(':'); 
+            h = parseInt(h); 
+            const ampm = h >= 12 ? 'PM' : 'AM'; 
+            return `${h % 12 || 12}:${m.toString().padStart(2,'0')} ${ampm}`;
         }
 
-        let isDragging = false;
-        let dragStartY = 0;
-        let dragStartMins = 0;
-        let dragCurrentDay = '';
-        let currentDragWeek = null;
-        let ghostEl = null;
+        function minsToTimeStr(mins) {
+            const h = Math.floor(mins / 60).toString().padStart(2, '0');
+            const m = (mins % 60).toString().padStart(2, '0');
+            return `${h}:${m}`;
+        }
+
+        function checkOverlap(event1, event2) {
+            if(event1.day !== event2.day) return false;
+            const s1 = timeToMinutes(event1.start); const e1 = timeToMinutes(event1.end);
+            const s2 = timeToMinutes(event2.start); const e2 = timeToMinutes(event2.end);
+            return (s1 < e2 && s2 < e1);
+        }
 
         function onDragMove(e) {
             if(!isDragging) return;
             
-            // Drag threshold check to differentiate click from drag
             if(!ghostEl) {
                 if(Math.abs(e.clientY - dragStartY) > 5) {
                     ghostEl = document.createElement('div');
                     ghostEl.className = 'ghost-event';
                     document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`).appendChild(ghostEl);
-                } else {
-                    return; 
-                }
+                } else { return; }
             }
 
             const col = document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`);
@@ -1360,17 +1312,17 @@
             document.body.style.userSelect = '';
 
             if(!ghostEl) {
-                // Was just a click -> Create Reminder
+                if(!currentDragWeek) return; // Failsafe
                 openCreateModal(dragCurrentDay, dragStartMins, dragStartMins + 15, currentDragWeek, true);
                 return;
             }
 
-            // Was a drag -> Create Block
             const startMins = parseInt(ghostEl.dataset.startMins || dragStartMins);
             const endMins = parseInt(ghostEl.dataset.endMins || dragStartMins + 15);
             ghostEl.remove();
             ghostEl = null;
 
+            if(!currentDragWeek) return;
             openCreateModal(dragCurrentDay, startMins, endMins, currentDragWeek, false);
         }
 
@@ -1432,14 +1384,16 @@
 
             let conflictIds = new Set();
             let filteredTasks = filteredEvents.filter(e => !e.isReminder);
-            for (let i = 0; i < filteredTasks.length; i++) {
-                for (let j = i + 1; j < filteredTasks.length; j++) {
-                    if (checkOverlap(filteredTasks[i], filteredTasks[j])) {
-                        conflictIds.add(filteredTasks[i].id);
-                        conflictIds.add(filteredTasks[j].id);
+            try {
+                for (let i = 0; i < filteredTasks.length; i++) {
+                    for (let j = i + 1; j < filteredTasks.length; j++) {
+                        if (checkOverlap(filteredTasks[i], filteredTasks[j])) {
+                            conflictIds.add(filteredTasks[i].id);
+                            conflictIds.add(filteredTasks[j].id);
+                        }
                     }
                 }
-            }
+            } catch(e) { console.error("Overlap matrix failure:", e); }
 
             const termCourses = courses.filter(c => c.termId === currentTermId);
             
@@ -1458,6 +1412,7 @@
                 if(isConflicted && !isRem) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
 
                 const criticalIcon = ev.isCritical ? `🚨 ` : '';
+                const showDetails = duration > 60; 
                 
                 const eventCard = document.createElement('div');
                 eventCard.className = 'event-card-grid';
@@ -1492,6 +1447,8 @@
                                 <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">
                                     ${criticalIcon}${ev.courseId} <span style="font-weight: 600; color: var(--text-main);">| ${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}
                                 </div>
+                                ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
+                                ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
                             </div>
                             <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: auto; flex-shrink: 0; line-height: 1.1;">
                                 ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
@@ -1521,7 +1478,7 @@
                     isDragging = true;
                     dragCurrentDay = this.dataset.day;
                     currentDragWeek = weekNum; 
-                    dragStartY = e.clientY; 
+                    dragStartY = e.clientY;
                     document.body.style.userSelect = 'none';
 
                     const rect = this.getBoundingClientRect();
