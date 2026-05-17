@@ -57,7 +57,7 @@
             display: flex; flex: 1; border: 1px solid rgba(38, 198, 218, 0.4);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
             min-width: 0;
-            overflow-x: auto; /* Allows scrolling if many weeks are added */
+            overflow-x: auto;
             scrollbar-width: none;
         }
         .segmented-control::-webkit-scrollbar { display: none; }
@@ -260,6 +260,7 @@
                             <button type="submit" class="btn-submit">Add</button>
                         </div>
                     </form>
+                    <ul id="builder-course-list" class="mgmt-list" style="margin-top: 20px;"></ul>
                 </div>
 
                 <div class="builder-section">
