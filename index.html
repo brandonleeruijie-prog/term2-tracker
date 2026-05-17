@@ -57,11 +57,14 @@
             display: flex; flex: 1; border: 1px solid rgba(38, 198, 218, 0.4);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
             min-width: 0;
+            overflow-x: auto; /* Allows scrolling if many weeks are added */
+            scrollbar-width: none;
         }
+        .segmented-control::-webkit-scrollbar { display: none; }
         .segmented-control .tab-btn {
             flex: 1; background: transparent; border: none; border-radius: 0;
-            border-right: 1px solid rgba(38, 198, 218, 0.4); margin: 0; padding: 6px 0;
-            text-align: center; font-size: 16px; min-width: 0;
+            border-right: 1px solid rgba(38, 198, 218, 0.4); margin: 0; padding: 6px 10px;
+            text-align: center; font-size: 16px; min-width: 50px;
         }
         .segmented-control .tab-btn:last-child { border-right: none; }
         .segmented-control .tab-btn:hover { background: rgba(38, 198, 218, 0.15); color: var(--accent); }
@@ -203,7 +206,7 @@
             
             <div id="view-dashboard">
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Loading Database...</h2>
-                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this term.</p>
+                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this plan.</p>
                 
                 <div class="builder-section" style="background: rgba(38, 198, 218, 0.05); border-color: var(--accent); padding: 25px;">
                     <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); padding-bottom: 10px;">
@@ -243,7 +246,7 @@
                 </div>
 
                 <div class="builder-section">
-                    <h2>1. Define Your Courses / Routines (Current Term)</h2>
+                    <h2>1. Define Your Courses / Routines (Current Plan)</h2>
                     <form id="form-course" style="display: flex; gap: 10px; align-items: flex-end;">
                         <div class="form-group" style="flex: 1;">
                             <label>Course Code / Routine Name</label>
@@ -260,7 +263,7 @@
                 </div>
 
                 <div class="builder-section">
-                    <h2>2. Add Master Component (Current Term)</h2>
+                    <h2>2. Add Master Component (Current Plan)</h2>
                     <form id="form-event">
                         
                         <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(38,198,218,0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--outline);">
@@ -289,13 +292,7 @@
                             <div class="form-group">
                                 <label>Occurrence</label>
                                 <select id="inp-ev-occurrence">
-                                    <option value="All">Repeat: All Weeks</option>
-                                    <option value="1">Standalone: Week 1</option><option value="2">Standalone: Week 2</option>
-                                    <option value="3">Standalone: Week 3</option><option value="4">Standalone: Week 4</option>
-                                    <option value="5">Standalone: Week 5</option><option value="6">Standalone: Week 6</option>
-                                    <option value="7">Standalone: Week 7</option><option value="8">Standalone: Week 8</option>
-                                    <option value="9">Standalone: Week 9</option><option value="10">Standalone: Week 10</option>
-                                </select>
+                                    </select>
                             </div>
                             <div class="form-group">
                                 <label>Location</label>
@@ -429,6 +426,10 @@
                     <label>Start Date (Select a Monday)</label>
                     <input type="date" id="edit-term-date">
                 </div>
+                <div class="form-group">
+                    <label>Duration (Weeks)</label>
+                    <input type="number" id="edit-term-weeks" min="1" max="52" required>
+                </div>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button class="btn-submit" style="flex: 1;" onclick="saveCurrentTerm()">Save Changes</button>
                     <button class="btn-delete" style="padding: 10px 20px;" onclick="deleteActiveTerm()">🗑️ Delete Plan</button>
@@ -444,6 +445,10 @@
                 <div class="form-group">
                     <label>Start Date (Select a Monday)</label>
                     <input type="date" id="new-term-date">
+                </div>
+                <div class="form-group">
+                    <label>Duration (Weeks)</label>
+                    <input type="number" id="new-term-weeks" min="1" max="52" value="10" required>
                 </div>
                 <button class="btn-submit" style="width: 100%; background: #26c6da; color: var(--bg-dark);" onclick="createNewTerm()">+ Initialize New Plan</button>
             </div>
@@ -488,7 +493,7 @@
             if(loaders.terms && loaders.courses && loaders.events) {
                 if(terms.length === 0) {
                     const defaultId = `T${Date.now()}`;
-                    db.collection('terms').doc(defaultId).set({ id: defaultId, name: "Term 1", startDate: "2026-02-16" });
+                    db.collection('terms').doc(defaultId).set({ id: defaultId, name: "Term 1", startDate: "2026-02-16", totalWeeks: 10 });
                 } else {
                     if (!currentTermId || !terms.find(t => t.id === currentTermId)) {
                         currentTermId = terms[0].id;
@@ -524,21 +529,6 @@
             });
             loaders.events = true; checkLoaders();
         });
-
-        function initWeekTabs() {
-            const weekTabsContainer = document.getElementById('week-tabs-container');
-            if(weekTabsContainer.children.length === 0) {
-                for(let i=1; i<=10; i++) {
-                    const btn = document.createElement('button'); 
-                    btn.className = 'tab-btn'; 
-                    btn.innerText = `W${i}`; 
-                    btn.dataset.view = i;
-                    btn.onclick = () => switchView(i, btn); 
-                    weekTabsContainer.appendChild(btn);
-                }
-            }
-        }
-        initWeekTabs();
 
         document.querySelectorAll('.action-btn').forEach(btn => { 
             btn.onclick = () => switchView(btn.dataset.view, btn); 
@@ -727,9 +717,11 @@
             if(currentTerm) {
                 document.getElementById('edit-term-name').value = currentTerm.name;
                 document.getElementById('edit-term-date').value = currentTerm.startDate;
+                document.getElementById('edit-term-weeks').value = currentTerm.totalWeeks || 10;
             }
             document.getElementById('new-term-name').value = '';
             document.getElementById('new-term-date').value = '';
+            document.getElementById('new-term-weeks').value = 10;
             document.getElementById('term-mgmt-modal').style.display = 'flex';
         }
 
@@ -740,8 +732,9 @@
         function saveCurrentTerm() {
             const newName = document.getElementById('edit-term-name').value.trim();
             const newDate = document.getElementById('edit-term-date').value;
-            if(newName && newDate) {
-                db.collection('terms').doc(currentTermId).update({ name: newName, startDate: newDate }).then(() => {
+            const newWeeks = document.getElementById('edit-term-weeks').value;
+            if(newName && newDate && newWeeks) {
+                db.collection('terms').doc(currentTermId).update({ name: newName, startDate: newDate, totalWeeks: parseInt(newWeeks) }).then(() => {
                     closeTermModal();
                 });
             }
@@ -750,9 +743,10 @@
         function createNewTerm() {
             const name = document.getElementById('new-term-name').value.trim();
             const sDate = document.getElementById('new-term-date').value;
-            if(name && sDate) {
+            const tWeeks = document.getElementById('new-term-weeks').value;
+            if(name && sDate && tWeeks) {
                 const newId = `T${Date.now()}`;
-                db.collection('terms').doc(newId).set({ id: newId, name: name, startDate: sDate }).then(() => {
+                db.collection('terms').doc(newId).set({ id: newId, name: name, startDate: sDate, totalWeeks: parseInt(tWeeks) }).then(() => {
                     currentTermId = newId; 
                     localStorage.setItem('tp_active_term', currentTermId);
                     closeTermModal();
@@ -992,6 +986,8 @@
             if(!currentTerm) return;
             if(!isTickUpdate) { container.innerHTML = ''; activeTimers = {}; }
 
+            const totalWeeks = currentTerm.totalWeeks || 10;
+
             const now = new Date();
             const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
             const [sM, sD, sY] = sydneyDateString.split('/');
@@ -1009,7 +1005,7 @@
             let currentTotalMinutes = (parseInt(parts.find(p => p.type === 'hour').value) * 60) + parseInt(parts.find(p => p.type === 'minute').value);
             const fullDateString = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
             
-            if (currentWeek < 1 || currentWeek > 10) {
+            if (currentWeek < 1 || currentWeek > totalWeeks) {
                 dayLabel.innerText = `(${fullDateString})`;
                 if (!isTickUpdate) renderTimeGraph([]); 
                 if (!isTickUpdate) container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
@@ -1131,6 +1127,7 @@
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
 
+            const totalWeeks = currentTerm.totalWeeks || 10;
             let keyDatesList = [];
             const termEvents = events.filter(e => e.termId === currentTermId);
             const today = new Date(); today.setHours(0,0,0,0);
@@ -1142,7 +1139,7 @@
                         const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
                         if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
                     } else {
-                        for(let w=1; w<=10; w++) {
+                        for(let w=1; w<=totalWeeks; w++) {
                             if(!ev.skippedWeeks.includes(w.toString())) {
                                 const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
                                 const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
@@ -1181,13 +1178,36 @@
         }
 
         function refreshUI() {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            const totalWeeks = currentTerm?.totalWeeks || 10;
+
             const termSelect = document.getElementById('inp-term-selector'); termSelect.innerHTML = '';
             terms.forEach(t => {
                 const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name;
                 if(t.id === currentTermId) opt.selected = true; termSelect.appendChild(opt);
             });
-            document.getElementById('dash-welcome-title').innerText = `Welcome to ${terms.find(t => t.id === currentTermId)?.name || "Current Term"}`;
+            document.getElementById('dash-welcome-title').innerText = `Welcome to ${currentTerm?.name || "Current Plan"}`;
 
+            // Safety: If current view is a week number beyond totalWeeks, switch back to dashboard
+            if (!isNaN(currentView) && parseInt(currentView) > totalWeeks) {
+                currentView = "dashboard";
+                document.getElementById('view-schedule').style.display = 'none';
+                document.getElementById('view-dashboard').style.display = 'block';
+            }
+
+            // 1. Build week tabs dynamically
+            const weekTabsContainer = document.getElementById('week-tabs-container');
+            weekTabsContainer.innerHTML = '';
+            for(let i=1; i<=totalWeeks; i++) {
+                const btn = document.createElement('button'); 
+                btn.className = `tab-btn action-btn ${currentView == i ? 'active' : ''}`; 
+                btn.innerText = `W${i}`; 
+                btn.dataset.view = i;
+                btn.onclick = () => switchView(i, btn); 
+                weekTabsContainer.appendChild(btn);
+            }
+
+            // 2. Build Course Selectors
             const termCourses = courses.filter(c => c.termId === currentTermId);
             const selectEl = document.getElementById('inp-ev-course');
             const modSelectEl = document.getElementById('mod-ev-course');
@@ -1220,6 +1240,23 @@
                 if(builderCourseList) builderCourseList.appendChild(li);
             });
 
+            // 3. Build Event Selectors (Occurrence)
+            const occSelect = document.getElementById('inp-ev-occurrence');
+            if (occSelect) {
+                const prevVal = occSelect.value;
+                let occHtml = `<option value="All">Repeat: All Weeks</option>`;
+                for(let i=1; i<=totalWeeks; i++) {
+                    occHtml += `<option value="${i}">Standalone: Week ${i}</option>`;
+                }
+                occSelect.innerHTML = occHtml;
+                if (prevVal === "All" || (parseInt(prevVal) >= 1 && parseInt(prevVal) <= totalWeeks)) {
+                    occSelect.value = prevVal;
+                } else {
+                    occSelect.value = "All";
+                }
+            }
+
+            // 4. Update Event List in Builder
             const eventList = document.getElementById('builder-event-list'); 
             if(eventList) eventList.innerHTML = '';
             const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
@@ -1247,7 +1284,11 @@
         // --- CALENDAR GRID & DRAG LOGIC ---
         function switchView(view, btnElement) {
             document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
-            if(btnElement) btnElement.classList.add('active'); else document.querySelector(`button[data-view="${view}"]`)?.classList.add('active');
+            if(btnElement) {
+                btnElement.classList.add('active'); 
+            } else {
+                document.querySelector(`.subbar button[data-view="${view}"]`)?.classList.add('active');
+            }
             
             document.getElementById('view-dashboard').style.display = 'none'; document.getElementById('view-builder').style.display = 'none'; document.getElementById('view-schedule').style.display = 'none';
             currentView = view;
