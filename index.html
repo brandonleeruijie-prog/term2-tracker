@@ -173,6 +173,20 @@
         }
         .btn-skip { background: transparent; border: 1px solid var(--outline); border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-skip:hover { background: rgba(38, 198, 218, 0.2); }
+
+        /* DAY PICKER CSS */
+        .day-picker { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .day-label {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: var(--text-muted);
+            padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-family: 'Share Tech Mono', monospace; user-select: none; transition: 0.2s; flex: 1; text-align: center;
+        }
+        .day-label:hover { background: rgba(38,198,218,0.1); }
+        .day-label.active { background: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
+        .day-label input { display: none; }
+        .btn-everyday {
+            background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; transition: 0.2s; white-space: nowrap; margin-left: auto;
+        }
+        .btn-everyday:hover { background: rgba(38,198,218,0.15); }
     </style>
 </head>
 <body>
@@ -283,27 +297,32 @@
                                 <input type="text" id="inp-ev-title" placeholder="e.g. Lecture, Lab, Python Logic Prep" required>
                             </div>
                             <div class="form-group">
-                                <label>Day of Week</label>
-                                <select id="inp-ev-day">
-                                    <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
-                                    <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
-                                    <option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
                                 <label>Occurrence</label>
-                                <select id="inp-ev-occurrence">
-                                    </select>
+                                <select id="inp-ev-occurrence"></select>
                             </div>
                             <div class="form-group">
                                 <label>Location</label>
                                 <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204">
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label>Time (Start / End 24H)</label>
                                 <div style="display: flex; gap: 10px;">
                                     <input type="time" id="inp-ev-start" required style="flex: 1;">
                                     <input type="time" id="inp-ev-end" required style="flex: 1;">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label>Day(s) of Week</label>
+                                <div class="day-picker" id="inp-day-picker">
+                                    <label class="day-label active"><input type="checkbox" value="Monday" checked onchange="toggleDayPill(this.parentElement)">MON</label>
+                                    <label class="day-label"><input type="checkbox" value="Tuesday" onchange="toggleDayPill(this.parentElement)">TUE</label>
+                                    <label class="day-label"><input type="checkbox" value="Wednesday" onchange="toggleDayPill(this.parentElement)">WED</label>
+                                    <label class="day-label"><input type="checkbox" value="Thursday" onchange="toggleDayPill(this.parentElement)">THU</label>
+                                    <label class="day-label"><input type="checkbox" value="Friday" onchange="toggleDayPill(this.parentElement)">FRI</label>
+                                    <label class="day-label"><input type="checkbox" value="Saturday" onchange="toggleDayPill(this.parentElement)">SAT</label>
+                                    <label class="day-label"><input type="checkbox" value="Sunday" onchange="toggleDayPill(this.parentElement)">SUN</label>
+                                    <button type="button" class="btn-everyday" onclick="selectAllDays('inp-day-picker')">Everyday</button>
                                 </div>
                             </div>
                             
@@ -369,23 +388,30 @@
                         <label>Component Title</label>
                         <input type="text" id="mod-ev-title" required>
                     </div>
-                    <div class="form-group">
-                        <label>Day of Week</label>
-                        <select id="mod-ev-day">
-                            <option value="Monday">Monday</option><option value="Tuesday">Tuesday</option>
-                            <option value="Wednesday">Wednesday</option><option value="Thursday">Thursday</option>
-                            <option value="Friday">Friday</option><option value="Saturday">Saturday</option><option value="Sunday">Sunday</option>
-                        </select>
-                    </div>
+                    
                     <div class="form-group">
                         <label>Location</label>
                         <input type="text" id="mod-ev-location">
                     </div>
-                    <div class="form-group" style="grid-column: span 2;">
+                    <div class="form-group">
                         <label>Time (Start / End 24H)</label>
                         <div style="display: flex; gap: 10px;">
                             <input type="time" id="mod-ev-start" required style="flex: 1;">
                             <input type="time" id="mod-ev-end" required style="flex: 1;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Apply to Day(s) this Week</label>
+                        <div class="day-picker" id="mod-day-picker">
+                            <label class="day-label"><input type="checkbox" value="Monday" onchange="toggleDayPill(this.parentElement)">MON</label>
+                            <label class="day-label"><input type="checkbox" value="Tuesday" onchange="toggleDayPill(this.parentElement)">TUE</label>
+                            <label class="day-label"><input type="checkbox" value="Wednesday" onchange="toggleDayPill(this.parentElement)">WED</label>
+                            <label class="day-label"><input type="checkbox" value="Thursday" onchange="toggleDayPill(this.parentElement)">THU</label>
+                            <label class="day-label"><input type="checkbox" value="Friday" onchange="toggleDayPill(this.parentElement)">FRI</label>
+                            <label class="day-label"><input type="checkbox" value="Saturday" onchange="toggleDayPill(this.parentElement)">SAT</label>
+                            <label class="day-label"><input type="checkbox" value="Sunday" onchange="toggleDayPill(this.parentElement)">SUN</label>
+                            <button type="button" class="btn-everyday" onclick="selectAllDays('mod-day-picker')">Everyday</button>
                         </div>
                     </div>
                     
@@ -457,6 +483,32 @@
     </div>
 
     <script>
+        // --- DAY PICKER HELPERS ---
+        function toggleDayPill(labelEl) {
+            const cb = labelEl.querySelector('input');
+            if (cb.checked) labelEl.classList.add('active');
+            else labelEl.classList.remove('active');
+        }
+
+        function selectAllDays(containerId) {
+            document.querySelectorAll(`#${containerId} .day-label`).forEach(lbl => {
+                const cb = lbl.querySelector('input');
+                cb.checked = true;
+                lbl.classList.add('active');
+            });
+        }
+
+        function setDays(containerId, daysArray) {
+            document.querySelectorAll(`#${containerId} .day-label`).forEach(lbl => {
+                const cb = lbl.querySelector('input');
+                if(daysArray.includes(cb.value)) { 
+                    cb.checked = true; lbl.classList.add('active'); 
+                } else { 
+                    cb.checked = false; lbl.classList.remove('active'); 
+                }
+            });
+        }
+
         // --- FIREBASE INITIALIZATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyAzQghlZIMFFhxj4szLWyE461qXkWsdQFo",
@@ -605,7 +657,6 @@
             }
         }
 
-        // --- HELPER LOGIC ---
         function toggleWeightInput(containerId, isChecked) {
             const container = document.getElementById(containerId);
             if(isChecked) {
@@ -786,7 +837,7 @@
 
             document.getElementById('inp-ev-course').value = ev.courseId || ""; 
             document.getElementById('inp-ev-title').value = ev.title;
-            document.getElementById('inp-ev-day').value = ev.day; 
+            setDays('inp-day-picker', [ev.day]);
             document.getElementById('inp-ev-occurrence').value = ev.weeks;
             document.getElementById('inp-ev-location').value = ev.location || ""; 
             document.getElementById('inp-ev-start').value = ev.start;
@@ -810,6 +861,7 @@
             document.getElementById('btn-cancel-edit').style.display = "none";
             toggleWeightInput('inp-ev-weight-container', false);
             toggleReminder('inp', false);
+            setDays('inp-day-picker', ['Monday']);
         }
 
         // --- INSTANCE MODAL EDITOR (Radar & Schedule View) ---
@@ -825,7 +877,7 @@
 
             document.getElementById('mod-ev-course').value = ev.courseId || "";
             document.getElementById('mod-ev-title').value = ev.title;
-            document.getElementById('mod-ev-day').value = ev.day;
+            setDays('mod-day-picker', [ev.day]);
             document.getElementById('mod-ev-location').value = ev.location || "";
             document.getElementById('mod-ev-start').value = ev.start;
             document.getElementById('mod-ev-end').value = ev.end || ev.start;
@@ -855,9 +907,12 @@
             document.querySelector('input[name="mod-ev-type"][value="block"]').checked = true;
             toggleReminder('mod', false);
 
-            document.getElementById('mod-ev-title').value = ''; document.getElementById('mod-ev-day').value = day;
-            document.getElementById('mod-ev-location').value = ''; document.getElementById('mod-ev-start').value = minsToTimeStr(startMins);
-            document.getElementById('mod-ev-end').value = minsToTimeStr(endMins); document.getElementById('mod-ev-desc').value = '';
+            document.getElementById('mod-ev-title').value = ''; 
+            setDays('mod-day-picker', [day]);
+            document.getElementById('mod-ev-location').value = ''; 
+            document.getElementById('mod-ev-start').value = minsToTimeStr(startMins);
+            document.getElementById('mod-ev-end').value = minsToTimeStr(endMins); 
+            document.getElementById('mod-ev-desc').value = '';
             
             document.getElementById('mod-ev-critical').checked = false;
             toggleWeightInput('mod-ev-weight-container', false);
@@ -876,15 +931,17 @@
         document.getElementById('form-instance-edit').onsubmit = (e) => {
             e.preventDefault();
             
+            const checkedDays = Array.from(document.querySelectorAll('#mod-day-picker input:checked')).map(cb => cb.value);
+            if (checkedDays.length === 0) { alert("Please select at least one day to apply this to."); return; }
+
             const isCrit = document.getElementById('mod-ev-critical').checked;
             const weightVal = document.getElementById('mod-ev-weight').value;
             const isReminder = document.querySelector('input[name="mod-ev-type"]:checked').value === 'reminder';
 
-            const finalData = {
+            const baseData = {
                 termId: currentTermId,
                 courseId: document.getElementById('mod-ev-course').value,
                 title: document.getElementById('mod-ev-title').value,
-                day: document.getElementById('mod-ev-day').value,
                 weeks: modalInstanceWeek,
                 location: document.getElementById('mod-ev-location').value,
                 start: document.getElementById('mod-ev-start').value,
@@ -896,27 +953,45 @@
                 skippedWeeks: []
             };
 
+            const batch = db.batch();
+
             if (modalInstanceId) {
                 const originalEv = events.find(ev => ev.id === modalInstanceId);
-                if(!originalEv) return;
-
-                if (originalEv.weeks === "All") {
-                    let newSkipped = [...originalEv.skippedWeeks];
-                    if (!newSkipped.includes(modalInstanceWeek)) {
-                        newSkipped.push(modalInstanceWeek);
-                        db.collection('events').doc(originalEv.id).update({ skippedWeeks: newSkipped });
+                if (originalEv) {
+                    if (originalEv.weeks === "All") {
+                        // Isolate original
+                        let newSkipped = [...originalEv.skippedWeeks];
+                        if (!newSkipped.includes(modalInstanceWeek)) {
+                            newSkipped.push(modalInstanceWeek);
+                            batch.update(db.collection('events').doc(originalEv.id), { skippedWeeks: newSkipped });
+                        }
+                        // Create specific instances for all selected days
+                        checkedDays.forEach((day, index) => {
+                            let docId = Date.now().toString() + index;
+                            let newEvent = { ...baseData, id: docId, day: day };
+                            batch.set(db.collection('events').doc(docId), newEvent);
+                        });
+                    } else {
+                        // Update existing instance in place if day matches, else replace
+                        let keptOriginal = false;
+                        checkedDays.forEach((day, index) => {
+                            let docId = Date.now().toString() + index;
+                            if (day === originalEv.day) { docId = originalEv.id; keptOriginal = true; }
+                            let newEvent = { ...baseData, id: docId, day: day };
+                            batch.set(db.collection('events').doc(docId), newEvent);
+                        });
+                        if (!keptOriginal) batch.delete(db.collection('events').doc(originalEv.id));
                     }
-                    finalData.id = Date.now().toString();
-                    db.collection('events').doc(finalData.id).set(finalData);
-                } else {
-                    finalData.id = originalEv.id; 
-                    db.collection('events').doc(finalData.id).set(finalData);
                 }
             } else {
-                finalData.id = Date.now().toString();
-                db.collection('events').doc(finalData.id).set(finalData);
+                checkedDays.forEach((day, index) => {
+                    let docId = Date.now().toString() + index;
+                    let newEvent = { ...baseData, id: docId, day: day };
+                    batch.set(db.collection('events').doc(docId), newEvent);
+                });
             }
-            closeInstanceModal();
+
+            batch.commit().then(closeInstanceModal);
         };
 
         // --- BUILDER FORM SUBMISSION HANDLERS ---
@@ -935,17 +1010,17 @@
 
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
+            const checkedDays = Array.from(document.querySelectorAll('#inp-day-picker input:checked')).map(cb => cb.value);
+            if (checkedDays.length === 0) { alert("Please select at least one day."); return; }
 
             const isCrit = document.getElementById('inp-ev-critical').checked;
             const weightVal = document.getElementById('inp-ev-weight').value;
             const isReminder = document.querySelector('input[name="inp-ev-type"]:checked').value === 'reminder';
 
-            const newEvent = {
-                id: editingEventId || Date.now().toString(),
+            const baseData = {
                 termId: currentTermId,
                 courseId: document.getElementById('inp-ev-course').value,
                 title: document.getElementById('inp-ev-title').value,
-                day: document.getElementById('inp-ev-day').value,
                 weeks: document.getElementById('inp-ev-occurrence').value,
                 location: document.getElementById('inp-ev-location').value,
                 start: document.getElementById('inp-ev-start').value,
@@ -953,11 +1028,39 @@
                 desc: document.getElementById('inp-ev-desc').value,
                 isCritical: isCrit,
                 isReminder: isReminder,
-                weight: isCrit && weightVal ? parseInt(weightVal) : null,
-                skippedWeeks: []
+                weight: isCrit && weightVal ? parseInt(weightVal) : null
             };
 
-            db.collection('events').doc(newEvent.id).set(newEvent).then(() => {
+            const batch = db.batch();
+
+            if (editingEventId) {
+                const originalEv = events.find(ev => ev.id === editingEventId);
+                let keptOriginal = false;
+                
+                checkedDays.forEach((day, index) => {
+                    let docId = Date.now().toString() + index;
+                    let skipped = [];
+                    if (originalEv && day === originalEv.day) {
+                        docId = originalEv.id;
+                        skipped = originalEv.skippedWeeks || [];
+                        keptOriginal = true;
+                    }
+                    const newEvent = { ...baseData, id: docId, day: day, skippedWeeks: skipped };
+                    batch.set(db.collection('events').doc(docId), newEvent);
+                });
+
+                if (originalEv && !keptOriginal) {
+                    batch.delete(db.collection('events').doc(originalEv.id));
+                }
+            } else {
+                checkedDays.forEach((day, index) => {
+                    let docId = Date.now().toString() + index;
+                    const newEvent = { ...baseData, id: docId, day: day, skippedWeeks: [] };
+                    batch.set(db.collection('events').doc(docId), newEvent);
+                });
+            }
+
+            batch.commit().then(() => {
                 if (editingEventId) {
                     cancelEdit();
                 } else {
