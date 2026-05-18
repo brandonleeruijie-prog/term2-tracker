@@ -959,20 +959,17 @@
                 const originalEv = events.find(ev => ev.id === modalInstanceId);
                 if (originalEv) {
                     if (originalEv.weeks === "All") {
-                        // Isolate original
                         let newSkipped = [...originalEv.skippedWeeks];
                         if (!newSkipped.includes(modalInstanceWeek)) {
                             newSkipped.push(modalInstanceWeek);
                             batch.update(db.collection('events').doc(originalEv.id), { skippedWeeks: newSkipped });
                         }
-                        // Create specific instances for all selected days
                         checkedDays.forEach((day, index) => {
                             let docId = Date.now().toString() + index;
                             let newEvent = { ...baseData, id: docId, day: day };
                             batch.set(db.collection('events').doc(docId), newEvent);
                         });
                     } else {
-                        // Update existing instance in place if day matches, else replace
                         let keptOriginal = false;
                         checkedDays.forEach((day, index) => {
                             let docId = Date.now().toString() + index;
@@ -1237,7 +1234,7 @@
             const today = new Date(); today.setHours(0,0,0,0);
 
             termEvents.forEach(ev => {
-                if(ev.isCritical) {
+                if(ev.isCritical || ev.isReminder) {
                     if(ev.weeks !== "All") {
                         const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
                         const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
@@ -1269,10 +1266,14 @@
                 const displayDate = kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'});
                 const weightText = kd.ev.weight ? `<span style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 5px;">${kd.ev.weight}%</span>` : '';
                 
+                let badges = "";
+                if (kd.ev.isReminder) badges += "🔔 ";
+                if (kd.ev.isCritical) badges += "🚨 ";
+
                 item.className = `key-date-item ${colorClass}`;
                 item.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${kd.ev.courseId ? kd.ev.courseId + ' ' : ''}${kd.ev.title} ${weightText}</span>
+                        <span>${badges}${kd.ev.courseId ? kd.ev.courseId + ' ' : ''}${kd.ev.title} ${weightText}</span>
                         <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
                     </div>
                     <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
