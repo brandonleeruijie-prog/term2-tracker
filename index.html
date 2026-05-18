@@ -301,11 +301,30 @@
                                 <label>Occurrence</label>
                                 <select id="inp-ev-occurrence"></select>
                             </div>
+                            
+                            <div class="form-group">
+                                <label>Day of Week</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <select id="inp-ev-day" style="flex: 1;">
+                                        <option value="Monday">Monday</option>
+                                        <option value="Tuesday">Tuesday</option>
+                                        <option value="Wednesday">Wednesday</option>
+                                        <option value="Thursday">Thursday</option>
+                                        <option value="Friday">Friday</option>
+                                        <option value="Saturday">Saturday</option>
+                                        <option value="Sunday">Sunday</option>
+                                    </select>
+                                    <label style="font-size: 14px; cursor: pointer; color: var(--accent); display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                                        <input type="checkbox" id="inp-ev-multiday-toggle" onchange="toggleMultiDay('inp', this.checked)" style="width: auto; margin: 0; accent-color: var(--accent);"> Multi-Day
+                                    </label>
+                                </div>
+                            </div>
+
                             <div class="form-group">
                                 <label>Location</label>
                                 <input type="text" id="inp-ev-location" placeholder="e.g. Ainsworth 204">
                             </div>
-                            <div class="form-group" style="grid-column: span 2;">
+                            <div class="form-group">
                                 <label>Time (Start / End 24H)</label>
                                 <div style="display: flex; gap: 10px;">
                                     <input type="time" id="inp-ev-start" required style="flex: 1;">
@@ -313,8 +332,8 @@
                                 </div>
                             </div>
                             
-                            <div class="form-group" style="grid-column: span 2;">
-                                <label>Day(s) of Week</label>
+                            <div class="form-group hidden" id="inp-multiday-container" style="grid-column: span 2;">
+                                <label>Select Days to Repeat Component</label>
                                 <div class="day-picker" id="inp-day-picker">
                                     <label class="day-label active"><input type="checkbox" value="Monday" checked onchange="toggleDayPill(this.parentElement)">MON</label>
                                     <label class="day-label"><input type="checkbox" value="Tuesday" onchange="toggleDayPill(this.parentElement)">TUE</label>
@@ -402,8 +421,26 @@
                         </div>
                     </div>
 
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>Apply to Day(s) this Week</label>
+                    <div class="form-group">
+                        <label>Day of Week</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="mod-ev-day" style="flex: 1;">
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
+                            <label style="font-size: 14px; cursor: pointer; color: var(--accent); display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+                                <input type="checkbox" id="mod-ev-multiday-toggle" onchange="toggleMultiDay('mod', this.checked)" style="width: auto; margin: 0; accent-color: var(--accent);"> Multi-Day
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group hidden" id="mod-multiday-container" style="grid-column: span 2;">
+                        <label>Apply to Multiple Days</label>
                         <div class="day-picker" id="mod-day-picker">
                             <label class="day-label"><input type="checkbox" value="Monday" onchange="toggleDayPill(this.parentElement)">MON</label>
                             <label class="day-label"><input type="checkbox" value="Tuesday" onchange="toggleDayPill(this.parentElement)">TUE</label>
@@ -508,6 +545,20 @@
                     cb.checked = false; lbl.classList.remove('active'); 
                 }
             });
+        }
+
+        function toggleMultiDay(prefix, isMulti) {
+            const container = document.getElementById(`${prefix}-multiday-container`);
+            const select = document.getElementById(`${prefix}-ev-day`);
+            if (isMulti) {
+                container.classList.remove('hidden');
+                select.disabled = true;
+                select.style.opacity = '0.5';
+            } else {
+                container.classList.add('hidden');
+                select.disabled = false;
+                select.style.opacity = '1';
+            }
         }
 
         // --- FIREBASE INITIALIZATION ---
@@ -642,7 +693,6 @@
             
             let totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
 
-            // Handle Dashboard Block Timers
             for (const [id, data] of Object.entries(activeTimers)) {
                 if(data.element) {
                     let totalEndSeconds = data.endMins * 60;
@@ -658,7 +708,6 @@
                 }
             }
 
-            // Handle Key Date Reminder Countdowns
             const kdTimers = document.querySelectorAll('.kd-countdown');
             kdTimers.forEach(el => {
                 const [h, m] = el.dataset.time.split(':').map(Number);
@@ -857,7 +906,12 @@
 
             document.getElementById('inp-ev-course').value = ev.courseId || ""; 
             document.getElementById('inp-ev-title').value = ev.title;
+            
+            document.getElementById('inp-ev-day').value = ev.day; 
+            document.getElementById('inp-ev-multiday-toggle').checked = false;
+            toggleMultiDay('inp', false);
             setDays('inp-day-picker', [ev.day]);
+            
             document.getElementById('inp-ev-occurrence').value = ev.weeks;
             document.getElementById('inp-ev-location').value = ev.location || ""; 
             document.getElementById('inp-ev-start').value = ev.start;
@@ -881,6 +935,9 @@
             document.getElementById('btn-cancel-edit').style.display = "none";
             toggleWeightInput('inp-ev-weight-container', false);
             toggleReminder('inp', false);
+            
+            document.getElementById('inp-ev-multiday-toggle').checked = false;
+            toggleMultiDay('inp', false);
             setDays('inp-day-picker', ['Monday']);
         }
 
@@ -897,7 +954,12 @@
 
             document.getElementById('mod-ev-course').value = ev.courseId || "";
             document.getElementById('mod-ev-title').value = ev.title;
+            
+            document.getElementById('mod-ev-day').value = ev.day;
+            document.getElementById('mod-ev-multiday-toggle').checked = false;
+            toggleMultiDay('mod', false);
             setDays('mod-day-picker', [ev.day]);
+            
             document.getElementById('mod-ev-location').value = ev.location || "";
             document.getElementById('mod-ev-start').value = ev.start;
             document.getElementById('mod-ev-end').value = ev.end || ev.start;
@@ -928,7 +990,12 @@
             toggleReminder('mod', false);
 
             document.getElementById('mod-ev-title').value = ''; 
+            
+            document.getElementById('mod-ev-day').value = day;
+            document.getElementById('mod-ev-multiday-toggle').checked = false;
+            toggleMultiDay('mod', false);
             setDays('mod-day-picker', [day]);
+            
             document.getElementById('mod-ev-location').value = ''; 
             document.getElementById('mod-ev-start').value = minsToTimeStr(startMins);
             document.getElementById('mod-ev-end').value = minsToTimeStr(endMins); 
@@ -951,8 +1018,14 @@
         document.getElementById('form-instance-edit').onsubmit = (e) => {
             e.preventDefault();
             
-            const checkedDays = Array.from(document.querySelectorAll('#mod-day-picker input:checked')).map(cb => cb.value);
-            if (checkedDays.length === 0) { alert("Please select at least one day to apply this to."); return; }
+            const isMulti = document.getElementById('mod-ev-multiday-toggle').checked;
+            let checkedDays = [];
+            if (isMulti) {
+                checkedDays = Array.from(document.querySelectorAll('#mod-day-picker input:checked')).map(cb => cb.value);
+                if (checkedDays.length === 0) { alert("Please select at least one day to apply this to."); return; }
+            } else {
+                checkedDays = [document.getElementById('mod-ev-day').value];
+            }
 
             const isCrit = document.getElementById('mod-ev-critical').checked;
             const weightVal = document.getElementById('mod-ev-weight').value;
@@ -1027,8 +1100,15 @@
 
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
-            const checkedDays = Array.from(document.querySelectorAll('#inp-day-picker input:checked')).map(cb => cb.value);
-            if (checkedDays.length === 0) { alert("Please select at least one day."); return; }
+            
+            const isMulti = document.getElementById('inp-ev-multiday-toggle').checked;
+            let checkedDays = [];
+            if (isMulti) {
+                checkedDays = Array.from(document.querySelectorAll('#inp-day-picker input:checked')).map(cb => cb.value);
+                if (checkedDays.length === 0) { alert("Please select at least one day."); return; }
+            } else {
+                checkedDays = [document.getElementById('inp-ev-day').value];
+            }
 
             const isCrit = document.getElementById('inp-ev-critical').checked;
             const weightVal = document.getElementById('inp-ev-weight').value;
@@ -1085,6 +1165,8 @@
                     document.getElementById('inp-ev-desc').value = '';
                     document.getElementById('inp-ev-critical').checked = false;
                     toggleWeightInput('inp-ev-weight-container', false);
+                    document.getElementById('inp-ev-multiday-toggle').checked = false;
+                    toggleMultiDay('inp', false);
                 }
             });
         };
