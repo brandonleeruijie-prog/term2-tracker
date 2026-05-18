@@ -40,11 +40,7 @@
         .term-controls { display: flex; gap: 8px; align-items: center; margin-left: 20px; border-left: 1px solid var(--outline); padding-left: 15px; }
         .term-select { background: var(--bg-panel); color: var(--accent); border: 1px solid var(--outline); padding: 4px 8px; border-radius: 4px; font-family: 'Share Tech Mono'; font-size: 16px; cursor: pointer;}
         
-        /* Dropdown Option Styling */
-        select option {
-            background-color: #0d2a2a; 
-            color: var(--text-main);
-        }
+        select option { background-color: #0d2a2a; color: var(--text-main); }
 
         .subbar {
             background-color: var(--bg-panel); padding: 10px 20px; display: flex;
@@ -62,9 +58,7 @@
         .segmented-control {
             display: flex; flex: 1; border: 1px solid rgba(38, 198, 218, 0.4);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
-            min-width: 0;
-            overflow-x: auto;
-            scrollbar-width: none;
+            min-width: 0; overflow-x: auto; scrollbar-width: none;
         }
         .segmented-control::-webkit-scrollbar { display: none; }
         .segmented-control .tab-btn {
@@ -181,7 +175,6 @@
         .btn-skip { background: transparent; border: 1px solid var(--outline); border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-skip:hover { background: rgba(38, 198, 218, 0.2); }
 
-        /* DAY PICKER CSS */
         .day-picker { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .day-label {
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: var(--text-muted);
@@ -674,16 +667,10 @@
             
             if (currentMinute !== lastRenderedMinute) {
                 lastRenderedMinute = currentMinute;
-                if (currentView === "dashboard" && loaders.events) { renderTodayAgenda(true); }
                 
-                if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
-                    const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
-                    const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
-                    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
-                    let currentM = parseInt(parts.find(p => p.type === 'minute').value);
-                    const totalMins = currentH * 60 + currentM;
-                    const timeLine = document.getElementById('current-time-line');
-                    if(timeLine) timeLine.style.top = `${totalMins * timeScale}px`;
+                // Complete re-render on the minute ensures lines hop into components smoothly
+                if (currentView === "dashboard" && loaders.events) { 
+                    renderTodayAgenda(false); 
                 }
             }
             updateActiveTimers(now);
@@ -699,21 +686,39 @@
             
             let totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
 
+            // Handle Dashboard Block Timers
             for (const [id, data] of Object.entries(activeTimers)) {
-                if(data.element) {
+                if(data.timerEl) {
                     let totalEndSeconds = data.endMins * 60;
                     let diff = totalEndSeconds - totalCurrentSeconds;
                     if(diff > 0) {
                         let h = Math.floor(diff / 3600).toString().padStart(2, '0');
                         let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
                         let s = (diff % 60).toString().padStart(2, '0');
-                        data.element.innerText = `⏳ ${h}:${m}:${s}`;
+                        data.timerEl.innerText = `${h}h ${m}m ${s}s`;
+
+                        if (data.lineEl) {
+                            const totalDurationSecs = (data.endMins - data.startMins) * 60;
+                            const elapsedSecs = totalCurrentSeconds - (data.startMins * 60);
+                            const pct = (elapsedSecs / totalDurationSecs) * 100;
+                            data.lineEl.style.top = `${Math.min(Math.max(pct, 0), 100)}%`;
+                        }
                     } else {
-                        data.element.innerText = `DONE`;
+                        data.timerEl.innerText = `DONE`;
+                        if (data.lineEl) data.lineEl.style.top = `100%`;
                     }
                 }
             }
 
+            // Smooth horizontal line in calendar
+            if (currentView !== "dashboard" && currentView !== "builder") {
+                const timeLine = document.getElementById('current-time-line');
+                if (timeLine) {
+                    timeLine.style.top = `${(totalCurrentSeconds / 60) * timeScale}px`;
+                }
+            }
+
+            // Handle Key Date Reminder Countdowns
             const kdTimers = document.querySelectorAll('.kd-countdown');
             kdTimers.forEach(el => {
                 const [h, m] = el.dataset.time.split(':').map(Number);
@@ -1193,7 +1198,10 @@
             
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
-            if(!isTickUpdate) { container.innerHTML = ''; activeTimers = {}; }
+            
+            // ALWAYS wipe out the container so the lines re-draw correctly across minute boundaries
+            container.innerHTML = ''; 
+            activeTimers = {};
 
             const totalWeeks = currentTerm.totalWeeks || 10;
 
@@ -1217,7 +1225,7 @@
             if (currentWeek < 1 || currentWeek > totalWeeks) {
                 dayLabel.innerText = `(${fullDateString})`;
                 if (!isTickUpdate) renderTimeGraph([]); 
-                if (!isTickUpdate) container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
+                container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
                 return;
             }
 
@@ -1228,78 +1236,125 @@
             if (!isTickUpdate) renderTimeGraph(todayEvents);
 
             if (todayEvents.length === 0) {
-                if (!isTickUpdate) container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
+                container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
                 return;
             }
 
             todayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 
-            if(!isTickUpdate) {
-                todayEvents.forEach(ev => {
-                    const cColor = ev.courseId ? (courses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
-                    const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
-                    const isPast = (currentTotalMinutes > endMins) || (ev.isReminder && currentTotalMinutes > startMins);
-                    const displayStart = format12Hour(ev.start); const displayEnd = ev.isReminder ? "" : format12Hour(ev.end);
-                    let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
+            let lineInserted = false;
 
-                    const card = document.createElement('div');
-                    
-                    if (ev.isReminder) {
-                        const cardStyle = `background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; padding: 10px 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.3s;`;
-                        card.style.cssText = cardStyle;
-                        card.innerHTML = `
-                            <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;">
-                                <span style="font-size:20px;">🔔</span>
-                                <strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
-                                    ${criticalIcon}${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}
-                                </strong>
-                            </div>
-                            <div style="display:flex; align-items:center; gap: 10px; flex-shrink:0;">
-                                <span style="font-family:'Share Tech Mono'; font-weight:bold;">${displayStart}</span>
-                                <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit">✏️</button>
-                                <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip">🚫</button>
-                            </div>
-                        `;
-                    } else {
-                        const isActiveNow = (currentTotalMinutes >= startMins && currentTotalMinutes <= endMins);
-                        let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box;`;
-                        
-                        let timerHTML = "";
-                        if (isActiveNow) {
-                            cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
-                            timerHTML = `<span id="timer-${ev.id}" style="display: inline-block; background: var(--accent); color: var(--bg-dark); padding: 2px 8px; border-radius: 12px; font-size: 13px; font-weight: bold; vertical-align: middle; margin-left: 10px;">⏳ Calc...</span>`;
-                        } else if (isPast) {
-                            cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
-                        }
+            todayEvents.forEach(ev => {
+                const cColor = ev.courseId ? (courses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const startMins = timeToMinutes(ev.start); 
+                const endMins = ev.isReminder ? startMins : timeToMinutes(ev.end);
+                
+                // RED LINE - Break Indicator
+                if (!lineInserted && currentTotalMinutes < startMins) {
+                    const redLine = document.createElement('div');
+                    redLine.style.cssText = "position: relative; height: 2px; background-color: #ff5252; margin: 15px 0 25px 0; box-shadow: 0 0 8px rgba(255,82,82,0.8); border-radius: 2px;";
+                    redLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                    container.appendChild(redLine);
+                    lineInserted = true;
+                }
 
-                        card.style.cssText = cardStyle;
-                        card.innerHTML = `
-                            <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
-                                    <div>
-                                        <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
-                                        <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
-                                    </div>
-                                </div>
-                                <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""} ${timerHTML}</div>
-                                ${ev.desc ? `<div class="event-desc">${ev.desc}</div>` : ""}
-                            </div>
-                            <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
-                                <span>${displayStart}</span>
-                                <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
-                                <span>${displayEnd}</span>
-                            </div>
-                        `;
+                const isPast = (currentTotalMinutes >= endMins);
+                const isActiveNow = !ev.isReminder && (currentTotalMinutes >= startMins && currentTotalMinutes < endMins);
 
-                        if (isActiveNow) {
-                            activeTimers[ev.id] = { endMins: endMins, element: document.getElementById(`timer-${ev.id}`) };
-                        }
-                    }
+                if (isActiveNow) lineInserted = true;
+
+                const displayStart = format12Hour(ev.start); 
+                const displayEnd = ev.isReminder ? "" : format12Hour(ev.end);
+                let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
+
+                const card = document.createElement('div');
+                
+                if (ev.isReminder) {
+                    const cardStyle = `background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; padding: 10px 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.3s;`;
+                    card.style.cssText = cardStyle;
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;">
+                            <span style="font-size:20px;">🔔</span>
+                            <strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
+                                ${criticalIcon}${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}
+                            </strong>
+                        </div>
+                        <div style="display:flex; align-items:center; gap: 10px; flex-shrink:0;">
+                            <span style="font-family:'Share Tech Mono'; font-weight:bold;">${displayStart}</span>
+                            <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit">✏️</button>
+                            <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip">🚫</button>
+                        </div>
+                    `;
                     container.appendChild(card);
-                });
-                updateActiveTimers(now);
+                    return; 
+                }
+
+                let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box; position: relative; overflow: hidden;`;
+                
+                let timerHTML = "";
+                let progressHTML = "";
+                
+                if (isActiveNow) {
+                    cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
+                    timerHTML = `<div style="background: rgba(255,82,82,0.15); border: 1px solid #ff5252; color: #ffb4b4; padding: 4px 10px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 15px; margin-top: 8px; display: inline-block;">TIME LEFT: <span id="timer-${ev.id}">...</span></div>`;
+                    
+                    const pct = ((currentTotalMinutes - startMins) / (endMins - startMins)) * 100;
+                    progressHTML = `
+                        <div id="progress-line-${ev.id}" style="position: absolute; left: 0; right: 0; top: ${pct}%; height: 2px; background-color: #ff5252; z-index: 5; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;">
+                            <div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>
+                        </div>
+                    `;
+                } else if (isPast) {
+                    cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
+                }
+
+                card.style.cssText = cardStyle;
+                card.innerHTML = `
+                    ${progressHTML}
+                    <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px; position: relative; z-index: 10;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                            <div>
+                                <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
+                                <button class="btn-skip" onclick="skipEventOccurrence('${ev.id}', '${currentWeek}')" title="Skip this occurrence today">🚫</button>
+                            </div>
+                        </div>
+                        <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""}</div>
+                        ${ev.desc ? `<div class="event-desc" style="margin-top: 5px;">${ev.desc}</div>` : ""}
+                        ${timerHTML}
+                    </div>
+                    <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer; position: relative; z-index: 10;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
+                        <span>${displayStart}</span>
+                        <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
+                        <span>${displayEnd}</span>
+                    </div>
+                `;
+
+                if (isActiveNow) {
+                    activeTimers[ev.id] = { 
+                        startMins: startMins, 
+                        endMins: endMins, 
+                        timerEl: null, 
+                        lineEl: null 
+                    };
+                }
+                
+                container.appendChild(card);
+
+                if (isActiveNow) {
+                    activeTimers[ev.id].timerEl = document.getElementById(`timer-${ev.id}`);
+                    activeTimers[ev.id].lineEl = document.getElementById(`progress-line-${ev.id}`);
+                }
+            });
+
+            if (!lineInserted && todayEvents.length > 0) {
+                const redLine = document.createElement('div');
+                redLine.style.cssText = "position: relative; height: 2px; background-color: #ff5252; margin: 15px 0 25px 0; box-shadow: 0 0 8px rgba(255,82,82,0.8); border-radius: 2px;";
+                redLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                container.appendChild(redLine);
             }
+
+            updateActiveTimers(now);
         }
 
         function renderTimeGraph(todayEvents) {
