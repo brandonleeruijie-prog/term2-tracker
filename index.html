@@ -92,6 +92,7 @@
         .kd-red { background: rgba(255, 82, 82, 0.1); border-color: #ff5252; color: #ffb4b4; }
         .kd-yellow { background: rgba(255, 235, 59, 0.1); border-color: #ffeb3b; color: #fff59d; }
         .kd-green { background: rgba(76, 175, 80, 0.1); border-color: #4caf50; color: #a5d6a7; }
+        .kd-countdown { font-family: 'Share Tech Mono', monospace; font-size: 14px; font-weight: bold; color: var(--text-main); }
 
         .content { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; }
         
@@ -333,7 +334,7 @@
                             
                             <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
                                 <input type="checkbox" id="inp-ev-critical" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff5252; margin: 0;" onchange="toggleWeightInput('inp-ev-weight-container', this.checked)">
-                                <label for="inp-ev-critical" style="margin: 0; color: #ffb4b4; font-weight: bold; cursor: pointer; font-size: 16px;">🚨 Mark as Important (Adds to Key Dates)</label>
+                                <label for="inp-ev-critical" style="margin: 0; color: #ffb4b4; font-weight: bold; cursor: pointer; font-size: 16px;">🚨 Mark as Key Date</label>
                                 
                                 <div id="inp-ev-weight-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
                                     <label style="margin:0; color:#ffb4b4; font-size:14px;">Weight %:</label>
@@ -422,7 +423,7 @@
                     
                     <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px;">
                         <input type="checkbox" id="mod-ev-critical" style="width: 18px; height: 18px; accent-color: #ff5252; margin: 0;" onchange="toggleWeightInput('mod-ev-weight-container', this.checked)">
-                        <label for="mod-ev-critical" style="margin: 0; color: #ffb4b4;">🚨 Mark as Important</label>
+                        <label for="mod-ev-critical" style="margin: 0; color: #ffb4b4;">🚨 Mark as Key Date</label>
                         
                         <div id="mod-ev-weight-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
                             <label style="margin:0; color:#ffb4b4; font-size:14px;">Weight %:</label>
@@ -641,6 +642,7 @@
             
             let totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
 
+            // Handle Dashboard Block Timers
             for (const [id, data] of Object.entries(activeTimers)) {
                 if(data.element) {
                     let totalEndSeconds = data.endMins * 60;
@@ -655,6 +657,24 @@
                     }
                 }
             }
+
+            // Handle Key Date Reminder Countdowns
+            const kdTimers = document.querySelectorAll('.kd-countdown');
+            kdTimers.forEach(el => {
+                const [h, m] = el.dataset.time.split(':').map(Number);
+                const totalStartSecs = (h * 3600) + (m * 60);
+                const diff = totalStartSecs - totalCurrentSeconds;
+                
+                if (diff > 0) {
+                    let dh = Math.floor(diff / 3600);
+                    let dm = Math.floor((diff % 3600) / 60);
+                    let ds = diff % 60;
+                    el.innerText = `In ${dh}h ${dm}m ${ds}s`;
+                } else {
+                    el.innerText = `PASSED`;
+                    el.parentElement.style.opacity = '0.5';
+                }
+            });
         }
 
         function toggleWeightInput(containerId, isChecked) {
@@ -1256,12 +1276,23 @@
                 container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; return;
             }
 
-            keyDatesList.forEach(kd => {
+            keyDatesList.forEach((kd, index) => {
                 const item = document.createElement('div');
-                let colorClass = 'kd-green'; let urgencyText = `In ${kd.diffDays} days`;
-                if (kd.diffDays === 0) { colorClass = 'kd-red'; urgencyText = "TODAY"; } 
-                else if (kd.diffDays <= 3) { colorClass = 'kd-red'; } 
-                else if (kd.diffDays <= 7) { colorClass = 'kd-yellow'; }
+                let colorClass = 'kd-green'; 
+                let urgencyText = `In ${kd.diffDays} days`;
+
+                if (kd.diffDays === 0) { 
+                    colorClass = 'kd-red'; 
+                    if (kd.ev.isReminder && kd.ev.isCritical) {
+                        urgencyText = `<span class="kd-countdown" data-time="${kd.ev.start}">Calculating...</span>`;
+                    } else {
+                        urgencyText = "TODAY"; 
+                    }
+                } else if (kd.diffDays <= 3) { 
+                    colorClass = 'kd-red'; 
+                } else if (kd.diffDays <= 7) { 
+                    colorClass = 'kd-yellow'; 
+                }
 
                 const displayDate = kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'});
                 const weightText = kd.ev.weight ? `<span style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 5px;">${kd.ev.weight}%</span>` : '';
