@@ -17,13 +17,13 @@
 
     <style>
         :root {
-            --bg-dark: #0a1414;
-            --bg-panel: #112222;
-            --accent: #84ffff; 
-            --text-main: #e0f7fa; 
-            --text-muted: #b2ebf2; 
-            --outline: #26c6da; 
-            --hazard: repeating-linear-gradient(45deg, rgba(255,82,82,0.2), rgba(255,82,82,0.2) 10px, rgba(0,0,0,0.5) 10px, rgba(0,0,0,0.5) 20px);
+            --bg-dark: #131314;       /* Deep Gemini Black */
+            --bg-panel: #1e1f20;      /* Gemini Surface Grey */
+            --accent: #a8c7fa;        /* Soft Gemini Blue */
+            --text-main: #e3e3e3;     /* Bright Grey Text */
+            --text-muted: #c4c7c5;    /* Muted Grey Text */
+            --outline: #444746;       /* Subtle Border Grey */
+            --hazard: repeating-linear-gradient(45deg, rgba(255,82,82,0.1), rgba(255,82,82,0.1) 10px, rgba(0,0,0,0.3) 10px, rgba(0,0,0,0.3) 20px);
         }
         body {
             margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 18px;
@@ -33,14 +33,18 @@
         
         .topbar {
             background-color: var(--bg-dark); padding: 10px 20px; display: flex;
-            gap: 15px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); align-items: center;
+            gap: 15px; border-bottom: 1px solid var(--outline); align-items: center;
         }
         .logo { font-size: 24px; font-weight: 700; color: var(--accent); margin-right: 10px; }
         
         .term-controls { display: flex; gap: 8px; align-items: center; margin-left: 20px; border-left: 1px solid var(--outline); padding-left: 15px; }
         .term-select { background: var(--bg-panel); color: var(--accent); border: 1px solid var(--outline); padding: 4px 8px; border-radius: 4px; font-family: 'Share Tech Mono'; font-size: 16px; cursor: pointer;}
         
-        select option { background-color: #0d2a2a; color: var(--text-main); }
+        /* Dropdown Option Styling */
+        select option {
+            background-color: #1e1f20; 
+            color: var(--text-main);
+        }
 
         .subbar {
             background-color: var(--bg-panel); padding: 10px 20px; display: flex;
@@ -53,21 +57,23 @@
         }
         .tab-btn:hover { border-color: var(--accent); color: var(--accent); }
         .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
-        .action-btn { background-color: #113333; color: var(--text-main); border-color: var(--outline); }
+        .action-btn { background-color: #282a2c; color: var(--text-main); border-color: var(--outline); }
 
         .segmented-control {
-            display: flex; flex: 1; border: 1px solid rgba(38, 198, 218, 0.4);
+            display: flex; flex: 1; border: 1px solid var(--outline);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
-            min-width: 0; overflow-x: auto; scrollbar-width: none;
+            min-width: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
         }
         .segmented-control::-webkit-scrollbar { display: none; }
         .segmented-control .tab-btn {
             flex: 1; background: transparent; border: none; border-radius: 0;
-            border-right: 1px solid rgba(38, 198, 218, 0.4); margin: 0; padding: 6px 10px;
+            border-right: 1px solid var(--outline); margin: 0; padding: 6px 10px;
             text-align: center; font-size: 16px; min-width: 50px;
         }
         .segmented-control .tab-btn:last-child { border-right: none; }
-        .segmented-control .tab-btn:hover { background: rgba(38, 198, 218, 0.15); color: var(--accent); }
+        .segmented-control .tab-btn:hover { background: rgba(168, 199, 250, 0.1); color: var(--accent); }
         .segmented-control .tab-btn.active { background: var(--accent); color: var(--bg-dark); font-weight: bold;}
 
         .container { display: flex; flex: 1; overflow: hidden; }
@@ -84,7 +90,7 @@
             font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
         }
         .course-filter-btn:hover { border-color: var(--outline); }
-        .course-filter-btn.active { border-left-color: var(--accent); background: rgba(38, 198, 218, 0.2); color: var(--text-main); }
+        .course-filter-btn.active { border-left-color: var(--accent); background: rgba(168, 199, 250, 0.1); color: var(--text-main); }
 
         .key-date-item {
             display: flex; flex-direction: column; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-weight: 600; border-left: 4px solid; font-size: 15px; position: relative;
@@ -116,10 +122,10 @@
             font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;
         }
         .btn-delete { background: #ff5252; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; }
-        .btn-edit-list { background: #26c6da; color: var(--bg-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
+        .btn-edit-list { background: var(--accent); color: var(--bg-dark); border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; }
 
         .mgmt-list { list-style: none; padding: 0; margin: 0; }
-        .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(38, 198, 218, 0.2); }
+        .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--outline); }
         .color-swatch { display: inline-block; width: 15px; height: 15px; border-radius: 50%; margin-right: 10px; }
 
         @keyframes pulse {
@@ -136,7 +142,7 @@
         }
         .modal-content {
             background: var(--bg-panel); padding: 30px; border-radius: 8px; border: 1px solid var(--accent);
-            width: 90%; max-width: 650px; position: relative; box-shadow: 0 0 30px rgba(38, 198, 218, 0.2);
+            width: 90%; max-width: 650px; position: relative; box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
             max-height: 90vh; overflow-y: auto;
         }
         .close-modal {
@@ -147,7 +153,7 @@
 
         .day-column { user-select: none; position: relative; }
         .ghost-event {
-            position: absolute; left: 2px; right: 2px; background: rgba(38, 198, 218, 0.2); 
+            position: absolute; left: 2px; right: 2px; background: rgba(168, 199, 250, 0.2); 
             border: 2px dashed var(--accent); border-radius: 4px; pointer-events: none; z-index: 100;
             display: flex; align-items: center; justify-content: center;
             color: var(--accent); font-weight: bold; font-size: 14px; text-shadow: 0 0 5px black;
@@ -173,20 +179,21 @@
             width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite;
         }
         .btn-skip { background: transparent; border: 1px solid var(--outline); border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 12px; transition: 0.2s; }
-        .btn-skip:hover { background: rgba(38, 198, 218, 0.2); }
+        .btn-skip:hover { background: rgba(255, 255, 255, 0.1); }
 
+        /* DAY PICKER CSS */
         .day-picker { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .day-label {
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: var(--text-muted);
             padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-family: 'Share Tech Mono', monospace; user-select: none; transition: 0.2s; flex: 1; text-align: center;
         }
-        .day-label:hover { background: rgba(38,198,218,0.1); }
+        .day-label:hover { background: rgba(255,255,255,0.05); }
         .day-label.active { background: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
         .day-label input { display: none; }
         .btn-everyday {
             background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 12px; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold; transition: 0.2s; white-space: nowrap; margin-left: auto;
         }
-        .btn-everyday:hover { background: rgba(38,198,218,0.15); }
+        .btn-everyday:hover { background: rgba(168, 199, 250, 0.1); }
     </style>
 </head>
 <body>
@@ -195,7 +202,7 @@
         <div class="logo">🎯 <span>The Master Planner</span></div>
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
-            <button class="tab-btn" style="padding: 4px 12px; font-size: 16px; background: rgba(38, 198, 218, 0.2); border-color: var(--accent); color: var(--accent);" onclick="openTermModal()" title="Manage Terms">⚙️ Create/Edit Plan</button>
+            <button class="tab-btn" style="padding: 4px 12px; font-size: 16px; background: rgba(168, 199, 250, 0.1); border-color: var(--accent); color: var(--accent);" onclick="openTermModal()" title="Manage Terms">⚙️ Create/Edit Plan</button>
         </div>
         <div id="sync-status" title="Firebase Cloud Sync is Active"><div class="sync-pulse"></div> Cloud Sync</div>
         <div id="sydney-clock" style="margin-left: auto; color: var(--accent); font-family: 'Share Tech Mono'; font-size: 18px;">Loading...</div>
@@ -222,13 +229,13 @@
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Loading Database...</h2>
                 <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this plan.</p>
                 
-                <div class="builder-section" style="background: rgba(38, 198, 218, 0.05); border-color: var(--accent); padding: 25px;">
-                    <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid rgba(38, 198, 218, 0.3); padding-bottom: 10px;">
+                <div class="builder-section" style="background: rgba(255, 255, 255, 0.02); border-color: var(--outline); padding: 25px;">
+                    <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid var(--outline); padding-bottom: 10px;">
                         📡 Today's Radar <span id="radar-day" style="color: var(--text-muted); font-size: 18px; margin-left: 10px; font-family:'Share Tech Mono';"></span>
                     </h3>
                     <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
                         <div style="flex: 2; min-width: 350px;" id="dashboard-today-agenda"></div>
-                        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 20px; border: 1px solid rgba(38,198,218,0.2);">
+                        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 20px; border: 1px solid var(--outline);">
                             <h4 style="margin: 0 0 15px 0; color: var(--accent); text-transform: uppercase; font-size: 16px; letter-spacing: 1px;">Daily Allocation</h4>
                             <div class="chart-container"><canvas id="todayTimeChart"></canvas></div>
                             <p id="empty-chart-msg" style="display: none; color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 20px;">No active hours today.</p>
@@ -241,7 +248,7 @@
                 <h2 id="weekly-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0; flex-shrink: 0;">Weekly Schedule</h2>
                 <div id="weekly-schedule-content" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0;"></div>
                 
-                <div style="position: absolute; bottom: 30px; right: 30px; background: rgba(17, 34, 34, 0.95); padding: 10px 15px; border: 1px solid var(--outline); border-radius: 20px; z-index: 200; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+                <div style="position: absolute; bottom: 30px; right: 30px; background: rgba(30, 31, 32, 0.95); padding: 10px 15px; border: 1px solid var(--outline); border-radius: 20px; z-index: 200; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
                     <span style="font-size: 14px; color: var(--accent); font-weight: bold; text-transform: uppercase;">🔍 Zoom</span>
                     <input type="range" min="0.6" max="1.5" step="0.1" value="1.2" oninput="changeScale(this.value)" style="accent-color: var(--accent); cursor: pointer;">
                 </div>
@@ -249,13 +256,13 @@
 
             <div id="view-builder" style="display: none;">
                 
-                <div class="builder-section" style="background: rgba(38, 198, 218, 0.05);">
+                <div class="builder-section" style="background: rgba(255, 255, 255, 0.02);">
                     <h2 style="font-size: 18px;">💾 Data Management (Cloud Synced)</h2>
                     <p style="color: var(--text-muted); font-size: 14px; margin-top: 0;">Backup your Firestore database or migrate a legacy JSON snapshot into the cloud.</p>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-submit" style="background: #4caf50; font-size: 14px;" onclick="exportData()">⬇️ Export JSON</button>
                         <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importData(event)">
-                        <button class="btn-submit" style="background: #ff9800; font-size: 14px;" onclick="document.getElementById('importFile').click()">⬆️ Import JSON</button>
+                        <button class="btn-submit" style="background: var(--text-muted); color: var(--bg-dark); font-size: 14px;" onclick="document.getElementById('importFile').click()">⬆️ Import JSON</button>
                     </div>
                 </div>
 
@@ -268,7 +275,7 @@
                         </div>
                         <div class="form-group">
                             <label>Color</label>
-                            <input type="color" id="inp-course-color" value="#84ffff" style="padding: 2px; height: 43px;">
+                            <input type="color" id="inp-course-color" value="#a8c7fa" style="padding: 2px; height: 43px;">
                         </div>
                         <div class="form-group">
                             <button type="submit" class="btn-submit">Add</button>
@@ -281,7 +288,7 @@
                     <h2>2. Add Master Component (Current Plan)</h2>
                     <form id="form-event">
                         
-                        <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(38,198,218,0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--outline);">
+                        <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px; border: 1px solid var(--outline);">
                             <strong style="color: var(--accent);">Entry Type:</strong>
                             <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="block" checked onchange="toggleReminder('inp', false)" style="accent-color: var(--accent);"> 🧱 Time Block</label>
                             <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="reminder" onchange="toggleReminder('inp', true)" style="accent-color: var(--accent);"> 🔔 Reminder (No Duration)</label>
@@ -392,7 +399,7 @@
             
             <form id="form-instance-edit">
                 
-                <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(38,198,218,0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--outline); margin-top: 15px;">
+                <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px; border: 1px solid var(--outline); margin-top: 15px;">
                     <strong style="color: var(--accent);">Entry Type:</strong>
                     <label style="cursor:pointer;"><input type="radio" name="mod-ev-type" value="block" checked onchange="toggleReminder('mod', false)" style="accent-color: var(--accent);"> 🧱 Time Block</label>
                     <label style="cursor:pointer;"><input type="radio" name="mod-ev-type" value="reminder" onchange="toggleReminder('mod', true)" style="accent-color: var(--accent);"> 🔔 Reminder (No Duration)</label>
@@ -514,7 +521,7 @@
                     <label>Duration (Weeks)</label>
                     <input type="number" id="new-term-weeks" min="1" max="52" value="10" required>
                 </div>
-                <button class="btn-submit" style="width: 100%; background: #26c6da; color: var(--bg-dark);" onclick="createNewTerm()">+ Initialize New Plan</button>
+                <button class="btn-submit" style="width: 100%; background: var(--accent); color: var(--bg-dark);" onclick="createNewTerm()">+ Initialize New Plan</button>
             </div>
         </div>
     </div>
@@ -668,9 +675,18 @@
             if (currentMinute !== lastRenderedMinute) {
                 lastRenderedMinute = currentMinute;
                 
-                // Complete re-render on the minute ensures lines hop into components smoothly
                 if (currentView === "dashboard" && loaders.events) { 
                     renderTodayAgenda(false); 
+                }
+                
+                if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
+                    const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+                    const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+                    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+                    let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+                    const totalMins = currentH * 60 + currentM;
+                    const timeLine = document.getElementById('current-time-line');
+                    if(timeLine) timeLine.style.top = `${totalMins * timeScale}px`;
                 }
             }
             updateActiveTimers(now);
@@ -686,7 +702,6 @@
             
             let totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
 
-            // Handle Dashboard Block Timers
             for (const [id, data] of Object.entries(activeTimers)) {
                 if(data.timerEl) {
                     let totalEndSeconds = data.endMins * 60;
@@ -710,15 +725,6 @@
                 }
             }
 
-            // Smooth horizontal line in calendar
-            if (currentView !== "dashboard" && currentView !== "builder") {
-                const timeLine = document.getElementById('current-time-line');
-                if (timeLine) {
-                    timeLine.style.top = `${(totalCurrentSeconds / 60) * timeScale}px`;
-                }
-            }
-
-            // Handle Key Date Reminder Countdowns
             const kdTimers = document.querySelectorAll('.kd-countdown');
             kdTimers.forEach(el => {
                 const [h, m] = el.dataset.time.split(':').map(Number);
@@ -1199,7 +1205,6 @@
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
             
-            // ALWAYS wipe out the container so the lines re-draw correctly across minute boundaries
             container.innerHTML = ''; 
             activeTimers = {};
 
@@ -1249,7 +1254,6 @@
                 const startMins = timeToMinutes(ev.start); 
                 const endMins = ev.isReminder ? startMins : timeToMinutes(ev.end);
                 
-                // RED LINE - Break Indicator
                 if (!lineInserted && currentTotalMinutes < startMins) {
                     const redLine = document.createElement('div');
                     redLine.style.cssText = "position: relative; height: 2px; background-color: #ff5252; margin: 15px 0 25px 0; box-shadow: 0 0 8px rgba(255,82,82,0.8); border-radius: 2px;";
@@ -1295,7 +1299,7 @@
                 let progressHTML = "";
                 
                 if (isActiveNow) {
-                    cardStyle += ` background: rgba(38, 198, 218, 0.15); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(38,198,218,0.2);`;
+                    cardStyle += ` background: rgba(168, 199, 250, 0.1); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(168,199,250,0.1);`;
                     timerHTML = `<div style="background: rgba(255,82,82,0.15); border: 1px solid #ff5252; color: #ffb4b4; padding: 4px 10px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 15px; margin-top: 8px; display: inline-block;">TIME LEFT: <span id="timer-${ev.id}">...</span></div>`;
                     
                     const pct = ((currentTotalMinutes - startMins) / (endMins - startMins)) * 100;
@@ -1378,7 +1382,7 @@
                 timeChartInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#b2ebf2', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#c4c7c5', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' }
                 });
             } else if (ctx) {
                 ctx.style.display = 'none'; document.getElementById('empty-chart-msg').style.display = 'block';
@@ -1648,12 +1652,12 @@
             
             let html = `
                 <div id="cal-scroll-container" style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; position: relative;">
-                    <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(17, 34, 34, 0.95); backdrop-filter: blur(5px); position: sticky; top: 0; z-index: 100;">
+                    <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(30, 31, 32, 0.95); backdrop-filter: blur(5px); position: sticky; top: 0; z-index: 100;">
                         <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline);"></div>
             `;
             days.forEach(day => {
                 const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
-                html += `<div style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(38,198,218,0.2); font-weight: bold; color: var(--text-muted);">
+                html += `<div style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--text-muted);">
                             ${day.substring(0,3).toUpperCase()} <br> <span style="font-size: 24px; color: var(--accent);">${targetDate.getDate()}</span>
                          </div>`;
             });
@@ -1668,11 +1672,11 @@
             
             html += `</div>
                         <div style="position: absolute; top: 0; left: 60px; right: 0; height: ${24 * 60 * timeScale}px; pointer-events: none; z-index: 1;">`;
-            for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid rgba(38,198,218,0.1); box-sizing: border-box;"></div>`; }
+            for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid rgba(255,255,255,0.05); box-sizing: border-box;"></div>`; }
             
             html += `</div>
                         <div style="display: flex; flex: 1; position: relative; height: ${24 * 60 * timeScale}px; margin-left: 0;">`;
-            days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(38,198,218,0.2); z-index: 2; cursor: crosshair;"></div>`; });
+            days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(255,255,255,0.1); z-index: 2; cursor: crosshair;"></div>`; });
             html += `</div></div></div>`;
             
             container.innerHTML += html;
