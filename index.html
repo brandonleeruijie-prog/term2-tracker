@@ -702,6 +702,7 @@
             
             let totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
 
+            // Handle Dashboard Block Timers
             for (const [id, data] of Object.entries(activeTimers)) {
                 if(data.timerEl) {
                     let totalEndSeconds = data.endMins * 60;
@@ -1401,17 +1402,19 @@
             const today = new Date(); today.setHours(0,0,0,0);
 
             termEvents.forEach(ev => {
-                if(ev.isCritical || ev.isReminder) {
-                    if(ev.weeks !== "All") {
-                        const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
-                        const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                        if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
-                    } else {
-                        for(let w=1; w<=totalWeeks; w++) {
-                            if(!ev.skippedWeeks.includes(w.toString())) {
-                                const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
-                                const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                                if (diffDays >= 0) keyDatesList.push({ ev, targetDate, diffDays });
+                if(ev.weeks !== "All") {
+                    const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
+                    const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) {
+                        keyDatesList.push({ ev, targetDate, diffDays });
+                    }
+                } else {
+                    for(let w=1; w<=totalWeeks; w++) {
+                        if(!ev.skippedWeeks.includes(w.toString())) {
+                            const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
+                            const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                            if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) {
+                                keyDatesList.push({ ev, targetDate, diffDays });
                             }
                         }
                     }
