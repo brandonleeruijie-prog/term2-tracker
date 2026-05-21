@@ -14,6 +14,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
 
     <style>
         :root {
@@ -264,6 +265,13 @@
                         <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importData(event)">
                         <button class="btn-submit" style="background: var(--text-muted); color: var(--bg-dark); font-size: 14px;" onclick="document.getElementById('importFile').click()">⬆️ Import JSON</button>
                     </div>
+                </div>
+
+                <div class="builder-section" style="border: 2px dashed var(--accent); background: rgba(168, 199, 250, 0.05); text-align: center; padding: 30px;">
+                    <h2 style="margin-top: 0; color: var(--accent);">📅 Import University Timetable (.ics)</h2>
+                    <p style="color: var(--text-muted); font-size: 14px;">Upload your UNSW timetable to extract courses, locations, and timeblocks automatically.</p>
+                    <input type="file" id="icsImportFile" accept=".ics" style="display: none;" onchange="handleICSImport(event)">
+                    <button class="btn-submit" style="background: var(--accent); color: var(--bg-dark); font-size: 16px; padding: 12px 25px;" onclick="document.getElementById('icsImportFile').click()">Choose .ics File</button>
                 </div>
 
                 <div class="builder-section">
@@ -526,7 +534,198 @@
         </div>
     </div>
 
+    <div id="ics-import-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="close-modal" onclick="closeICSModal()">✖</button>
+            <h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Verify Detected Courses</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">The parser found the following unique courses. Adjust names or assign colors before injection. Uncheck any items you want to ignore.</p>
+            
+            <div id="ics-course-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; padding-right: 10px;"></div>
+            
+            <button class="btn-submit" style="width: 100%;" onclick="executeICSInjection()">Confirm & Inject Schedule</button>
+        </div>
+    </div>
+
     <script>
+        // --- ICS PARSING ENGINE ---
+        let pendingICSEvents = [];
+        let parsedICSCourses = [];
+
+        function handleICSImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jcalData = ICAL.parse(e.target.result);
+                    const comp = new ICAL.Component(jcalData);
+                    const vevents = comp.getAllSubcomponents("vevent");
+
+                    pendingICSEvents = [];
+                    const foundCourses = new Set();
+                    const currentTerm = terms.find(t => t.id === currentTermId);
+                    
+                    if(!currentTerm) { alert("Please define a Term Start Date first."); return; }
+                    const [ty, tm, td] = currentTerm.startDate.split('-').map(Number);
+                    const termStartUTC = Date.UTC(ty, tm - 1, td);
+
+                    vevents.forEach(vevent => {
+                        const eventObj = new ICAL.Event(vevent);
+                        
+                        // Handle recurring events by unrolling them into individual instances
+                        let occurrences = [];
+                        if (eventObj.isRecurring()) {
+                            const iter = eventObj.iterator();
+                            let next;
+                            let maxLimits = 0; // Safety break
+                            while ((next = iter.next()) && maxLimits < 100) {
+                                occurrences.push(next);
+                                maxLimits++;
+                            }
+                        } else {
+                            occurrences.push(eventObj.startDate);
+                        }
+
+                        occurrences.forEach(occStart => {
+                            const jsStartDate = occStart.toJSDate();
+                            const jsEndDate = eventObj.endDate.toJSDate();
+                            
+                            // Align duration
+                            const durationMs = eventObj.endDate.toJSDate() - eventObj.startDate.toJSDate();
+                            const actualJsEndDate = new Date(jsStartDate.getTime() + durationMs);
+
+                            // Calculate specific week based on Term Start
+                            const diffDays = Math.floor((jsStartDate.getTime() - termStartUTC) / (1000 * 60 * 60 * 24));
+                            const weekNum = Math.floor(diffDays / 7) + 1;
+                            
+                            if (weekNum > 0 && weekNum <= (currentTerm.totalWeeks || 10)) {
+                                const summary = eventObj.summary || "Unknown Event";
+                                
+                                // Clean up the SUMMARY: Often looks like "ELEC1111_T1_Lecture" or "Lecture (ELEC1111)"
+                                // We try to extract the first standard 8-character course code (4 letters, 4 numbers)
+                                const courseMatch = summary.match(/[A-Z]{4}\d{4}/i);
+                                const courseCode = courseMatch ? courseMatch[0].toUpperCase() : summary.split(' ')[0]; // Fallback to first word
+                                
+                                // Title is the rest of the summary
+                                const title = summary.replace(courseCode, '').replace(/[\_\-\(\)]/g, ' ').trim() || "Class";
+
+                                foundCourses.add(courseCode);
+
+                                const startMins = (jsStartDate.getHours() * 60) + jsStartDate.getMinutes();
+                                const endMins = (actualJsEndDate.getHours() * 60) + actualJsEndDate.getMinutes();
+
+                                pendingICSEvents.push({
+                                    rawCourse: courseCode,
+                                    title: title,
+                                    location: eventObj.location || "",
+                                    day: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][jsStartDate.getDay()],
+                                    weeks: weekNum.toString(),
+                                    start: minsToTimeStr(startMins),
+                                    end: minsToTimeStr(endMins),
+                                    desc: "Imported from University ICS."
+                                });
+                            }
+                        });
+                    });
+
+                    // Prepare Interception UI
+                    parsedICSCourses = Array.from(foundCourses).map(c => {
+                        return { 
+                            original: c, 
+                            name: c, 
+                            color: "#" + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0') // Random generic color
+                        };
+                    });
+
+                    renderICSModal();
+
+                } catch(err) {
+                    console.error("ICS Parse Error: ", err);
+                    alert("Failed to read the .ics file. Ensure it is a valid iCalendar export.");
+                }
+                event.target.value = ''; // Reset input
+            };
+            reader.readAsText(file);
+        }
+
+        function renderICSModal() {
+            const list = document.getElementById('ics-course-list');
+            list.innerHTML = '';
+            
+            parsedICSCourses.forEach((course, idx) => {
+                list.innerHTML += `
+                    <div style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; border: 1px solid var(--outline);">
+                        <input type="checkbox" id="ics-cb-${idx}" checked style="width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer;">
+                        <input type="color" id="ics-color-${idx}" value="${course.color}" style="padding: 0; width: 30px; height: 30px; border: none; cursor: pointer; border-radius: 50%;">
+                        <input type="text" id="ics-name-${idx}" value="${course.name}" style="flex: 1; padding: 5px; background: transparent; color: white; border: none; border-bottom: 1px solid var(--accent); font-family: 'Rajdhani';" placeholder="Rename Course...">
+                    </div>
+                `;
+            });
+
+            document.getElementById('ics-import-modal').style.display = 'flex';
+        }
+
+        function closeICSModal() {
+            document.getElementById('ics-import-modal').style.display = 'none';
+            pendingICSEvents = [];
+            parsedICSCourses = [];
+        }
+
+        function executeICSInjection() {
+            const batch = db.batch();
+            const courseMapping = {}; // Maps original ICS course name to the user's customized name
+
+            // Process selected courses
+            parsedICSCourses.forEach((course, idx) => {
+                const isChecked = document.getElementById(`ics-cb-${idx}`).checked;
+                if (isChecked) {
+                    const finalName = document.getElementById(`ics-name-${idx}`).value.trim();
+                    const finalColor = document.getElementById(`ics-color-${idx}`).value;
+                    courseMapping[course.original] = finalName;
+
+                    // Push course to DB
+                    const newCourse = { id: finalName, termId: currentTermId, color: finalColor };
+                    batch.set(db.collection('courses').doc(currentTermId + "_" + finalName), newCourse);
+                }
+            });
+
+            // Process Events
+            let importCount = 0;
+            pendingICSEvents.forEach((ev, idx) => {
+                if (courseMapping[ev.rawCourse]) {
+                    const docId = `ICS_${Date.now()}_${idx}`;
+                    const newEvent = {
+                        id: docId,
+                        termId: currentTermId,
+                        courseId: courseMapping[ev.rawCourse],
+                        title: ev.title,
+                        weeks: ev.weeks,
+                        day: ev.day,
+                        start: ev.start,
+                        end: ev.end,
+                        location: ev.location,
+                        desc: ev.desc,
+                        isCritical: false,
+                        isReminder: false,
+                        weight: null,
+                        skippedWeeks: []
+                    };
+                    batch.set(db.collection('events').doc(docId), newEvent);
+                    importCount++;
+                }
+            });
+
+            batch.commit().then(() => {
+                closeICSModal();
+                switchView('schedule');
+            }).catch(err => {
+                console.error("Batch Inject Error: ", err);
+                alert("Failed to inject schedule to cloud.");
+            });
+        }
+
+
         // --- DAY PICKER HELPERS ---
         function toggleDayPill(labelEl) {
             const cb = labelEl.querySelector('input');
@@ -702,7 +901,6 @@
             
             let totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
 
-            // Handle Dashboard Block Timers
             for (const [id, data] of Object.entries(activeTimers)) {
                 if(data.timerEl) {
                     let totalEndSeconds = data.endMins * 60;
@@ -766,38 +964,6 @@
                 endContainer.required = true;
                 courseSelect.required = true;
             }
-        }
-
-        function exportData() {
-            const dataObj = { terms, courses, events };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "master_planner_backup.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const dataObj = JSON.parse(e.target.result);
-                    if(dataObj.terms && dataObj.courses && dataObj.events) {
-                        const batch = db.batch();
-                        dataObj.terms.forEach(t => batch.set(db.collection('terms').doc(t.id), t));
-                        dataObj.courses.forEach(c => batch.set(db.collection('courses').doc(c.termId + "_" + c.id), c));
-                        dataObj.events.forEach(ev => batch.set(db.collection('events').doc(ev.id), ev));
-                        await batch.commit();
-                        alert("Database successfully restored from JSON.");
-                    } else { alert("Invalid file structure."); }
-                } catch (err) { alert("Error parsing JSON file."); console.error(err); }
-                event.target.value = ''; 
-            };
-            reader.readAsText(file);
         }
 
         function getSpecificDate(startDateStr, weekNum, dayString) {
