@@ -24,7 +24,7 @@
             --text-muted: #c4c7c5;    
             --outline: #444746;       
             --hazard: repeating-linear-gradient(45deg, rgba(255,82,82,0.1), rgba(255,82,82,0.1) 10px, rgba(0,0,0,0.3) 10px, rgba(0,0,0,0.3) 20px);
-            --xp-color: #4caf50;
+            --xp-color: #00e5ff;      /* Cyan XP Bar */
         }
         body {
             margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 18px;
@@ -200,7 +200,7 @@
         /* GAMIFICATION CSS */
         .xp-container { background: rgba(255,255,255,0.02); border: 1px solid var(--outline); padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .xp-bar-bg { background: #2a2b2c; height: 16px; border-radius: 10px; overflow: hidden; margin-top: 10px; position: relative; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
-        .xp-bar-fill { background: linear-gradient(90deg, #388e3c, var(--xp-color)); height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--xp-color); }
+        .xp-bar-fill { background: linear-gradient(90deg, #0097a7, var(--xp-color)); height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--xp-color); }
         
         .mission-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 15px; border-left: 4px solid var(--accent); margin-bottom: 12px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: 0.2s; }
         .mission-item:hover { background: rgba(168, 199, 250, 0.05); transform: translateY(-2px); }
@@ -210,8 +210,6 @@
         .btn-check:hover { background: #4caf50; color: white; box-shadow: 0 0 12px rgba(76,175,80,0.6); transform: scale(1.1); }
         .btn-cross { background: rgba(255, 82, 82, 0.15); color: #ff5252; border: 1px solid #ff5252; }
         .btn-cross:hover { background: #ff5252; color: white; box-shadow: 0 0 12px rgba(255,82,82,0.6); transform: scale(1.1); }
-        
-        .level-badge { background: var(--xp-color); color: var(--bg-dark); padding: 4px 10px; border-radius: 20px; font-weight: bold; font-family: 'Share Tech Mono', monospace; font-size: 16px; margin-left: 10px; display: inline-flex; align-items: center; box-shadow: 0 0 10px rgba(76, 175, 80, 0.3); }
         
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 12px 24px; border-radius: 30px; font-weight: bold; border: 1px solid; z-index: 3000; opacity: 0; pointer-events: none; transition: opacity 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
     </style>
@@ -249,11 +247,10 @@
             <div class="xp-container">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <strong style="color: var(--text-main); font-size: 22px;">Commander Profile</strong>
-                        <span class="level-badge">LVL <span id="player-level">1</span></span>
+                        <strong style="color: var(--text-main); font-size: 22px;">Brandon</strong>
                     </div>
                     <div style="text-align: right;">
-                        <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 18px;">0 / 1000 XP</span>
+                        <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: bold;">0 XP</span>
                     </div>
                 </div>
                 <div class="xp-bar-bg">
@@ -418,12 +415,12 @@
                                 <label>Strategic Description</label><textarea id="inp-ev-desc"></textarea>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(76, 175, 80, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #4caf50;">
-                                <input type="checkbox" id="inp-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: #4caf50; margin: 0;" onchange="toggleXPInput('inp-ev-difficulty-container', this.checked)">
-                                <label for="inp-ev-xp-enabled" style="margin: 0; color: #a5d6a7; font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
+                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
+                                <input type="checkbox" id="inp-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('inp-ev-difficulty-container', this.checked)">
+                                <label for="inp-ev-xp-enabled" style="margin: 0; color: var(--xp-color); font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
                                 <div id="inp-ev-difficulty-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
-                                    <label style="margin:0; color:#a5d6a7; font-size:14px;">Difficulty (1-10):</label>
-                                    <input type="number" id="inp-ev-difficulty" min="1" max="10" value="10" style="width: 60px; padding: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border: 1px solid #4caf50; color: white;">
+                                    <label style="margin:0; color:var(--xp-color); font-size:14px;">Difficulty (1-10):</label>
+                                    <input type="number" id="inp-ev-difficulty" min="1" max="10" value="10" style="width: 60px; padding: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border: 1px solid var(--xp-color); color: white;">
                                 </div>
                             </div>
                             
@@ -501,12 +498,12 @@
                     </div>
                     <div class="form-group" style="grid-column: span 2;"><label>Strategic Description</label><textarea id="mod-ev-desc"></textarea></div>
                     
-                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(76, 175, 80, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #4caf50;">
-                        <input type="checkbox" id="mod-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: #4caf50; margin: 0;" onchange="toggleXPInput('mod-ev-difficulty-container', this.checked)">
-                        <label for="mod-ev-xp-enabled" style="margin: 0; color: #a5d6a7; font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
+                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
+                        <input type="checkbox" id="mod-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('mod-ev-difficulty-container', this.checked)">
+                        <label for="mod-ev-xp-enabled" style="margin: 0; color: var(--xp-color); font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
                         <div id="mod-ev-difficulty-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
-                            <label style="margin:0; color:#a5d6a7; font-size:14px;">Difficulty (1-10):</label>
-                            <input type="number" id="mod-ev-difficulty" min="1" max="10" value="10" style="width: 60px; padding: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border: 1px solid #4caf50; color: white;">
+                            <label style="margin:0; color:var(--xp-color); font-size:14px;">Difficulty (1-10):</label>
+                            <input type="number" id="mod-ev-difficulty" min="1" max="10" value="10" style="width: 60px; padding: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border: 1px solid var(--xp-color); color: white;">
                         </div>
                     </div>
 
@@ -607,16 +604,15 @@
             if (userXP < 0) userXP = 0; 
             localStorage.setItem('tp_user_xp', userXP);
             renderXP();
-            showToast(change > 0 ? `+${change} XP` : `${change} XP`, change > 0 ? '#4caf50' : '#ff5252');
+            showToast(change > 0 ? `+${change} XP` : `${change} XP`, change > 0 ? '#00e5ff' : '#ff5252');
         }
 
         function renderXP() {
-            let level = Math.floor(userXP / 1000) + 1;
-            let currentLevelXP = userXP % 1000;
-            
-            document.getElementById('player-level').innerText = level;
-            document.getElementById('player-xp-text').innerText = `${currentLevelXP} / 1000 XP`;
-            document.getElementById('xp-bar-fill').style.width = `${(currentLevelXP / 1000) * 100}%`;
+            document.getElementById('player-xp-text').innerText = `${userXP} XP`;
+            // Progress visual represents progress towards the NEXT 300 XP (1 Hour of Free Time)
+            let fillPct = (userXP % 300) / 300 * 100;
+            if(userXP > 0 && userXP % 300 === 0) fillPct = 100; // Show full if perfectly divisible
+            document.getElementById('xp-bar-fill').style.width = `${fillPct}%`;
         }
 
         function showToast(msg, color) {
@@ -645,7 +641,7 @@
             let pending = [];
 
             events.forEach(ev => {
-                if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; // Only track XP-enabled tasks in missions
+                if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
                 const evDayIdx = daysArr.indexOf(ev.day);
                 const evEndMins = ev.isReminder ? timeToMinutes(ev.start) : timeToMinutes(ev.end);
                 
@@ -1354,7 +1350,7 @@
                 const remBadge = e.isReminder ? `<span style="margin-right: 5px;" title="Reminder">🔔</span>` : "";
                 const rewardBadge = e.isReward ? `<span style="margin-right: 5px;" title="Reward">🏆</span>` : "";
                 
-                let xpBadge = e.xpEnabled ? `<span style="color: #4caf50; font-size: 14px; margin-left: 8px;" title="XP Value: ${e.xpDifficulty * 10}">[${e.xpDifficulty * 10} XP]</span>` : "";
+                let xpBadge = e.xpEnabled ? `<span style="color: #00e5ff; font-size: 14px; margin-left: 8px;" title="XP Value: ${e.xpDifficulty * 10}">[${e.xpDifficulty * 10} XP]</span>` : "";
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
                 li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${rewardBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} ${xpBadge}<br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
@@ -1468,7 +1464,7 @@
                 let timerHTML = ""; let progressHTML = "";
                 
                 if (isActiveNow) {
-                    cardStyle += ` background: ${ev.isReward ? 'rgba(255, 215, 0, 0.1)' : 'rgba(168, 199, 250, 0.1)'}; border: 1px solid ${cColor}; box-shadow: 0 0 15px ${ev.isReward ? 'rgba(255, 215, 0, 0.2)' : 'rgba(168, 199, 250, 0.1)'};`;
+                    cardStyle += ` background: ${ev.isReward ? 'rgba(255, 215, 0, 0.1)' : 'rgba(0, 229, 255, 0.1)'}; border: 1px solid ${cColor}; box-shadow: 0 0 15px ${ev.isReward ? 'rgba(255, 215, 0, 0.2)' : 'rgba(0, 229, 255, 0.1)'};`;
                     timerHTML = `<div style="background: rgba(255,82,82,0.15); border: 1px solid #ff5252; color: #ffb4b4; padding: 4px 10px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 15px; margin-top: 8px; display: inline-block;">TIME LEFT: <span id="timer-${ev.id}">...</span></div>`;
                     const pct = ((currentTotalMinutes - startMins) / (endMins - startMins)) * 100;
                     progressHTML = `<div id="progress-line-${ev.id}" style="position: absolute; left: 0; right: 0; top: ${pct}%; height: 2px; background-color: #ff5252; z-index: 5; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;"><div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div></div>`;
