@@ -24,7 +24,7 @@
             --text-muted: #c4c7c5;    
             --outline: #444746;       
             --hazard: repeating-linear-gradient(45deg, rgba(255,82,82,0.1), rgba(255,82,82,0.1) 10px, rgba(0,0,0,0.3) 10px, rgba(0,0,0,0.3) 20px);
-            --xp-color: #00e5ff;      
+            --xp-color: #00e5ff;      /* Cyan XP Bar */
         }
         body {
             margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 18px;
@@ -57,6 +57,7 @@
         .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
         .action-btn { background-color: #282a2c; color: var(--text-main); border-color: var(--outline); }
 
+        /* NOTIFICATION BADGE */
         .notification-badge {
             background-color: #ff5252;
             color: white;
@@ -139,18 +140,11 @@
 
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
         
-        /* NEW: Idle Breathing Animation for Avatar */
-        @keyframes idle-breathe {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
-        }
-        
         .avatar-img {
-            width: 50px;
-            height: 50px;
-            image-rendering: pixelated; /* Keeps pixel art sharp */
-            animation: idle-breathe 3s ease-in-out infinite;
-            border-radius: 8px; /* Optional slight rounding */
+            height: 85px; 
+            width: auto;
+            image-rendering: pixelated; 
+            border-radius: 4px;
         }
 
         .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
@@ -212,7 +206,17 @@
         .btn-everyday:hover { background: rgba(168, 199, 250, 0.1); }
 
         /* GAMIFICATION CSS */
-        .xp-container { background: rgba(255,255,255,0.02); border: 1px solid var(--outline); padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .xp-container { 
+            background: rgba(255,255,255,0.02); 
+            border: 1px solid var(--outline); 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
         .xp-bar-bg { background: #2a2b2c; height: 16px; border-radius: 10px; overflow: hidden; margin-top: 10px; position: relative; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
         .xp-bar-fill { background: linear-gradient(90deg, #0097a7, var(--xp-color)); height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--xp-color); }
         
@@ -259,18 +263,16 @@
         <div class="content" id="main-content">
             
             <div class="xp-container">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <img src="avatar.gif" alt="Brandon" class="avatar-img">
-                        <strong style="color: var(--text-main); font-size: 22px;">Brandon</strong>
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+                        <strong style="color: var(--text-main); font-size: 28px; line-height: 1;">Brandon</strong>
+                        <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 20px; font-weight: bold; line-height: 1;">0 XP</span>
                     </div>
-                    <div style="text-align: right;">
-                        <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 18px; font-weight: bold;">0 XP</span>
+                    <div class="xp-bar-bg" style="margin-top: 0;">
+                        <div class="xp-bar-fill" id="xp-bar-fill"></div>
                     </div>
                 </div>
-                <div class="xp-bar-bg">
-                    <div class="xp-bar-fill" id="xp-bar-fill"></div>
-                </div>
+                <img src="avatar.gif" alt="Brandon" class="avatar-img">
             </div>
 
             <div id="view-dashboard">
