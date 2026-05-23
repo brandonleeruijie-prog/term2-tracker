@@ -41,10 +41,7 @@
         .term-controls { display: flex; gap: 8px; align-items: center; margin-left: 20px; border-left: 1px solid var(--outline); padding-left: 15px; }
         .term-select { background: var(--bg-panel); color: var(--accent); border: 1px solid var(--outline); padding: 4px 8px; border-radius: 4px; font-family: 'Share Tech Mono'; font-size: 16px; cursor: pointer;}
         
-        select option {
-            background-color: #1e1f20; 
-            color: var(--text-main);
-        }
+        select option { background-color: #1e1f20; color: var(--text-main); }
 
         .subbar {
             background-color: var(--bg-panel); padding: 10px 20px; display: flex;
@@ -62,9 +59,7 @@
         .segmented-control {
             display: flex; flex: 1; border: 1px solid var(--outline);
             border-radius: 20px; overflow: hidden; background: rgba(0,0,0,0.3);
-            min-width: 0;
-            overflow-x: auto;
-            scrollbar-width: none;
+            min-width: 0; overflow-x: auto; scrollbar-width: none;
         }
         .segmented-control::-webkit-scrollbar { display: none; }
         .segmented-control .tab-btn {
@@ -128,11 +123,7 @@
         .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--outline); }
         .color-swatch { display: inline-block; width: 15px; height: 15px; border-radius: 50%; margin-right: 10px; }
 
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
         .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
 
         .modal-overlay {
@@ -161,8 +152,7 @@
         
         #current-time-line {
             position: absolute; left: 0; right: 0; height: 2px; background-color: #ff5252;
-            z-index: 50; pointer-events: none;
-            box-shadow: 0 0 8px rgba(255,82,82,0.8);
+            z-index: 50; pointer-events: none; box-shadow: 0 0 8px rgba(255,82,82,0.8);
         }
         #current-time-line::before {
             content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px;
@@ -175,9 +165,7 @@
             font-family: 'Share Tech Mono', monospace; font-size: 14px; margin-left: 15px; color: #4caf50;
             display: flex; align-items: center; gap: 5px;
         }
-        .sync-pulse {
-            width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite;
-        }
+        .sync-pulse { width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite; }
         .btn-skip { background: transparent; border: 1px solid var(--outline); border-radius: 4px; color: var(--text-muted); cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-skip:hover { background: rgba(255, 255, 255, 0.1); }
 
@@ -278,15 +266,47 @@
             </div>
 
             <div id="view-missions" style="display: none; flex-direction: column; height: 100%;">
-                <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚔️ Unresolved Missions</h2>
-                <p style="color: var(--text-muted); font-size: 16px; margin-bottom: 25px;">
-                    These blocks have passed in real-time but remain unaccounted for. Tasks must be XP Enabled to generate rewards.<br>
-                    <span style="color: var(--xp-color);">✔️ Completed: <b>100% Base XP</b></span> | 
-                    <span style="color: #ffb4b4;">✖️ Reschedule: <b>-25% XP Penalty</b></span> | 
-                    <span style="color: #ff5252;">🚫 Skipped: <b>-50% XP Penalty</b></span>
-                </p>
+                <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚔️ Unresolved Missions & Rewards</h2>
                 
-                <div id="missions-list" style="flex: 1; overflow-y: auto; padding-right: 10px;"></div>
+                <div style="display: flex; gap: 30px; flex: 1; overflow: hidden; margin-top: 15px;">
+                    <div style="flex: 2; display: flex; flex-direction: column; min-width: 300px;">
+                        <p style="color: var(--text-muted); font-size: 15px; margin-top: 0;">
+                            These blocks have passed in real-time but remain unaccounted for.<br>
+                            <span style="color: var(--xp-color);">✔️ Completed: <b>100% Base XP</b></span> | 
+                            <span style="color: #ffb4b4;">✖️ Reschedule: <b>-25% XP Penalty</b></span> | 
+                            <span style="color: #ff5252;">🚫 Skipped: <b>-50% XP Penalty</b></span>
+                        </p>
+                        <div id="missions-list" style="flex: 1; overflow-y: auto; padding-right: 10px;"></div>
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 300px; background: rgba(255, 215, 0, 0.05); border: 1px solid #ffd700; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; overflow-y: auto;">
+                        <h3 style="color: #ffd700; margin-top: 0; font-size: 20px; border-bottom: 1px dashed #ffd700; padding-bottom: 10px;">🏆 Reward Store</h3>
+                        <p style="color: var(--text-muted); font-size: 14px;">Use your XP to schedule Free Time.<br><strong style="color: #ffd700;">Rate: 500 XP = 1 Hour</strong> (Full hours only).</p>
+                        
+                        <form id="form-reward" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Activity Title</label>
+                                <input type="text" id="reward-title" placeholder="e.g. Play Video Games" required style="border-color: #ffd700;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Date</label>
+                                <input type="date" id="reward-date" required style="border-color: #ffd700;">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                    <label>Start Time</label>
+                                    <input type="time" id="reward-start" required style="border-color: #ffd700;">
+                                </div>
+                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                    <label>End Time</label>
+                                    <input type="time" id="reward-end" required style="border-color: #ffd700;">
+                                </div>
+                            </div>
+                            <button type="button" class="btn-submit" style="background: #ffd700; color: #131314; margin-top: 10px;" onclick="attemptRewardPurchase()">Purchase Free Time</button>
+                        </form>
+                        <div id="reward-msg" style="margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center;"></div>
+                    </div>
+                </div>
             </div>
 
             <div id="view-schedule" style="display: none; flex-direction: column; height: 100%; position: relative;">
@@ -625,7 +645,8 @@
                     isReminder: e.isReminder || false,
                     weight: e.weight || null,
                     xpEnabled: e.xpEnabled || false,      
-                    xpDifficulty: e.xpDifficulty || 10    
+                    xpDifficulty: e.xpDifficulty || 10,
+                    isReward: e.isReward || false
                 };
             });
             loaders.events = true; checkLoaders();
@@ -887,7 +908,8 @@
                 isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null,
                 resolvedWeeks: [],
                 xpEnabled: isXpEnabled,
-                xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null
+                xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null,
+                isReward: false
             };
 
             const batch = db.batch();
@@ -1020,7 +1042,7 @@
                 weeks: modalInstanceWeek, location: document.getElementById('mod-ev-location').value, start: document.getElementById('mod-ev-start').value,
                 end: isReminder ? document.getElementById('mod-ev-start').value : document.getElementById('mod-ev-end').value, desc: document.getElementById('mod-ev-desc').value,
                 isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null, resolvedWeeks: [],
-                xpEnabled: isXpEnabled, xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null
+                xpEnabled: isXpEnabled, xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null, isReward: false
             };
 
             const batch = db.batch();
@@ -1045,7 +1067,101 @@
             batch.commit().then(closeInstanceModal);
         };
 
-        // --- MISSIONS GAMIFICATION LOGIC ---
+        // --- MISSIONS GAMIFICATION & REWARD LOGIC ---
+        function attemptRewardPurchase() {
+            const title = document.getElementById('reward-title').value.trim();
+            const dateVal = document.getElementById('reward-date').value;
+            const startVal = document.getElementById('reward-start').value;
+            const endVal = document.getElementById('reward-end').value;
+            const msgBox = document.getElementById('reward-msg');
+
+            if(!title || !dateVal || !startVal || !endVal) {
+                msgBox.innerHTML = `<span style="color:#ff5252;">Please fill out all fields.</span>`;
+                return;
+            }
+
+            const startMins = timeToMinutes(startVal);
+            const endMins = timeToMinutes(endVal);
+            let durationMins = endMins - startMins;
+
+            if (durationMins <= 0) {
+                msgBox.innerHTML = `<span style="color:#ff5252;">End time must be after start time.</span>`;
+                return;
+            }
+
+            if (durationMins % 60 !== 0) {
+                msgBox.innerHTML = `<span style="color:#ff5252;">Free time can only be purchased in full hour increments.</span>`;
+                return;
+            }
+
+            const hours = durationMins / 60;
+            const cost = hours * 500;
+
+            if (userXP < cost) {
+                msgBox.innerHTML = `<span style="color:#ff5252;">Not enough XP. Do more missions to earn more XP. (Need ${cost} XP)</span>`;
+                return;
+            }
+
+            if(confirm(`Confirm and buy with ${cost}xp?`)) {
+                executeRewardPurchase(title, dateVal, startVal, endVal, cost);
+            }
+        }
+
+        function executeRewardPurchase(title, dateVal, startVal, endVal, cost) {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) { alert("No active plan to schedule this in."); return; }
+
+            // Local Date parsing to avoid timezone drift
+            const [y, m, d] = dateVal.split('-').map(Number);
+            const localTarget = new Date(y, m - 1, d);
+            
+            const [ty, tm, td] = currentTerm.startDate.split('-').map(Number);
+            const termStart = new Date(ty, tm - 1, td);
+            
+            const diffDays = getDaysDiff(termStart, localTarget);
+            
+            if (diffDays < 0 || diffDays >= (currentTerm.totalWeeks * 7)) {
+                document.getElementById('reward-msg').innerHTML = `<span style="color:#ff5252;">Date is outside the active dates of the current plan.</span>`;
+                return;
+            }
+
+            const weekNum = Math.floor(diffDays / 7) + 1;
+            const daysArr = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const dayName = daysArr[localTarget.getDay()];
+
+            const docId = `REWARD_${Date.now()}`;
+            const newEvent = {
+                id: docId,
+                termId: currentTermId,
+                courseId: "Free Time",
+                title: title,
+                weeks: weekNum.toString(),
+                day: dayName,
+                start: startVal,
+                end: endVal,
+                location: "",
+                desc: "Purchased with XP.",
+                isCritical: false,
+                isReminder: false,
+                weight: null,
+                xpEnabled: false,
+                xpDifficulty: null,
+                isReward: true,
+                skippedWeeks: [],
+                resolvedWeeks: [weekNum.toString()] // Pushed so it doesn't show up in missions as unresolved
+            };
+
+            db.collection('events').doc(docId).set(newEvent).then(() => {
+                updateXP(-cost);
+                document.getElementById('form-reward').reset();
+                document.getElementById('reward-msg').innerHTML = `<span style="color:#4caf50;">Free time purchased and scheduled!</span>`;
+                setTimeout(() => { document.getElementById('reward-msg').innerHTML = ''; }, 3000);
+            }).catch(err => {
+                console.error(err);
+                document.getElementById('reward-msg').innerHTML = `<span style="color:#ff5252;">Error saving to database.</span>`;
+            });
+        }
+
         function renderMissions() {
             const container = document.getElementById('missions-list');
             if(!container) return;
@@ -1066,7 +1182,7 @@
             let pendingMissions = [];
 
             events.forEach(ev => {
-                if(ev.termId !== currentTermId) return;
+                if(ev.termId !== currentTermId || ev.isReward) return; // Don't show rewards in missions
                 const evDayIdx = daysArr.indexOf(ev.day);
                 const evEndMins = ev.isReminder ? timeToMinutes(ev.start) : timeToMinutes(ev.end);
                 
@@ -1093,7 +1209,7 @@
             
             pendingMissions.forEach(mission => {
                 const termCourses = courses.filter(c => c.termId === currentTermId);
-                const cColor = mission.ev.courseId ? (termCourses.find(c => c.id === mission.ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const cColor = mission.ev.isReward ? "#ffd700" : (mission.ev.courseId ? (termCourses.find(c => c.id === mission.ev.courseId)?.color || "var(--accent)") : "var(--accent)");
 
                 let baseXP = (mission.ev.xpEnabled && mission.ev.xpDifficulty) ? mission.ev.xpDifficulty * 10 : 0;
                 let xpTooltip = baseXP > 0 ? `(+${baseXP} XP)` : '(0 XP)';
@@ -1193,16 +1309,17 @@
             const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
             termEvents.forEach(e => {
-                const cColor = e.courseId ? (termCourses.find(c => c.id === e.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const cColor = e.isReward ? "#ffd700" : (e.courseId ? (termCourses.find(c => c.id === e.courseId)?.color || "var(--accent)") : "var(--accent)");
                 const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
                 const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')})</span>` : "";
                 const criticalBadge = e.isCritical ? `<span style="margin-right: 5px;" title="Important Component">🚨</span>` : "";
                 const remBadge = e.isReminder ? `<span style="margin-right: 5px;" title="Reminder">🔔</span>` : "";
+                const rewardBadge = e.isReward ? `<span style="margin-right: 5px;" title="Reward">🏆</span>` : "";
                 
                 let xpBadge = e.xpEnabled ? `<span style="color: #4caf50; font-size: 14px; margin-left: 8px;" title="XP Value: ${e.xpDifficulty * 10}">[${e.xpDifficulty * 10} XP]</span>` : "";
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
-                li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} ${xpBadge}<br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
+                li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${rewardBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} ${xpBadge}<br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
                     <div style="display:flex; gap: 8px;"><button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button><button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button></div>`;
                 if(eventList) eventList.appendChild(li);
             });
@@ -1214,7 +1331,7 @@
             const container = document.getElementById('key-dates-container'); if(!container) return; container.innerHTML = '';
             const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
             const totalWeeks = currentTerm.totalWeeks || 10; let keyDatesList = [];
-            const termEvents = events.filter(e => e.termId === currentTermId); const today = new Date(); today.setHours(0,0,0,0);
+            const termEvents = events.filter(e => e.termId === currentTermId && !e.isReward); const today = new Date(); today.setHours(0,0,0,0);
 
             termEvents.forEach(ev => {
                 if(ev.weeks !== "All") {
@@ -1283,7 +1400,8 @@
             todayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)); let lineInserted = false;
 
             todayEvents.forEach(ev => {
-                const cColor = ev.courseId ? (courses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const termCourses = courses.filter(c => c.termId === currentTermId);
+                const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
                 const startMins = timeToMinutes(ev.start); const endMins = ev.isReminder ? startMins : timeToMinutes(ev.end);
                 
                 if (!lineInserted && currentTotalMinutes < startMins) {
@@ -1297,13 +1415,14 @@
 
                 const displayStart = format12Hour(ev.start); const displayEnd = ev.isReminder ? "" : format12Hour(ev.end);
                 let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
+                let rewardIcon = ev.isReward ? `<span title="Reward" style="margin-right: 5px;">🏆</span>` : '';
 
                 const card = document.createElement('div');
                 if (ev.isReminder) {
                     card.style.cssText = `background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; padding: 10px 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.3s;`;
                     card.innerHTML = `
-                        <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;"><span style="font-size:20px;">🔔</span><strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}</strong></div>
-                        <div style="display:flex; align-items:center; gap: 10px; flex-shrink:0;"><span style="font-family:'Share Tech Mono'; font-weight:bold;">${displayStart}</span><button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit">✏️</button><button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="resolveMission('${ev.id}', '${currentWeek}', 'skip')" title="Skip">🚫</button></div>`;
+                        <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;"><span style="font-size:20px;">🔔</span><strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${rewardIcon}${criticalIcon}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}${ev.title}</strong></div>
+                        <div style="display:flex; align-items:center; gap: 10px; flex-shrink:0;"><span style="font-family:'Share Tech Mono'; font-weight:bold;">${displayStart}</span><button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit">✏️</button><button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="resolveMission('${ev.id}', '${currentWeek}', 'skip')" title="Skip (XP Penalty)">🚫</button></div>`;
                     container.appendChild(card); return; 
                 }
 
@@ -1311,18 +1430,26 @@
                 let timerHTML = ""; let progressHTML = "";
                 
                 if (isActiveNow) {
-                    cardStyle += ` background: rgba(168, 199, 250, 0.1); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(168,199,250,0.1);`;
+                    cardStyle += ` background: ${ev.isReward ? 'rgba(255, 215, 0, 0.1)' : 'rgba(168, 199, 250, 0.1)'}; border: 1px solid ${cColor}; box-shadow: 0 0 15px ${ev.isReward ? 'rgba(255, 215, 0, 0.2)' : 'rgba(168, 199, 250, 0.1)'};`;
                     timerHTML = `<div style="background: rgba(255,82,82,0.15); border: 1px solid #ff5252; color: #ffb4b4; padding: 4px 10px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 15px; margin-top: 8px; display: inline-block;">TIME LEFT: <span id="timer-${ev.id}">...</span></div>`;
                     const pct = ((currentTotalMinutes - startMins) / (endMins - startMins)) * 100;
                     progressHTML = `<div id="progress-line-${ev.id}" style="position: absolute; left: 0; right: 0; top: ${pct}%; height: 2px; background-color: #ff5252; z-index: 5; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;"><div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div></div>`;
                 } else if (isPast) { cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`; }
 
                 card.style.cssText = cardStyle;
+                
+                let controlsHtml = '';
+                if(!ev.isReward) {
+                    controlsHtml = `<div><button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button><button class="btn-skip" onclick="resolveMission('${ev.id}', '${currentWeek}', 'skip')" title="Skip (XP Penalty)">🚫</button></div>`;
+                } else {
+                    controlsHtml = `<div><button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button></div>`;
+                }
+
                 card.innerHTML = `
                     ${progressHTML}
                     <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px; position: relative; z-index: 10;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;"><strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
-                            <div><button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button><button class="btn-skip" onclick="resolveMission('${ev.id}', '${currentWeek}', 'skip')" title="Skip">🚫</button></div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;"><strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${rewardIcon}${criticalIcon}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}${ev.title}</strong>
+                            ${controlsHtml}
                         </div>
                         <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""}</div>
                         ${ev.desc ? `<div class="event-desc" style="margin-top: 5px;">${ev.desc}</div>` : ""}
@@ -1345,7 +1472,7 @@
 
         function renderTimeGraph(todayEvents) {
             const courseTimeMap = {}; const termCourses = courses.filter(c => c.termId === currentTermId);
-            todayEvents.forEach(ev => { if(ev.isReminder) return; const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start); if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration; });
+            todayEvents.forEach(ev => { if(ev.isReminder || ev.isReward) return; const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start); if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration; });
             const labels = Object.keys(courseTimeMap); const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); 
             const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
 
@@ -1432,7 +1559,7 @@
                 const evTargetDate = getSpecificDate(currentTerm.startDate, weekNum, ev.day); const diffDays = getDaysDiff(sydneyToday, evTargetDate);
                 let isPast = false; if (diffDays < 0) { isPast = true; } else if (diffDays === 0) { isPast = ev.isReminder ? (currentTotalMinutes > startMins) : (currentTotalMinutes > endMins); }
                 
-                const cColor = ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
                 const greyOutStyle = isPast ? 'opacity: 0.4; filter: grayscale(100%);' : '';
 
                 if (ev.isReminder) {
@@ -1440,13 +1567,14 @@
                     reminderCard.title = `${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}\n${format12Hour(ev.start)}`;
                     reminderCard.style.cssText = `position: absolute; top: ${topPos}px; height: 22px; left: 2px; right: 2px; background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 12px; border-radius: 4px; overflow: hidden; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5); display: flex; align-items: center; padding: 0 6px; z-index: 40; transition: 0.1s; white-space: nowrap; text-overflow: ellipsis; ${greyOutStyle}`;
                     reminderCard.onmouseenter = () => { if(!isPast) reminderCard.style.filter = 'brightness(1.2)'; }; reminderCard.onmouseleave = () => { reminderCard.style.filter = isPast ? 'grayscale(100%)' : 'none'; }; reminderCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
-                    reminderCard.innerHTML = `<span style="margin-right:5px;">🔔</span> <span style="text-overflow:ellipsis; overflow:hidden;">${ev.courseId ? ev.courseId + ' ' : ''}${ev.title}</span>`;
+                    reminderCard.innerHTML = `<span style="margin-right:5px;">🔔</span> <span style="text-overflow:ellipsis; overflow:hidden;">${ev.isReward ? '🏆 ' : ''}${ev.courseId && !ev.isReward ? ev.courseId + ' ' : ''}${ev.title}</span>`;
                     col.appendChild(reminderCard); return; 
                 }
 
                 const duration = endMins - startMins; const isConflicted = conflictIds.has(ev.id);
                 let criticalBg = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid var(--bg-dark);`;
                 if(isConflicted) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
+                if(ev.isReward && !isConflicted) { criticalBg = `background: rgba(255, 215, 0, 0.15); border: 1px solid #ffd700;`; }
 
                 const showDetails = duration > 60; const topPos = (startMins * timeScale) + 1; const blockHeight = (duration * timeScale) - 2;
                 const eventCard = document.createElement('div'); eventCard.className = 'event-card-grid'; eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; 
@@ -1456,7 +1584,7 @@
                 eventCard.innerHTML = `
                     <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
                         <div style="display: flex; flex-direction: column; overflow: hidden;">
-                            <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${isPast ? '#999' : cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">${ev.isCritical ? `🚨 ` : ''}${ev.courseId} <span style="font-weight: 600; color: var(--text-main);">| ${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}</div>
+                            <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${isPast ? '#999' : cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId + ' ' : ''}<span style="font-weight: 600; color: var(--text-main);">${!ev.isReward && ev.courseId ? '| ' : ''}${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}</div>
                             ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
                             ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
                         </div>
