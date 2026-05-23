@@ -246,22 +246,22 @@
 
         <div class="content" id="main-content">
             
-            <div id="view-dashboard">
-                <div class="xp-container">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong style="color: var(--text-main); font-size: 22px;">Commander Profile</strong>
-                            <span class="level-badge">LVL <span id="player-level">1</span></span>
-                        </div>
-                        <div style="text-align: right;">
-                            <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 18px;">0 / 1000 XP</span>
-                        </div>
+            <div class="xp-container">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="color: var(--text-main); font-size: 22px;">Commander Profile</strong>
+                        <span class="level-badge">LVL <span id="player-level">1</span></span>
                     </div>
-                    <div class="xp-bar-bg">
-                        <div class="xp-bar-fill" id="xp-bar-fill"></div>
+                    <div style="text-align: right;">
+                        <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 18px;">0 / 1000 XP</span>
                     </div>
                 </div>
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" id="xp-bar-fill"></div>
+                </div>
+            </div>
 
+            <div id="view-dashboard">
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Loading Database...</h2>
                 <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this plan.</p>
                 
@@ -296,7 +296,7 @@
                     
                     <div style="flex: 1; min-width: 300px; background: rgba(255, 215, 0, 0.05); border: 1px solid #ffd700; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; overflow-y: auto;">
                         <h3 style="color: #ffd700; margin-top: 0; font-size: 20px; border-bottom: 1px dashed #ffd700; padding-bottom: 10px;">🏆 Reward Store</h3>
-                        <p style="color: var(--text-muted); font-size: 14px;">Use your XP to schedule Free Time.<br><strong style="color: #ffd700;">Rate: 500 XP = 1 Hour</strong> (Full hours only).</p>
+                        <p style="color: var(--text-muted); font-size: 14px;">Use your XP to schedule Free Time.<br><strong style="color: #ffd700;">Rate: 300 XP = 1 Hour</strong> (Full hours only).</p>
                         
                         <form id="form-reward" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
                             <div class="form-group" style="margin-bottom: 0;">
@@ -645,7 +645,7 @@
             let pending = [];
 
             events.forEach(ev => {
-                if(ev.termId !== currentTermId || ev.isReward) return; 
+                if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; // Only track XP-enabled tasks in missions
                 const evDayIdx = daysArr.indexOf(ev.day);
                 const evEndMins = ev.isReminder ? timeToMinutes(ev.start) : timeToMinutes(ev.end);
                 
@@ -1163,7 +1163,7 @@
             }
 
             const hours = durationMins / 60;
-            const cost = hours * 500;
+            const cost = hours * 300; // UPDATED COST: 300 XP per hour
 
             if (userXP < cost) {
                 msgBox.innerHTML = `<span style="color:#ff5252;">Not enough XP. Do more missions to earn more XP. (Need ${cost} XP)</span>`;
