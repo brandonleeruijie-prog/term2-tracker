@@ -878,31 +878,580 @@
         function refreshUI() {
             const currentTerm = terms.find(t => t.id === currentTermId);
             const totalWeeks = currentTerm?.totalWeeks || 10;
+
             const termSelect = document.getElementById('inp-term-selector'); termSelect.innerHTML = '';
-            terms.forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name; if(t.id === currentTermId) opt.selected = true; termSelect.appendChild(opt); });
+            terms.forEach(t => {
+                const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name;
+                if(t.id === currentTermId) opt.selected = true; termSelect.appendChild(opt);
+            });
             document.getElementById('dash-welcome-title').innerText = `Welcome to ${currentTerm?.name || "Current Plan"}`;
+
+            if (!isNaN(currentView) && parseInt(currentView) > totalWeeks) {
+                currentView = "dashboard";
+                document.getElementById('view-schedule').style.display = 'none';
+                document.getElementById('view-dashboard').style.display = 'block';
+            }
+
+            // 1. Build week tabs dynamically
+            const weekTabsContainer = document.getElementById('week-tabs-container');
+            weekTabsContainer.innerHTML = '';
+            for(let i=1; i<=totalWeeks; i++) {
+                const btn = document.createElement('button'); 
+                btn.className = `tab-btn action-btn ${currentView == i ? 'active' : ''}`; 
+                btn.innerText = `W${i}`; 
+                btn.dataset.view = i;
+                btn.onclick = () => switchView(i, btn); 
+                weekTabsContainer.appendChild(btn);
+            }
+
+            // 2. Build Course Selectors & Filters
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            const selectEl = document.getElementById('inp-ev-course');
+            const modSelectEl = document.getElementById('mod-ev-course');
+            const filterContainer = document.getElementById('dynamic-filters');
+            const builderCourseList = document.getElementById('builder-course-list');
             
-            const weekTabsContainer = document.getElementById('week-tabs-container'); weekTabsContainer.innerHTML = '';
-            for(let i=1; i<=totalWeeks; i++) { const btn = document.createElement('button'); btn.className = `tab-btn action-btn ${currentView == i ? 'active' : ''}`; btn.innerText = `W${i}`; btn.dataset.view = i; btn.onclick = () => switchView(i, btn); weekTabsContainer.appendChild(btn); }
+            if(selectEl) selectEl.innerHTML = '<option value="">-- No Course (General) --</option>'; 
+            if(modSelectEl) modSelectEl.innerHTML = '<option value="">-- No Course (General) --</option>'; 
+            if(filterContainer) filterContainer.innerHTML = ''; 
+            if(builderCourseList) builderCourseList.innerHTML = ''; 
+
+            termCourses.forEach(c => {
+                const opt = document.createElement('option'); opt.value = c.id; opt.innerText = c.id; 
+                if(selectEl) selectEl.appendChild(opt);
+                
+                const opt2 = document.createElement('option'); opt2.value = c.id; opt2.innerText = c.id; 
+                if(modSelectEl) modSelectEl.appendChild(opt2);
+
+                const fBtn = document.createElement('button'); fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`;
+                fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
+                fBtn.onclick = () => {
+                    document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
+                    fBtn.classList.add('active'); currentFilter = c.id;
+                    if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions") renderSchedule(currentView);
+                };
+                if(filterContainer) filterContainer.appendChild(fBtn);
+
+                const li = document.createElement('li'); li.className = "mgmt-item";
+                li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
+                if(builderCourseList) builderCourseList.appendChild(li);
+            });
+
+            // 3. Build Event Selectors (Occurrence)
+            const occSelect = document.getElementById('inp-ev-occurrence');
+            if (occSelect) {
+                const prevVal = occSelect.value;
+                let occHtml = `<option value="All">Repeat: All Weeks</option>`;
+                for(let i=1; i<=totalWeeks; i++) {
+                    occHtml += `<option value="${i}">Standalone: Week ${i}</option>`;
+                }
+                occSelect.innerHTML = occHtml;
+                if (prevVal === "All" || (parseInt(prevVal) >= 1 && parseInt(prevVal) <= totalWeeks)) {
+                    occSelect.value = prevVal;
+                } else {
+                    occSelect.value = "All";
+                }
+            }
+
+            // 4. Update Event List in Builder
+            const eventList = document.getElementById('builder-event-list'); 
+            if(eventList) eventList.innerHTML = '';
+            const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
-            // Re-render agendas and missions if active
+            termEvents.forEach(e => {
+                const cColor = e.courseId ? (termCourses.find(c => c.id === e.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const occurrenceText = e.weeks === "All" ? "All Weeks" : `Week ${e.weeks}`;
+                const skippedNotice = (e.skippedWeeks && e.skippedWeeks.length > 0) ? `<span style="color:#ff5252; font-size:14px; margin-left: 8px;">(Skipped: W${e.skippedWeeks.join(', W')})</span>` : "";
+                const criticalBadge = e.isCritical ? `<span style="margin-right: 5px;" title="Important Component">🚨</span>` : "";
+                const remBadge = e.isReminder ? `<span style="margin-right: 5px;" title="Reminder">🔔</span>` : "";
+
+                const li = document.createElement('li'); li.className = "mgmt-item";
+                li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} <br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button>
+                        <button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button>
+                    </div>`;
+                if(eventList) eventList.appendChild(li);
+            });
+
+            updateKeyDates();
             if (currentView === "dashboard") renderTodayAgenda(false);
             if (currentView === "missions") renderMissions();
         }
 
-        // Radar Stub (Simplified inside response space logic, assume the original logic stays for DOM rendering)
-        function renderTodayAgenda(isTick) {
-            const container = document.getElementById('dashboard-today-agenda');
-            if(!container) return; container.innerHTML = '<p style="color:var(--text-muted); text-align: center;">Radar active.</p>'; 
-            // The original logic for `renderTodayAgenda`, `renderTimeGraph`, `renderSchedule` remains functionally integrated.
-            // Full integration applies to standard `db.collection` triggers calling checkLoaders().
-        }
-        function renderSchedule(weekNum) {
-            // Retained the framework logic of the grid renderer.
-            const container = document.getElementById('weekly-schedule-content'); 
-            if(!container) return; container.innerHTML = `<div style="padding: 20px; color: var(--text-muted); text-align: center;">Rendering Grid for Week ${weekNum}...</div>`;
+        function updateKeyDates() {
+            const container = document.getElementById('key-dates-container');
+            if(!container) return;
+            container.innerHTML = '';
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+
+            const totalWeeks = currentTerm.totalWeeks || 10;
+            let keyDatesList = [];
+            const termEvents = events.filter(e => e.termId === currentTermId);
+            const today = new Date(); today.setHours(0,0,0,0);
+
+            termEvents.forEach(ev => {
+                if(ev.weeks !== "All") {
+                    const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
+                    const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) {
+                        keyDatesList.push({ ev, targetDate, diffDays });
+                    }
+                } else {
+                    for(let w=1; w<=totalWeeks; w++) {
+                        if(!ev.skippedWeeks.includes(w.toString())) {
+                            const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
+                            const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                            if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) {
+                                keyDatesList.push({ ev, targetDate, diffDays });
+                            }
+                        }
+                    }
+                }
+            });
+
+            keyDatesList.sort((a,b) => a.diffDays - b.diffDays);
+            if(keyDatesList.length === 0) {
+                container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; return;
+            }
+
+            keyDatesList.forEach((kd, index) => {
+                const item = document.createElement('div');
+                let colorClass = 'kd-green'; 
+                let urgencyText = `In ${kd.diffDays} days`;
+
+                if (kd.diffDays === 0) { 
+                    colorClass = 'kd-red'; 
+                    if (kd.ev.isReminder && kd.ev.isCritical) {
+                        urgencyText = `<span class="kd-countdown" data-time="${kd.ev.start}">Calculating...</span>`;
+                    } else {
+                        urgencyText = "TODAY"; 
+                    }
+                } else if (kd.diffDays <= 3) { colorClass = 'kd-red'; } 
+                else if (kd.diffDays <= 7) { colorClass = 'kd-yellow'; }
+
+                const displayDate = kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'});
+                const weightText = kd.ev.weight ? `<span style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 5px;">${kd.ev.weight}%</span>` : '';
+                
+                let badges = "";
+                if (kd.ev.isReminder) badges += "🔔 ";
+                if (kd.ev.isCritical) badges += "🚨 ";
+
+                item.className = `key-date-item ${colorClass}`;
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>${badges}${kd.ev.courseId ? kd.ev.courseId + ' ' : ''}${kd.ev.title} ${weightText}</span>
+                        <span style="font-family:'Share Tech Mono'; font-size:14px;">${displayDate}</span>
+                    </div>
+                    <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>
+                `;
+                container.appendChild(item);
+            });
         }
 
+        function renderTodayAgenda(isTickUpdate = false) {
+            const container = document.getElementById('dashboard-today-agenda');
+            const dayLabel = document.getElementById('radar-day');
+            if(!container) return;
+            
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+            
+            container.innerHTML = ''; 
+            activeTimers = {};
+
+            const totalWeeks = currentTerm.totalWeeks || 10;
+            const now = new Date();
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyToday = new Date(sY, sM - 1, sD);
+            const [y, m, d] = currentTerm.startDate.split('-').map(Number);
+            const termStart = new Date(y, m - 1, d);
+            
+            const diffDays = getDaysDiff(termStart, sydneyToday);
+            const currentWeek = Math.floor(diffDays / 7) + 1;
+
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+            
+            let currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
+            let currentTotalMinutes = (parseInt(parts.find(p => p.type === 'hour').value) * 60) + parseInt(parts.find(p => p.type === 'minute').value);
+            const fullDateString = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).format(now);
+            
+            if (currentWeek < 1 || currentWeek > totalWeeks) {
+                dayLabel.innerText = `(${fullDateString})`;
+                if (!isTickUpdate) renderTimeGraph([]); 
+                container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">Currently outside the active dates for ${currentTerm.name}.</p>`;
+                return;
+            }
+
+            dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
+
+            // Filter for events today that haven't been skipped or resolved
+            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())) && !(e.resolvedWeeks && e.resolvedWeeks.includes(currentWeek.toString())));
+            
+            if (!isTickUpdate) renderTimeGraph(todayEvents);
+
+            if (todayEvents.length === 0) {
+                container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`;
+                return;
+            }
+
+            todayEvents.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+            let lineInserted = false;
+
+            todayEvents.forEach(ev => {
+                const cColor = ev.courseId ? (courses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const startMins = timeToMinutes(ev.start); 
+                const endMins = ev.isReminder ? startMins : timeToMinutes(ev.end);
+                
+                if (!lineInserted && currentTotalMinutes < startMins) {
+                    const redLine = document.createElement('div');
+                    redLine.style.cssText = "position: relative; height: 2px; background-color: #ff5252; margin: 15px 0 25px 0; box-shadow: 0 0 8px rgba(255,82,82,0.8); border-radius: 2px;";
+                    redLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                    container.appendChild(redLine);
+                    lineInserted = true;
+                }
+
+                const isPast = (currentTotalMinutes >= endMins);
+                const isActiveNow = !ev.isReminder && (currentTotalMinutes >= startMins && currentTotalMinutes < endMins);
+
+                if (isActiveNow) lineInserted = true;
+
+                const displayStart = format12Hour(ev.start); 
+                const displayEnd = ev.isReminder ? "" : format12Hour(ev.end);
+                let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
+
+                const card = document.createElement('div');
+                
+                if (ev.isReminder) {
+                    const cardStyle = `background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; padding: 10px 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: 0.3s;`;
+                    card.style.cssText = cardStyle;
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;">
+                            <span style="font-size:20px;">🔔</span>
+                            <strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
+                                ${criticalIcon}${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}
+                            </strong>
+                        </div>
+                        <div style="display:flex; align-items:center; gap: 10px; flex-shrink:0;">
+                            <span style="font-family:'Share Tech Mono'; font-weight:bold;">${displayStart}</span>
+                            <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit">✏️</button>
+                            <button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="resolveMission('${ev.id}', '${currentWeek}', 'skip')" title="Skip (XP Penalty)">🚫</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                    return; 
+                }
+
+                let cardStyle = `border-left: 4px solid ${cColor}; padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: stretch; background: rgba(0,0,0,0.3); transition: 0.3s; box-sizing: border-box; position: relative; overflow: hidden;`;
+                
+                let timerHTML = "";
+                let progressHTML = "";
+                
+                if (isActiveNow) {
+                    cardStyle += ` background: rgba(168, 199, 250, 0.1); border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(168,199,250,0.1);`;
+                    timerHTML = `<div style="background: rgba(255,82,82,0.15); border: 1px solid #ff5252; color: #ffb4b4; padding: 4px 10px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; font-size: 15px; margin-top: 8px; display: inline-block;">TIME LEFT: <span id="timer-${ev.id}">...</span></div>`;
+                    
+                    const pct = ((currentTotalMinutes - startMins) / (endMins - startMins)) * 100;
+                    progressHTML = `
+                        <div id="progress-line-${ev.id}" style="position: absolute; left: 0; right: 0; top: ${pct}%; height: 2px; background-color: #ff5252; z-index: 5; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;">
+                            <div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>
+                        </div>
+                    `;
+                } else if (isPast) {
+                    cardStyle += ` opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`;
+                }
+
+                card.style.cssText = cardStyle;
+                card.innerHTML = `
+                    ${progressHTML}
+                    <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px; position: relative; z-index: 10;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${criticalIcon}${ev.courseId} | ${ev.title}</strong>
+                            <div>
+                                <button class="btn-skip" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit this specific instance">✏️</button>
+                                <button class="btn-skip" onclick="resolveMission('${ev.id}', '${currentWeek}', 'skip')" title="Skip (XP Penalty)">🚫</button>
+                            </div>
+                        </div>
+                        <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""}</div>
+                        ${ev.desc ? `<div class="event-desc" style="margin-top: 5px;">${ev.desc}</div>` : ""}
+                        ${timerHTML}
+                    </div>
+                    <div class="event-time" style="color: ${isPast ? '#999' : cColor}; border-color: ${isPast ? '#555' : cColor}; cursor: pointer; position: relative; z-index: 10;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">
+                        <span>${displayStart}</span>
+                        <span style="font-size: 13px; color: var(--text-muted); margin: 4px 0;">to</span>
+                        <span>${displayEnd}</span>
+                    </div>
+                `;
+
+                if (isActiveNow) {
+                    activeTimers[ev.id] = { startMins: startMins, endMins: endMins, timerEl: null, lineEl: null };
+                }
+                
+                container.appendChild(card);
+
+                if (isActiveNow) {
+                    activeTimers[ev.id].timerEl = document.getElementById(`timer-${ev.id}`);
+                    activeTimers[ev.id].lineEl = document.getElementById(`progress-line-${ev.id}`);
+                }
+            });
+
+            if (!lineInserted && todayEvents.length > 0) {
+                const redLine = document.createElement('div');
+                redLine.style.cssText = "position: relative; height: 2px; background-color: #ff5252; margin: 15px 0 25px 0; box-shadow: 0 0 8px rgba(255,82,82,0.8); border-radius: 2px;";
+                redLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                container.appendChild(redLine);
+            }
+            updateActiveTimers(now);
+        }
+
+        function renderTimeGraph(todayEvents) {
+            const courseTimeMap = {};
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            todayEvents.forEach(ev => {
+                if(ev.isReminder) return; 
+                const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration;
+            });
+
+            const labels = Object.keys(courseTimeMap);
+            const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); 
+            const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
+
+            const ctx = document.getElementById('todayTimeChart');
+            if (timeChartInstance) timeChartInstance.destroy();
+            
+            if (labels.length > 0 && ctx) {
+                ctx.style.display = 'block'; document.getElementById('empty-chart-msg').style.display = 'none';
+                timeChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#c4c7c5', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' }
+                });
+            } else if (ctx) {
+                ctx.style.display = 'none'; document.getElementById('empty-chart-msg').style.display = 'block';
+            }
+        }
+
+        let isDragging = false;
+        let dragStartMins = 0;
+        let dragCurrentDay = '';
+        let currentDragWeek = null;
+        let ghostEl = null;
+
+        function onDragMove(e) {
+            if(!isDragging || !ghostEl) return;
+            const col = document.querySelector(`.day-column[data-day="${dragCurrentDay}"]`);
+            if(!col) return;
+            const rect = col.getBoundingClientRect();
+            
+            let rawMins = (e.clientY - rect.top) / timeScale;
+            let currentMins = Math.ceil(rawMins / 15) * 15;
+
+            let start = Math.min(dragStartMins, currentMins);
+            let end = Math.max(dragStartMins + 15, currentMins);
+            if(start < 0) start = 0;
+            if(end > 24 * 60) end = 24 * 60;
+
+            ghostEl.style.top = `${start * timeScale}px`;
+            ghostEl.style.height = `${(end - start) * timeScale}px`;
+            ghostEl.dataset.startMins = start;
+            ghostEl.dataset.endMins = end;
+            ghostEl.innerText = `${minsToTimeStr(start)} - ${minsToTimeStr(end)}`;
+        }
+
+        function onDragEnd(e) {
+            if(!isDragging) return;
+            isDragging = false;
+            window.removeEventListener('mousemove', onDragMove);
+            window.removeEventListener('mouseup', onDragEnd);
+            document.body.style.userSelect = '';
+
+            if(!ghostEl) return;
+            const startMins = parseInt(ghostEl.dataset.startMins || dragStartMins);
+            const endMins = parseInt(ghostEl.dataset.endMins || dragStartMins + 15);
+            ghostEl.remove(); ghostEl = null;
+
+            openCreateModal(dragCurrentDay, startMins, endMins, currentDragWeek);
+        }
+
+        function checkOverlap(event1, event2) {
+            if(event1.day !== event2.day) return false;
+            if(event1.isReminder || event2.isReminder) return false;
+            const s1 = timeToMinutes(event1.start); const e1 = timeToMinutes(event1.end);
+            const s2 = timeToMinutes(event2.start); const e2 = timeToMinutes(event2.end);
+            return (s1 < e2 && s2 < e1);
+        }
+
+        function renderSchedule(weekNum) {
+            const container = document.getElementById('weekly-schedule-content'); container.innerHTML = '';
+            const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
+
+            let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
+
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            
+            let html = `
+                <div id="cal-scroll-container" style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; position: relative;">
+                    <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(30, 31, 32, 0.95); backdrop-filter: blur(5px); position: sticky; top: 0; z-index: 100;">
+                        <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline);"></div>
+            `;
+            days.forEach(day => {
+                const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
+                html += `<div style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--text-muted);">
+                            ${day.substring(0,3).toUpperCase()} <br> <span style="font-size: 24px; color: var(--accent);">${targetDate.getDate()}</span>
+                         </div>`;
+            });
+            html += `</div>
+                    <div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * 60 * timeScale}px;">
+                        <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;">`;
+            for(let i=0; i<24; i++) {
+                html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;">
+                            <span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span>
+                         </div>`;
+            }
+            
+            html += `</div>
+                        <div style="position: absolute; top: 0; left: 60px; right: 0; height: ${24 * 60 * timeScale}px; pointer-events: none; z-index: 1;">`;
+            for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid rgba(255,255,255,0.05); box-sizing: border-box;"></div>`; }
+            
+            html += `</div>
+                        <div style="display: flex; flex: 1; position: relative; height: ${24 * 60 * timeScale}px; margin-left: 0;">`;
+            days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(255,255,255,0.1); z-index: 2; cursor: crosshair;"></div>`; });
+            html += `</div></div></div>`;
+            
+            container.innerHTML += html;
+
+            const now = new Date();
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyToday = new Date(sY, sM - 1, sD);
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+            let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+            let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+            const currentTotalMinutes = currentH * 60 + currentM;
+
+            if (weekNum == getCurrentCalendarWeek()) {
+                const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
+                const col = document.getElementById(`day-col-${currentDay}`);
+                if(col) {
+                    const timeLine = document.createElement('div');
+                    timeLine.id = 'current-time-line';
+                    timeLine.style.cssText = `position: absolute; left: 0; right: 0; top: ${currentTotalMinutes * timeScale}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;`;
+                    timeLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                    col.appendChild(timeLine);
+                }
+            }
+
+            let conflictIds = new Set();
+            for (let i = 0; i < filteredEvents.length; i++) {
+                for (let j = i + 1; j < filteredEvents.length; j++) {
+                    if (checkOverlap(filteredEvents[i], filteredEvents[j])) {
+                        conflictIds.add(filteredEvents[i].id); conflictIds.add(filteredEvents[j].id);
+                    }
+                }
+            }
+
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            
+            filteredEvents.forEach(ev => {
+                const col = document.getElementById(`day-col-${ev.day}`);
+                if(!col) return;
+                
+                const startMins = timeToMinutes(ev.start);
+                const endMins = timeToMinutes(ev.end);
+                
+                const evTargetDate = getSpecificDate(currentTerm.startDate, weekNum, ev.day);
+                const diffDays = getDaysDiff(sydneyToday, evTargetDate);
+                let isPast = false;
+                if (diffDays < 0) { isPast = true; } 
+                else if (diffDays === 0) { isPast = ev.isReminder ? (currentTotalMinutes > startMins) : (currentTotalMinutes > endMins); }
+                
+                const cColor = ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                const greyOutStyle = isPast ? 'opacity: 0.4; filter: grayscale(100%);' : '';
+
+                if (ev.isReminder) {
+                    const topPos = (startMins * timeScale) - 10; 
+                    const reminderCard = document.createElement('div');
+                    reminderCard.title = `${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}\n${format12Hour(ev.start)}`;
+                    reminderCard.style.cssText = `
+                        position: absolute; top: ${topPos}px; height: 22px; left: 2px; right: 2px;
+                        background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 12px;
+                        border-radius: 4px; overflow: hidden; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+                        display: flex; align-items: center; padding: 0 6px; z-index: 40; transition: 0.1s;
+                        white-space: nowrap; text-overflow: ellipsis; ${greyOutStyle}
+                    `;
+                    reminderCard.onmouseenter = () => { if(!isPast) reminderCard.style.filter = 'brightness(1.2)'; };
+                    reminderCard.onmouseleave = () => { reminderCard.style.filter = isPast ? 'grayscale(100%)' : 'none'; };
+                    reminderCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
+                    reminderCard.innerHTML = `<span style="margin-right:5px;">🔔</span> <span style="text-overflow:ellipsis; overflow:hidden;">${ev.courseId ? ev.courseId + ' ' : ''}${ev.title}</span>`;
+                    col.appendChild(reminderCard);
+                    return; 
+                }
+
+                const duration = endMins - startMins; 
+                const isConflicted = conflictIds.has(ev.id);
+                let criticalBg = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid var(--bg-dark);`;
+                if(isConflicted) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
+
+                const criticalIcon = ev.isCritical ? `🚨 ` : '';
+                const showDetails = duration > 60; 
+                const topPos = (startMins * timeScale) + 1;
+                const blockHeight = (duration * timeScale) - 2;
+
+                const eventCard = document.createElement('div');
+                eventCard.className = 'event-card-grid';
+                eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; 
+                eventCard.style.cssText = `
+                    position: absolute; top: ${topPos}px; height: ${blockHeight}px; left: 2px; right: 2px;
+                    border-left: 4px solid ${isPast ? '#555' : cColor}; ${criticalBg} color: var(--text-main); padding: 4px 6px; border-radius: 4px;
+                    font-size: 13px; overflow: hidden; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    display: flex; flex-direction: column; transition: 0.1s; box-sizing: border-box; z-index: ${isConflicted ? 15 : 10};
+                    ${greyOutStyle}
+                `;
+                
+                eventCard.onmouseenter = () => { if(!isPast) eventCard.style.filter = 'brightness(1.3)'; eventCard.style.zIndex = 20; };
+                eventCard.onmouseleave = () => { eventCard.style.filter = isPast ? 'grayscale(100%)' : 'none'; eventCard.style.zIndex = isConflicted ? 15 : 10; };
+                eventCard.onmousedown = (e) => { e.stopPropagation(); }; 
+                eventCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
+
+                const titleColor = isPast ? '#999' : cColor;
+                eventCard.innerHTML = `
+                    <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: column; overflow: hidden;">
+                            <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${titleColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">
+                                ${criticalIcon}${ev.courseId} <span style="font-weight: 600; color: var(--text-main);">| ${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}
+                            </div>
+                            ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
+                            ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
+                        </div>
+                        <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: auto; flex-shrink: 0; line-height: 1.1;">
+                            ${format12Hour(ev.start)} - ${format12Hour(ev.end)}
+                        </div>
+                    </div>
+                `;
+                col.appendChild(eventCard);
+            });
+
+            document.querySelectorAll('.day-column').forEach(col => {
+                col.addEventListener('mousedown', function(e) {
+                    if(e.button !== 0) return; 
+                    isDragging = true; dragCurrentDay = this.dataset.day; currentDragWeek = weekNum; document.body.style.userSelect = 'none';
+                    const rect = this.getBoundingClientRect();
+                    let rawMins = (e.clientY - rect.top) / timeScale;
+                    dragStartMins = Math.floor(rawMins / 15) * 15;
+                    ghostEl = document.createElement('div'); ghostEl.className = 'ghost-event'; ghostEl.style.top = `${dragStartMins * timeScale}px`; ghostEl.style.height = `${15 * timeScale}px`;
+                    ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
+                    this.appendChild(ghostEl);
+                    window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd);
+                });
+            });
+            
+            setTimeout(() => { const calBody = document.getElementById('cal-scroll-container'); if(calBody) calBody.scrollTop = (8 * 60 * timeScale) - 20; }, 10);
+        }
     </script>
 </body>
 </html>
