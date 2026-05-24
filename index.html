@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planner</title>
+    <title>The Master Planner</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -141,7 +141,7 @@
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
         
         .avatar-img {
-            height: 120px; 
+            height: 130px; 
             width: auto;
             image-rendering: pixelated; 
             border-radius: 4px;
@@ -213,9 +213,9 @@
             border-radius: 8px; 
             margin-bottom: 25px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-            position: relative; /* REQUIRED FOR PROGRESS BAR */
-            overflow: hidden;   /* REQUIRED FOR PROGRESS BAR */
-            flex-shrink: 0;     /* FIX FOR DISAPPEARING IN BUILDER/WEEK VIEW */
+            position: relative; 
+            overflow: hidden;   
+            flex-shrink: 0;     
         }
         
         .global-task-progress {
@@ -224,7 +224,7 @@
             left: 0;
             bottom: 0;
             width: 0%;
-            background: rgba(255, 255, 255, 0.08); /* Subtle grey loading bar */
+            background: rgba(255, 255, 255, 0.08); 
             z-index: 0;
             transition: width 1s linear;
         }
@@ -289,14 +289,14 @@
                 <div class="xp-content-wrapper">
                     <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
-                            <strong style="color: var(--text-main); font-size: 28px; line-height: 1;">Brandon Lee</strong>
-                            <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 20px; font-weight: bold; line-height: 1;">0 XP</span>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                            <strong style="color: var(--text-main); font-size: 36px; line-height: 1; letter-spacing: 1px;">Brandon Lee</strong>
+                            <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 24px; font-weight: bold; line-height: 1;">0 XP</span>
                         </div>
                         
-                        <div id="global-active-task-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: 'Share Tech Mono', monospace; color: var(--accent);">
-                            <span id="global-task-title" style="font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;"></span>
-                            <span id="global-task-timer" style="font-size: 15px; font-weight: bold; color: #ffb4b4;"></span>
+                        <div id="global-active-task-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 10px; font-family: 'Share Tech Mono', monospace; color: var(--accent);">
+                            <span id="global-task-title" style="font-size: 18px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;"></span>
+                            <span id="global-task-timer" style="font-size: 18px; font-weight: bold; color: #ffb4b4;"></span>
                         </div>
 
                         <div class="xp-bar-bg" style="margin-top: 0;">
@@ -724,7 +724,7 @@
         // --- GLOBAL ACTIVE TASK TRACKER ---
         function checkGlobalActiveTask(nowDate) {
             const currentTerm = terms.find(t => t.id === currentTermId);
-            const bgBar = document.getElementById('global-task-bg-bar');
+            const bgBar = document.getElementById('global-task-progress');
             const infoContainer = document.getElementById('global-active-task-container');
             const taskTitle = document.getElementById('global-task-title');
             const taskTimer = document.getElementById('global-task-timer');
@@ -793,6 +793,7 @@
                 let elapsedSecs = totalCurrentSeconds - (startMins * 60);
                 let pct = (elapsedSecs / totalDurationSecs) * 100;
                 bgBar.style.width = `${Math.min(Math.max(pct, 0), 100)}%`;
+                bgBar.style.background = 'rgba(255, 255, 255, 0.08)';
             } else {
                 infoContainer.style.display = 'none';
                 bgBar.style.width = '0%';
@@ -1410,7 +1411,6 @@
 
             let updateData = { resolvedWeeks: newResolved };
             
-            // If the user actively skips, log it to missionSkippedWeeks so it turns red on the dashboard
             if(action === 'skip') {
                 let newMissionSkipped = [...(ev.missionSkippedWeeks || [])];
                 if(!newMissionSkipped.includes(weekNum.toString())) newMissionSkipped.push(weekNum.toString());
