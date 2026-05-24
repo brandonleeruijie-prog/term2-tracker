@@ -141,7 +141,7 @@
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
         
         .avatar-img {
-            height: 100px; 
+            height: 120px; 
             width: auto;
             image-rendering: pixelated; 
             border-radius: 4px;
@@ -254,7 +254,7 @@
     <div class="container">
         <div class="sidebar" id="sidebar">
             <h3>Filters</h3>
-            <button class="course-filter-btn active" data-filter="All">All Subjects</button>
+            <button class="course-filter-btn active" data-filter="All" onclick="resetFilter(this)">All Subjects</button>
             <div id="dynamic-filters"></div>
             <h3 style="margin-top: 20px;">Key Dates</h3>
             <div id="key-dates-container"></div>
@@ -823,6 +823,15 @@
             else if (view === "missions") { document.getElementById('view-missions').style.display = 'flex'; renderMissions(); }
             else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
             else { document.getElementById('view-schedule').style.display = 'flex'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
+        }
+
+        function resetFilter(btnElement) {
+            document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+            currentFilter = "All";
+            if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions") {
+                renderSchedule(currentView);
+            }
         }
 
         // --- FORM TOGGLES & HELPERS ---
