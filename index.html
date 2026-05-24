@@ -213,10 +213,30 @@
             border-radius: 8px; 
             margin-bottom: 25px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            position: relative; /* REQUIRED FOR PROGRESS BAR */
+            overflow: hidden;   /* REQUIRED FOR PROGRESS BAR */
+        }
+        
+        .global-task-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 0%;
+            background: rgba(255, 255, 255, 0.05); /* Subtle grey loading bar */
+            z-index: 0;
+            transition: width 1s linear;
+        }
+
+        .xp-content-wrapper {
+            position: relative;
+            z-index: 1;
             display: flex;
+            width: 100%;
             align-items: center;
             gap: 25px;
         }
+
         .xp-bar-bg { background: #2a2b2c; height: 16px; border-radius: 10px; overflow: hidden; margin-top: 10px; position: relative; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
         .xp-bar-fill { background: linear-gradient(90deg, #0097a7, var(--xp-color)); height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--xp-color); }
         
@@ -263,14 +283,23 @@
         <div class="content" id="main-content">
             
             <div class="xp-container">
-                <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
-                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
-                        <strong style="color: var(--text-main); font-size: 28px; line-height: 1;">Brandon Lee</strong>
-                        <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 20px; font-weight: bold; line-height: 1;">0 XP</span>
-                    </div>
-                    <div class="xp-bar-bg" style="margin-top: 0;">
-                        <div class="xp-bar-fill" id="xp-bar-fill"></div>
+                <div class="global-task-progress" id="global-task-progress"></div>
+                <div class="xp-content-wrapper">
+                    <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                            <strong style="color: var(--text-main); font-size: 28px; line-height: 1;">Brandon Lee</strong>
+                            <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 20px; font-weight: bold; line-height: 1;">0 XP</span>
+                        </div>
+                        
+                        <div id="global-active-task-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: 'Share Tech Mono', monospace; color: var(--accent);">
+                            <span id="global-task-title" style="font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;"></span>
+                            <span id="global-task-timer" style="font-size: 15px; font-weight: bold; color: #ffb4b4;"></span>
+                        </div>
+
+                        <div class="xp-bar-bg" style="margin-top: 0;">
+                            <div class="xp-bar-fill" id="xp-bar-fill"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -626,9 +655,8 @@
 
         function renderXP() {
             document.getElementById('player-xp-text').innerText = `${userXP} XP`;
-            // Progress visual represents progress towards the NEXT 300 XP (1 Hour of Free Time)
             let fillPct = (userXP % 300) / 300 * 100;
-            if(userXP > 0 && userXP % 300 === 0) fillPct = 100; // Show full if perfectly divisible
+            if(userXP > 0 && userXP % 300 === 0) fillPct = 100;
             document.getElementById('xp-bar-fill').style.width = `${fillPct}%`;
         }
 
@@ -691,6 +719,80 @@
             }
         }
 
+        // --- GLOBAL ACTIVE TASK TRACKER ---
+        function updateGlobalActiveTask(nowDate) {
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            const taskContainer = document.getElementById('global-active-task-container');
+            const taskTitle = document.getElementById('global-task-title');
+            const taskTimer = document.getElementById('global-task-timer');
+            const taskProgress = document.getElementById('global-task-progress');
+
+            if (!currentTerm || !events.length || !taskContainer) return;
+
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(nowDate);
+            let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+            let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+            let currentS = parseInt(parts.find(p => p.type === 'second').value);
+            
+            const currentTotalMinutes = currentH * 60 + currentM;
+            const totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
+
+            const currentWeek = getCurrentCalendarWeek();
+            const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(nowDate);
+
+            let activeEv = null;
+
+            if (currentWeek > 0 && currentWeek <= (currentTerm.totalWeeks || 10)) {
+                let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek));
+                
+                for (let ev of todayEvents) {
+                    if (ev.isReminder) continue;
+                    
+                    const isSkipped = ev.skippedWeeks && ev.skippedWeeks.includes(currentWeek.toString());
+                    const isMissionSkipped = ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(currentWeek.toString());
+                    const isResolved = ev.resolvedWeeks && ev.resolvedWeeks.includes(currentWeek.toString());
+                    
+                    if(isSkipped || isMissionSkipped || isResolved) continue;
+
+                    const startMins = timeToMinutes(ev.start); 
+                    const endMins = timeToMinutes(ev.end);
+
+                    if (currentTotalMinutes >= startMins && currentTotalMinutes < endMins) {
+                        activeEv = ev;
+                        break; 
+                    }
+                }
+            }
+
+            if (activeEv) {
+                taskContainer.style.display = 'flex';
+                
+                let prefix = activeEv.isReward ? "🏆 " : (activeEv.isCritical ? "🚨 " : "⚡ ");
+                let courseText = activeEv.courseId && !activeEv.isReward ? `${activeEv.courseId} | ` : '';
+                taskTitle.innerText = `${prefix}CURRENT: ${courseText}${activeEv.title}`;
+
+                const startMins = timeToMinutes(activeEv.start);
+                const endMins = timeToMinutes(activeEv.end);
+                
+                let totalEndSeconds = endMins * 60;
+                let diff = totalEndSeconds - totalCurrentSeconds;
+                
+                let h = Math.floor(diff / 3600).toString().padStart(2, '0');
+                let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                let s = (diff % 60).toString().padStart(2, '0');
+                taskTimer.innerText = `${h}:${m}:${s}`;
+
+                let totalDurationSecs = (endMins - startMins) * 60;
+                let elapsedSecs = totalCurrentSeconds - (startMins * 60);
+                let pct = (elapsedSecs / totalDurationSecs) * 100;
+                taskProgress.style.width = `${Math.min(Math.max(pct, 0), 100)}%`;
+            } else {
+                taskContainer.style.display = 'none';
+                taskProgress.style.width = '0%';
+            }
+        }
+
         // --- FIREBASE LISTENERS ---
         function checkLoaders() {
             if(loaders.terms && loaders.courses && loaders.events) {
@@ -719,7 +821,7 @@
                     weeks: e.weeks || "All", 
                     skippedWeeks: e.skippedWeeks || [],
                     resolvedWeeks: e.resolvedWeeks || [], 
-                    missionSkippedWeeks: e.missionSkippedWeeks || [], // NEW: Tracks user-failed skips
+                    missionSkippedWeeks: e.missionSkippedWeeks || [], 
                     isCritical: e.isCritical || false,
                     isReminder: e.isReminder || false,
                     weight: e.weight || null,
@@ -779,6 +881,8 @@
         setInterval(updateSydneyTime, 1000);
 
         function updateActiveTimers(nowDate) {
+            updateGlobalActiveTask(nowDate); // Fires the global background bar loop
+
             const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
             const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(nowDate);
             let totalCurrentSeconds = (parseInt(parts.find(p => p.type === 'hour').value) * 3600) + (parseInt(parts.find(p => p.type === 'minute').value) * 60) + parseInt(parts.find(p => p.type === 'second').value);
