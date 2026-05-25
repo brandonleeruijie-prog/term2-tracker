@@ -622,14 +622,20 @@
             console.log("Firebase Persistence Error: ", err.code);
         });
 
-        // --- REQUEST NOTIFICATION PERMISSION ---
-        document.addEventListener('DOMContentLoaded', () => {
-            if ("Notification" in window) {
-                if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-                    Notification.requestPermission();
+        // --- REQUEST NOTIFICATION PERMISSION (INTERACTION-BASED) ---
+        let notificationsInitialized = false;
+        function initializeNotifications() {
+            if (!notificationsInitialized && "Notification" in window) {
+                if (Notification.permission === "default" || Notification.permission === "prompt") {
+                    Notification.requestPermission().then(permission => {
+                        console.log("Notification Permission Status requested: ", permission);
+                    });
+                } else {
+                    console.log("Notification Permission previously set to: ", Notification.permission);
                 }
+                notificationsInitialized = true;
             }
-        });
+        }
 
         let terms = [];
         let courses = [];
@@ -657,7 +663,7 @@
         let currentFocusEventId = null;
         let focusFailedThisSession = false;
         let lastNotifiedEventId = null;
-        let lastNotifiedTime = 0; // NEW: Tracks the 5-minute reminder intervals
+        let lastNotifiedTime = 0; 
 
         // --- GAMIFICATION: XP SYSTEM ---
         let userXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
@@ -714,7 +720,6 @@
                 else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
                 
                 weeksToCheck.forEach(w => {
-                    // It is resolved if it's in skippedWeeks (system delete), missionSkippedWeeks, or resolvedWeeks
                     if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || 
                         (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString())) ||
                         (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(w.toString()))) return;
@@ -806,6 +811,8 @@
         }
 
         function openFocusMode() {
+            initializeNotifications(); // Ensure notifications are active via gesture
+            
             if (!currentFocusEventId) return;
             isFocusModeActive = true;
             focusFailedThisSession = false;
@@ -954,34 +961,55 @@
                 
                 if (lastNotifiedEventId !== activeEv.id) {
                     // Initial notification when component starts
-                    lastNotifiedEventId = activeEv.id; 
-                    lastNotifiedTime = nowMs;
-
+                    console.log(`Notification Permission Status: ${"Notification" in window ? Notification.permission : 'unsupported'}`);
+                    console.log(`Attempting to fire initial notification for: ${activeEv.title}`);
+                    
                     if ("Notification" in window && Notification.permission === "granted") {
-                        let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
-                        let bodyText = `${activeEv.courseId && !activeEv.isReward ? activeEv.courseId + ' | ' : ''}${activeEv.title}\nEnds at ${format12Hour(activeEv.end)}`;
-                        
-                        if (activeEv.requiresFocus) {
-                            bodyText += "\n🔥 Requires Focus Mode! Activate it in the planner.";
-                        }
+                        try {
+                            let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
+                            let bodyText = `${activeEv.courseId && !activeEv.isReward ? activeEv.courseId + ' | ' : ''}${activeEv.title}\nEnds at ${format12Hour(activeEv.end)}`;
+                            
+                            if (activeEv.requiresFocus) {
+                                bodyText += "\n🔥 Requires Focus Mode! Activate it in the planner.";
+                            }
 
-                        new Notification(notifTitle, {
-                            body: bodyText,
-                            icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>',
-                            requireInteraction: true 
-                        });
+                            new Notification(notifTitle, {
+                                body: bodyText,
+                                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>',
+                                requireInteraction: true 
+                            });
+                            console.log('Notification fired successfully');
+                        } catch(e) {
+                            console.error('Notification blocked by browser', e);
+                        }
+                        
+                        lastNotifiedEventId = activeEv.id; 
+                        lastNotifiedTime = nowMs;
+                    } else {
+                        console.log('Notification blocked by browser (Permission: ' + Notification.permission + ')');
+                        lastNotifiedEventId = activeEv.id; 
+                        lastNotifiedTime = nowMs;
                     }
                 } else if (activeEv.requiresFocus && !isFocusModeActive) {
                     // Recurring 5-minute (300,000 ms) notification if Focus Mode is required but not active
                     if (nowMs - lastNotifiedTime >= 300000) {
-                        lastNotifiedTime = nowMs; // Reset timer baseline
-
+                        console.log(`Attempting to fire 5-minute recurring focus notification for: ${activeEv.title}`);
+                        
                         if ("Notification" in window && Notification.permission === "granted") {
-                            new Notification("⚠️ FOCUS MODE REQUIRED", {
-                                body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
-                                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
-                                requireInteraction: true
-                            });
+                            try {
+                                new Notification("⚠️ FOCUS MODE REQUIRED", {
+                                    body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
+                                    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
+                                    requireInteraction: true
+                                });
+                                console.log('Recurring notification fired successfully');
+                            } catch(e) {
+                                console.error('Recurring notification blocked by browser', e);
+                            }
+                            lastNotifiedTime = nowMs; // Reset timer baseline
+                        } else {
+                            console.log('Recurring notification blocked by browser (Permission: ' + Notification.permission + ')');
+                            lastNotifiedTime = nowMs;
                         }
                     }
                 }
@@ -1147,6 +1175,8 @@
         function minsToTimeStr(mins) { return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`; }
 
         function switchView(view, btnElement) {
+            initializeNotifications(); // Ensure notifications are active via gesture
+            
             document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
             if(btnElement) { btnElement.classList.add('active'); } else { document.querySelector(`.subbar button[data-view="${view}"]`)?.classList.add('active'); }
             
@@ -1319,6 +1349,8 @@
 
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
+            initializeNotifications(); // Ensure notifications are active via gesture
+            
             const isMulti = document.getElementById('inp-ev-multiday-toggle').checked;
             let checkedDays = isMulti ? Array.from(document.querySelectorAll('#inp-day-picker input:checked')).map(cb => cb.value) : [document.getElementById('inp-ev-day').value];
             if (checkedDays.length === 0) { alert("Please select at least one day."); return; }
