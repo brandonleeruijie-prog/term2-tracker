@@ -24,7 +24,7 @@
             --text-muted: #c4c7c5;    
             --outline: #444746;       
             --hazard: repeating-linear-gradient(45deg, rgba(255,82,82,0.1), rgba(255,82,82,0.1) 10px, rgba(0,0,0,0.3) 10px, rgba(0,0,0,0.3) 20px);
-            --xp-color: #00e5ff;      /* Cyan XP Bar */
+            --xp-color: #00e5ff;      
         }
         body {
             margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 18px;
@@ -57,7 +57,7 @@
         .tab-btn.active { background-color: var(--accent); color: var(--bg-dark); border-color: var(--accent); }
         .action-btn { background-color: #282a2c; color: var(--text-main); border-color: var(--outline); }
 
-        /* NOTIFICATION BADGE */
+        /* FOCUS MODE & BADGES */
         .notification-badge {
             background-color: #ff5252;
             color: white;
@@ -70,6 +70,16 @@
             box-shadow: 0 0 8px rgba(255, 82, 82, 0.6);
             display: inline-block;
         }
+
+        @keyframes focus-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+        }
+        .btn-focus { background: rgba(255, 152, 0, 0.2); color: #ff9800; border-color: #ff9800; margin-left: auto; }
+        .btn-focus:hover { background: #ff9800; color: #131314; }
+        .btn-focus.active-pulse { animation: focus-pulse 1.5s infinite; background: #ff9800; color: #131314; }
+        .btn-focus:disabled { opacity: 0.3; cursor: not-allowed; animation: none; background: transparent; color: var(--text-muted); border-color: var(--outline); }
 
         .segmented-control {
             display: flex; flex: 1; border: 1px solid var(--outline);
@@ -140,13 +150,7 @@
 
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
         
-        .avatar-img {
-            height: 130px; 
-            width: auto;
-            image-rendering: pixelated; 
-            border-radius: 4px;
-        }
-
+        .avatar-img { height: 130px; width: auto; image-rendering: pixelated; border-radius: 4px; }
         .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
 
         .modal-overlay {
@@ -207,37 +211,17 @@
 
         /* GAMIFICATION CSS */
         .xp-container { 
-            background: rgba(255,255,255,0.02); 
-            border: 1px solid var(--outline); 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin-bottom: 25px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-            position: relative; 
-            overflow: hidden;   
-            flex-shrink: 0;     
+            background: rgba(255,255,255,0.02); border: 1px solid var(--outline); padding: 20px; 
+            border-radius: 8px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            position: relative; overflow: hidden; flex-shrink: 0;     
         }
         
         .global-task-progress {
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 0%;
-            background: rgba(255, 255, 255, 0.08); 
-            z-index: 0;
-            transition: width 1s linear;
+            position: absolute; top: 0; left: 0; bottom: 0; width: 0%;
+            background: rgba(255, 255, 255, 0.08); z-index: 0; transition: width 1s linear;
         }
 
-        .xp-content-wrapper {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            width: 100%;
-            align-items: center;
-            gap: 25px;
-        }
-
+        .xp-content-wrapper { position: relative; z-index: 1; display: flex; width: 100%; align-items: center; gap: 25px; }
         .xp-bar-bg { background: #2a2b2c; height: 16px; border-radius: 10px; overflow: hidden; position: relative; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
         .xp-bar-fill { background: linear-gradient(90deg, #0097a7, var(--xp-color)); height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--xp-color); }
         
@@ -270,6 +254,7 @@
         <button class="tab-btn action-btn" data-view="missions">⚔️ Missions <span id="missions-badge" class="notification-badge hidden">0</span></button>
         <button class="tab-btn action-btn" data-view="builder">⚙️ Builder</button>
         <div class="segmented-control" id="week-tabs-container"></div>
+        <button id="btn-focus-mode" class="tab-btn btn-focus" onclick="openFocusMode()" disabled>🔥 Focus Mode</button>
     </div>
 
     <div class="container">
@@ -285,11 +270,10 @@
             
             <div class="xp-container">
                 <div class="global-task-progress" id="global-task-progress"></div>
-                
                 <div class="xp-content-wrapper">
                     <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
                             <strong style="color: var(--text-main); font-size: 36px; line-height: 1; letter-spacing: 1px;">Brandon Lee</strong>
                             <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 24px; font-weight: bold; line-height: 1;">0 XP</span>
                         </div>
@@ -333,8 +317,9 @@
                         <p style="color: var(--text-muted); font-size: 15px; margin-top: 0;">
                             These blocks have passed in real-time but remain unaccounted for.<br>
                             <span style="color: #4caf50;">✔️ Completed: <b>100% Base XP</b></span> | 
-                            <span style="color: #ffb4b4;">✖️ Reschedule: <b>-25% XP Penalty</b></span> | 
-                            <span style="color: #ff5252;">🚫 Skipped: <b>-50% XP Penalty</b></span>
+                            <span style="color: #ffb4b4;">✖️ Resched: <b>-25% Pen</b></span> | 
+                            <span style="color: #ff5252;">🚫 Skip: <b>-50% Pen</b></span> |
+                            <span style="color: #ff9800;">🔥 Focus Fail: <b>-50 XP</b></span>
                         </p>
                         <div id="missions-list" style="flex: 1; overflow-y: auto; padding-right: 10px;"></div>
                     </div>
@@ -464,12 +449,18 @@
                             </div>
 
                             <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
-                                <input type="checkbox" id="inp-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('inp-ev-difficulty-container', this.checked)">
+                                <input type="checkbox" id="inp-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('inp', this.checked)">
                                 <label for="inp-ev-xp-enabled" style="margin: 0; color: var(--xp-color); font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
+                                
                                 <div id="inp-ev-difficulty-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
                                     <label style="margin:0; color:var(--xp-color); font-size:14px;">Difficulty (1-10):</label>
                                     <input type="number" id="inp-ev-difficulty" min="1" max="10" value="10" style="width: 60px; padding: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border: 1px solid var(--xp-color); color: white;">
                                 </div>
+                            </div>
+
+                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 152, 0, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff9800;">
+                                <input type="checkbox" id="inp-ev-requires-focus" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff9800; margin: 0;" disabled>
+                                <label for="inp-ev-requires-focus" style="margin: 0; color: #ffcc80; font-weight: bold; cursor: pointer;">🔥 Requires Focus Mode</label>
                             </div>
                             
                             <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
@@ -547,12 +538,17 @@
                     <div class="form-group" style="grid-column: span 2;"><label>Strategic Description</label><textarea id="mod-ev-desc"></textarea></div>
                     
                     <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
-                        <input type="checkbox" id="mod-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('mod-ev-difficulty-container', this.checked)">
+                        <input type="checkbox" id="mod-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('mod', this.checked)">
                         <label for="mod-ev-xp-enabled" style="margin: 0; color: var(--xp-color); font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
                         <div id="mod-ev-difficulty-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
                             <label style="margin:0; color:var(--xp-color); font-size:14px;">Difficulty (1-10):</label>
                             <input type="number" id="mod-ev-difficulty" min="1" max="10" value="10" style="width: 60px; padding: 4px; font-size: 14px; background: rgba(0,0,0,0.5); border: 1px solid var(--xp-color); color: white;">
                         </div>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 152, 0, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff9800;">
+                        <input type="checkbox" id="mod-ev-requires-focus" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff9800; margin: 0;" disabled>
+                        <label for="mod-ev-requires-focus" style="margin: 0; color: #ffcc80; font-weight: bold; cursor: pointer;">🔥 Requires Focus Mode</label>
                     </div>
 
                     <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px;">
@@ -626,6 +622,15 @@
             console.log("Firebase Persistence Error: ", err.code);
         });
 
+        // --- REQUEST NOTIFICATION PERMISSION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if ("Notification" in window) {
+                if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                }
+            }
+        });
+
         let terms = [];
         let courses = [];
         let events = [];
@@ -643,6 +648,15 @@
         let modalInstanceId = null;
         let modalInstanceWeek = null;
         let activeRescheduleMission = null;
+
+        // --- FOCUS MODE STATE ---
+        let focusWindow = null;
+        let focusInterval = null;
+        let focusCheckTimeout = null;
+        let isFocusModeActive = false;
+        let currentFocusEventId = null;
+        let focusFailedThisSession = false;
+        let lastNotifiedEventId = null;
 
         // --- GAMIFICATION: XP SYSTEM ---
         let userXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
@@ -668,7 +682,7 @@
             toast.style.borderColor = color;
             toast.style.color = color;
             toast.style.opacity = 1;
-            setTimeout(() => { toast.style.opacity = 0; }, 2000);
+            setTimeout(() => { toast.style.opacity = 0; }, 3000);
         }
 
         // --- PENDING MISSIONS & BADGE ---
@@ -688,7 +702,9 @@
             let pending = [];
 
             events.forEach(ev => {
+                // Only show XP-enabled tasks that are NOT rewards as pending missions
                 if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
+                
                 const evDayIdx = daysArr.indexOf(ev.day);
                 const evEndMins = ev.isReminder ? timeToMinutes(ev.start) : timeToMinutes(ev.end);
                 
@@ -697,7 +713,10 @@
                 else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
                 
                 weeksToCheck.forEach(w => {
-                    if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString()))) return;
+                    // It is resolved if it's in skippedWeeks (system delete), missionSkippedWeeks, or resolvedWeeks
+                    if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || 
+                        (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString())) ||
+                        (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(w.toString()))) return;
                     
                     let isPast = false;
                     if (w < currentWeek) { isPast = true; } 
@@ -718,6 +737,167 @@
                 badge.classList.remove('hidden');
             } else {
                 badge.classList.add('hidden');
+            }
+        }
+
+        // --- FOCUS MODE LOGIC ---
+        function playBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
+                oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.5);
+            } catch(e) { console.log("Audio not supported"); }
+        }
+
+        window.confirmFocusCheck = function() {
+            clearTimeout(focusCheckTimeout);
+            if (focusWindow && !focusWindow.closed) {
+                focusWindow.document.getElementById('status-text').style.display = 'block';
+                focusWindow.document.getElementById('check-container').style.display = 'none';
+            }
+            showToast("Focus maintained! (Stay on target)", "#4caf50");
+        };
+
+        function failFocusMode() {
+            clearTimeout(focusCheckTimeout);
+            clearInterval(focusInterval);
+            isFocusModeActive = false;
+            focusFailedThisSession = true;
+            if (focusWindow && !focusWindow.closed) focusWindow.close();
+            
+            const focusBtn = document.getElementById('btn-focus-mode');
+            focusBtn.innerText = "🔥 Focus Failed";
+            focusBtn.disabled = true;
+            focusBtn.classList.remove('active-pulse');
+            
+            showToast("Focus Mode Failed! Penalty pending.", "#ff5252");
+            
+            // Record failure in DB for this event/week so resolveMission knows
+            let ev = events.find(e => e.id === currentFocusEventId);
+            if(ev) {
+                let weekNum = getCurrentCalendarWeek().toString();
+                let failedWeeks = [...(ev.focusFailedWeeks || [])];
+                if(!failedWeeks.includes(weekNum)) {
+                    failedWeeks.push(weekNum);
+                    db.collection('events').doc(ev.id).update({ focusFailedWeeks: failedWeeks });
+                }
+            }
+        }
+
+        function closeFocusMode() {
+            clearInterval(focusInterval);
+            clearTimeout(focusCheckTimeout);
+            isFocusModeActive = false;
+            if (focusWindow && !focusWindow.closed) focusWindow.close();
+            
+            const focusBtn = document.getElementById('btn-focus-mode');
+            focusBtn.innerText = "🔥 Focus Mode";
+            focusBtn.classList.remove('active-pulse');
+        }
+
+        function openFocusMode() {
+            if (!currentFocusEventId) return;
+            isFocusModeActive = true;
+            focusFailedThisSession = false;
+            
+            const focusBtn = document.getElementById('btn-focus-mode');
+            focusBtn.classList.remove('active-pulse');
+            focusBtn.innerText = "🔥 Focus Active";
+
+            focusWindow = window.open("", "FocusMode", "width=350,height=250,top=100,left=100,menubar=no,toolbar=no,location=no,status=no");
+            
+            if (focusWindow) {
+                focusWindow.document.write(`
+                    <html><head><title>Focus Mode</title>
+                    <style>
+                        body { background: #131314; color: #e3e3e3; font-family: sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
+                        button { background: #4caf50; color: white; border: none; padding: 15px 20px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s;}
+                        button:hover { background: #388e3c; transform: translateY(-2px); }
+                    </style>
+                    </head><body>
+                        <h2 style="color: #ff9800; margin-top: 0;">🔥 Deep Focus Active</h2>
+                        <p id="status-text" style="color: #c4c7c5;">Keep up the good work.</p>
+                        <div id="check-container" style="display:none;">
+                            <p style="color: #ff5252; font-weight: bold; font-size: 20px; margin-bottom: 5px;">Are you still working?</p>
+                            <p style="color: #c4c7c5; font-size: 14px; margin-top: 0;">Click below to prevent an XP Penalty.</p>
+                            <button onclick="window.opener.confirmFocusCheck()">YES, I'M WORKING</button>
+                        </div>
+                    </body></html>
+                `);
+
+                // Start 15 min interval (900000 ms)
+                focusInterval = setInterval(() => {
+                    if (!focusWindow || focusWindow.closed) {
+                        failFocusMode();
+                        return;
+                    }
+                    
+                    playBeep();
+                    focusWindow.document.getElementById('status-text').style.display = 'none';
+                    focusWindow.document.getElementById('check-container').style.display = 'block';
+                    focusWindow.focus();
+
+                    // Give them 1 minute to click it
+                    focusCheckTimeout = setTimeout(() => {
+                        failFocusMode();
+                    }, 60000);
+                }, 900000); 
+            } else {
+                alert("Pop-up blocked! Please allow pop-ups for Focus Mode to work.");
+                isFocusModeActive = false;
+                focusBtn.classList.add('active-pulse');
+                focusBtn.innerText = "🔥 Focus Mode";
+            }
+        }
+
+        function updateFocusButtonState(activeEv) {
+            const focusBtn = document.getElementById('btn-focus-mode');
+            
+            if (activeEv && activeEv.requiresFocus) {
+                // If it's a new event, reset the fail state
+                if (currentFocusEventId !== activeEv.id) {
+                    focusFailedThisSession = false;
+                    currentFocusEventId = activeEv.id;
+                }
+
+                if (!isFocusModeActive && !focusFailedThisSession) {
+                    focusBtn.disabled = false;
+                    focusBtn.classList.add('active-pulse');
+                    focusBtn.innerText = "🔥 Focus Mode";
+                }
+            } else {
+                focusBtn.disabled = true;
+                focusBtn.classList.remove('active-pulse');
+                
+                // If a block just ended
+                if (!activeEv && currentFocusEventId) {
+                    let ev = events.find(e => e.id === currentFocusEventId);
+                    if (ev && ev.requiresFocus) {
+                        let weekNum = getCurrentCalendarWeek().toString();
+                        let failedWeeks = [...(ev.focusFailedWeeks || [])];
+                        
+                        // If it wasn't active at the end, OR it failed earlier, they get the penalty
+                        if (!isFocusModeActive || focusFailedThisSession) {
+                            if(!failedWeeks.includes(weekNum)) {
+                                failedWeeks.push(weekNum);
+                                db.collection('events').doc(ev.id).update({ focusFailedWeeks: failedWeeks });
+                            }
+                        }
+                    }
+                    if (isFocusModeActive) closeFocusMode();
+                    currentFocusEventId = null;
+                    focusFailedThisSession = false;
+                    focusBtn.innerText = "🔥 Focus Mode";
+                }
             }
         }
 
@@ -768,6 +948,28 @@
             }
 
             if (activeEv) {
+                // Check Desktop Notifications
+                if (lastNotifiedEventId !== activeEv.id) {
+                    lastNotifiedEventId = activeEv.id; 
+
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
+                        let bodyText = `${activeEv.courseId && !activeEv.isReward ? activeEv.courseId + ' | ' : ''}${activeEv.title}\nEnds at ${format12Hour(activeEv.end)}`;
+                        
+                        if (activeEv.requiresFocus) {
+                            bodyText += "\n🔥 Requires Focus Mode! Activate it in the planner.";
+                        }
+
+                        new Notification(notifTitle, {
+                            body: bodyText,
+                            icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>',
+                            requireInteraction: true 
+                        });
+                    }
+                }
+
+                updateFocusButtonState(activeEv);
+
                 infoContainer.style.display = 'flex';
                 
                 let prefix = activeEv.isReward ? "🏆 " : (activeEv.isCritical ? "🚨 " : "⚡ ");
@@ -795,8 +997,10 @@
                 bgBar.style.width = `${Math.min(Math.max(pct, 0), 100)}%`;
                 bgBar.style.background = 'rgba(255, 255, 255, 0.08)';
             } else {
+                updateFocusButtonState(null);
                 infoContainer.style.display = 'none';
                 bgBar.style.width = '0%';
+                lastNotifiedEventId = null; 
             }
         }
 
@@ -829,11 +1033,13 @@
                     skippedWeeks: e.skippedWeeks || [],
                     resolvedWeeks: e.resolvedWeeks || [], 
                     missionSkippedWeeks: e.missionSkippedWeeks || [], 
+                    focusFailedWeeks: e.focusFailedWeeks || [],
                     isCritical: e.isCritical || false,
                     isReminder: e.isReminder || false,
                     weight: e.weight || null,
                     xpEnabled: e.xpEnabled || false,      
                     xpDifficulty: e.xpDifficulty || 10,
+                    requiresFocus: e.requiresFocus || false,
                     isReward: e.isReward || false
                 };
             });
@@ -953,10 +1159,17 @@
             else { container.classList.add('hidden'); document.getElementById(containerId.replace('-container', '')).value = ''; }
         }
 
-        function toggleXPInput(containerId, isChecked) {
-            const container = document.getElementById(containerId);
-            if(isChecked) { container.classList.remove('hidden'); } 
-            else { container.classList.add('hidden'); }
+        function toggleXPInput(prefix, isChecked) {
+            const container = document.getElementById(`${prefix}-ev-difficulty-container`);
+            const focusCheck = document.getElementById(`${prefix}-ev-requires-focus`);
+            if(isChecked) { 
+                container.classList.remove('hidden'); 
+                focusCheck.disabled = false;
+            } else { 
+                container.classList.add('hidden'); 
+                focusCheck.disabled = true;
+                focusCheck.checked = false;
+            }
         }
 
         function toggleReminder(prefix, isReminder) {
@@ -1097,6 +1310,7 @@
 
             const isXpEnabled = document.getElementById('inp-ev-xp-enabled').checked;
             const xpDiff = document.getElementById('inp-ev-difficulty').value;
+            const reqFocus = document.getElementById('inp-ev-requires-focus').checked;
 
             const baseData = {
                 termId: currentTermId,
@@ -1110,8 +1324,10 @@
                 isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null,
                 resolvedWeeks: [],
                 missionSkippedWeeks: [],
+                focusFailedWeeks: [],
                 xpEnabled: isXpEnabled,
                 xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null,
+                requiresFocus: reqFocus,
                 isReward: false
             };
 
@@ -1122,9 +1338,9 @@
                 let keptOriginal = false;
                 checkedDays.forEach((day, index) => {
                     let docId = Date.now().toString() + index;
-                    let skipped = []; let resolved = []; let mSkipped = [];
-                    if (originalEv && day === originalEv.day) { docId = originalEv.id; skipped = originalEv.skippedWeeks || []; resolved = originalEv.resolvedWeeks || []; mSkipped = originalEv.missionSkippedWeeks || []; keptOriginal = true; }
-                    batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: skipped, resolvedWeeks: resolved, missionSkippedWeeks: mSkipped });
+                    let skipped = []; let resolved = []; let mSkipped = []; let fFailed = [];
+                    if (originalEv && day === originalEv.day) { docId = originalEv.id; skipped = originalEv.skippedWeeks || []; resolved = originalEv.resolvedWeeks || []; mSkipped = originalEv.missionSkippedWeeks || []; fFailed = originalEv.focusFailedWeeks || []; keptOriginal = true; }
+                    batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: skipped, resolvedWeeks: resolved, missionSkippedWeeks: mSkipped, focusFailedWeeks: fFailed });
                 });
                 if (originalEv && !keptOriginal) batch.delete(db.collection('events').doc(originalEv.id));
             } else {
@@ -1140,7 +1356,7 @@
                     document.getElementById('inp-ev-title').value = ''; 
                     document.getElementById('inp-ev-desc').value = ''; 
                     document.getElementById('inp-ev-critical').checked = false; toggleWeightInput('inp-ev-weight-container', false); 
-                    document.getElementById('inp-ev-xp-enabled').checked = false; toggleXPInput('inp-ev-difficulty-container', false); document.getElementById('inp-ev-difficulty').value = 10;
+                    document.getElementById('inp-ev-xp-enabled').checked = false; toggleXPInput('inp', false); document.getElementById('inp-ev-difficulty').value = 10;
                     document.getElementById('inp-ev-multiday-toggle').checked = false; toggleMultiDay('inp', false); 
                 }
             });
@@ -1170,8 +1386,9 @@
             const isCrit = ev.isCritical; document.getElementById('inp-ev-critical').checked = isCrit; toggleWeightInput('inp-ev-weight-container', isCrit);
             if(isCrit) document.getElementById('inp-ev-weight').value = ev.weight || '';
 
-            const isXp = ev.xpEnabled || false; document.getElementById('inp-ev-xp-enabled').checked = isXp; toggleXPInput('inp-ev-difficulty-container', isXp);
+            const isXp = ev.xpEnabled || false; document.getElementById('inp-ev-xp-enabled').checked = isXp; toggleXPInput('inp', isXp);
             document.getElementById('inp-ev-difficulty').value = ev.xpDifficulty || 10;
+            if(isXp) document.getElementById('inp-ev-requires-focus').checked = ev.requiresFocus || false;
 
             editingEventId = id; document.getElementById('btn-submit-event').innerText = "Update Master Component"; document.getElementById('btn-cancel-edit').style.display = "block"; document.getElementById('form-event').scrollIntoView({behavior: "smooth"});
         }
@@ -1180,7 +1397,7 @@
             editingEventId = null; document.getElementById('form-event').reset();
             document.getElementById('btn-submit-event').innerText = "Add to Master Schedule"; document.getElementById('btn-cancel-edit').style.display = "none";
             toggleWeightInput('inp-ev-weight-container', false); toggleReminder('inp', false);
-            document.getElementById('inp-ev-xp-enabled').checked = false; toggleXPInput('inp-ev-difficulty-container', false); document.getElementById('inp-ev-difficulty').value = 10;
+            document.getElementById('inp-ev-xp-enabled').checked = false; toggleXPInput('inp', false); document.getElementById('inp-ev-difficulty').value = 10;
             document.getElementById('inp-ev-multiday-toggle').checked = false; toggleMultiDay('inp', false); setDays('inp-day-picker', ['Monday']);
         }
 
@@ -1198,8 +1415,9 @@
             const isCrit = ev.isCritical; document.getElementById('mod-ev-critical').checked = isCrit; toggleWeightInput('mod-ev-weight-container', isCrit);
             if(isCrit) document.getElementById('mod-ev-weight').value = ev.weight || '';
 
-            const isXp = ev.xpEnabled || false; document.getElementById('mod-ev-xp-enabled').checked = isXp; toggleXPInput('mod-ev-difficulty-container', isXp);
+            const isXp = ev.xpEnabled || false; document.getElementById('mod-ev-xp-enabled').checked = isXp; toggleXPInput('mod', isXp);
             document.getElementById('mod-ev-difficulty').value = ev.xpDifficulty || 10;
+            if(isXp) document.getElementById('mod-ev-requires-focus').checked = ev.requiresFocus || false;
 
             document.getElementById('instance-modal-title').innerText = "Edit Specific Block"; document.getElementById('mod-btn-delete').style.display = 'block';
             const warning = document.getElementById('modal-warning');
@@ -1216,7 +1434,7 @@
             document.getElementById('mod-ev-location').value = ''; document.getElementById('mod-ev-start').value = minsToTimeStr(startMins); document.getElementById('mod-ev-end').value = minsToTimeStr(endMins); document.getElementById('mod-ev-desc').value = '';
             
             document.getElementById('mod-ev-critical').checked = false; toggleWeightInput('mod-ev-weight-container', false);
-            document.getElementById('mod-ev-xp-enabled').checked = false; toggleXPInput('mod-ev-difficulty-container', false); document.getElementById('mod-ev-difficulty').value = 10;
+            document.getElementById('mod-ev-xp-enabled').checked = false; toggleXPInput('mod', false); document.getElementById('mod-ev-difficulty').value = 10;
             
             document.getElementById('modal-warning').style.display = 'none'; document.getElementById('instance-modal-title').innerText = `Create Component (Week ${week})`; document.getElementById('mod-btn-delete').style.display = 'none'; document.getElementById('instance-edit-modal').style.display = 'flex';
         }
@@ -1239,14 +1457,15 @@
 
             const isXpEnabled = document.getElementById('mod-ev-xp-enabled').checked;
             const xpDiff = document.getElementById('mod-ev-difficulty').value;
+            const reqFocus = document.getElementById('mod-ev-requires-focus').checked;
 
             const baseData = {
                 termId: currentTermId, courseId: document.getElementById('mod-ev-course').value, title: document.getElementById('mod-ev-title').value,
                 weeks: modalInstanceWeek, location: document.getElementById('mod-ev-location').value, start: document.getElementById('mod-ev-start').value,
                 end: isReminder ? document.getElementById('mod-ev-start').value : document.getElementById('mod-ev-end').value, desc: document.getElementById('mod-ev-desc').value,
                 isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null, resolvedWeeks: [],
-                missionSkippedWeeks: [],
-                xpEnabled: isXpEnabled, xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null, isReward: false
+                missionSkippedWeeks: [], focusFailedWeeks: [],
+                xpEnabled: isXpEnabled, xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null, requiresFocus: reqFocus, isReward: false
             };
 
             const batch = db.batch();
@@ -1350,10 +1569,12 @@
                 weight: null,
                 xpEnabled: false,
                 xpDifficulty: null,
+                requiresFocus: false,
                 isReward: true,
                 skippedWeeks: [],
                 resolvedWeeks: [weekNum.toString()], // Pushed so it doesn't show up in missions as unresolved
-                missionSkippedWeeks: []
+                missionSkippedWeeks: [],
+                focusFailedWeeks: []
             };
 
             db.collection('events').doc(docId).set(newEvent).then(() => {
@@ -1386,13 +1607,25 @@
                 const cColor = mission.ev.isReward ? "#ffd700" : (mission.ev.courseId ? (termCourses.find(c => c.id === mission.ev.courseId)?.color || "var(--accent)") : "var(--accent)");
 
                 let baseXP = (mission.ev.xpEnabled && mission.ev.xpDifficulty) ? mission.ev.xpDifficulty * 10 : 0;
-                let xpTooltip = baseXP > 0 ? `(+${baseXP} XP)` : '(0 XP)';
+                let focusWarn = mission.ev.requiresFocus ? '🔥 ' : '';
+                let focusFailed = mission.ev.focusFailedWeeks && mission.ev.focusFailedWeeks.includes(mission.week.toString());
+                
+                // Calculate potential display text
+                let potentialXP = baseXP;
+                let failPenalties = [];
+                if(focusFailed && mission.ev.requiresFocus) {
+                    potentialXP -= 50;
+                    failPenalties.push("-50 Focus");
+                }
+                
+                let xpTooltip = potentialXP > 0 ? `(+${potentialXP} XP)` : `(${potentialXP} XP)`;
+                if(failPenalties.length > 0) xpTooltip += ` [${failPenalties.join(', ')}]`;
 
                 const div = document.createElement('div');
                 div.className = 'mission-item'; div.style.borderLeftColor = cColor;
                 div.innerHTML = `
                     <div style="flex: 1; padding-right: 15px;">
-                        <strong style="color: ${cColor}; font-size: 18px;">${mission.ev.isReminder ? '🔔' : ''} ${mission.ev.courseId || ''} | ${mission.ev.title}</strong><br>
+                        <strong style="color: ${cColor}; font-size: 18px;">${mission.ev.isReminder ? '🔔' : ''} ${focusWarn}${mission.ev.courseId || ''} | ${mission.ev.title}</strong><br>
                         <small style="color: var(--text-muted); font-size: 14px;">Week ${mission.week} • ${mission.ev.day} (${format12Hour(mission.ev.start)})</small>
                     </div>
                     <div class="mission-actions">
@@ -1419,11 +1652,26 @@
 
             db.collection('events').doc(eventId).update(updateData).then(() => {
                 let baseXP = (ev.xpEnabled && ev.xpDifficulty) ? ev.xpDifficulty * 10 : 0;
+                let focusPenalty = 0;
+
+                // Apply Focus Penalty if required and failed (or if skipped/rescheduled entirely)
+                if (ev.requiresFocus) {
+                    if (ev.focusFailedWeeks && ev.focusFailedWeeks.includes(weekNum.toString())) {
+                        focusPenalty = 50;
+                    } else if (action === 'skip' || action === 'reschedule') {
+                        // Skipping/Rescheduling means they definitely didn't focus through the block
+                        focusPenalty = 50;
+                    }
+                }
                 
-                if (baseXP > 0) {
-                    if(action === 'complete') updateXP(baseXP); 
-                    else if (action === 'skip') updateXP(-Math.round(baseXP * 0.5)); 
-                    else if (action === 'reschedule') updateXP(-Math.round(baseXP * 0.25));
+                if (baseXP > 0 || focusPenalty > 0) {
+                    let finalChange = 0;
+                    if(action === 'complete') finalChange = baseXP; 
+                    else if (action === 'skip') finalChange = -Math.round(baseXP * 0.5); 
+                    else if (action === 'reschedule') finalChange = -Math.round(baseXP * 0.25);
+                    
+                    finalChange -= focusPenalty;
+                    updateXP(finalChange);
                 }
                 updateMissionsBadge();
                 if (currentView === "missions") renderMissions();
@@ -1443,7 +1691,7 @@
             if(!activeRescheduleMission) return;
             const ev = events.find(e => e.id === activeRescheduleMission.id); if(!ev) return;
             const docId = `RESCHED_${Date.now()}`;
-            const newEvent = { ...ev, id: docId, day: document.getElementById('reschedule-day').value, start: document.getElementById('reschedule-start').value, end: document.getElementById('reschedule-end').value, weeks: getCurrentCalendarWeek().toString(), skippedWeeks: [], resolvedWeeks: [], missionSkippedWeeks: [] };
+            const newEvent = { ...ev, id: docId, day: document.getElementById('reschedule-day').value, start: document.getElementById('reschedule-start').value, end: document.getElementById('reschedule-end').value, weeks: getCurrentCalendarWeek().toString(), skippedWeeks: [], resolvedWeeks: [], missionSkippedWeeks: [], focusFailedWeeks: [] };
             db.collection('events').doc(docId).set(newEvent).then(() => { resolveMission(activeRescheduleMission.id, activeRescheduleMission.week, 'reschedule'); closeRescheduleModal(); });
         }
 
@@ -1501,9 +1749,10 @@
                 const rewardBadge = e.isReward ? `<span style="margin-right: 5px;" title="Reward">🏆</span>` : "";
                 
                 let xpBadge = e.xpEnabled ? `<span style="color: #00e5ff; font-size: 14px; margin-left: 8px;" title="XP Value: ${e.xpDifficulty * 10}">[${e.xpDifficulty * 10} XP]</span>` : "";
+                let focusBadge = e.requiresFocus ? `<span style="color: #ff9800; font-size: 14px; margin-left: 4px;" title="Requires Focus Mode">[🔥 Focus]</span>` : "";
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
-                li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${rewardBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} ${xpBadge}<br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
+                li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${rewardBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} ${xpBadge} ${focusBadge}<br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
                     <div style="display:flex; gap: 8px;"><button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button><button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button></div>`;
                 if(eventList) eventList.appendChild(li);
             });
@@ -1606,6 +1855,7 @@
                 const displayStart = format12Hour(ev.start); const displayEnd = ev.isReminder ? "" : format12Hour(ev.end);
                 let criticalIcon = ev.isCritical ? `<span title="Important Component" style="margin-right: 5px;">🚨</span>` : '';
                 let rewardIcon = ev.isReward ? `<span title="Reward" style="margin-right: 5px;">🏆</span>` : '';
+                let focusIcon = ev.requiresFocus ? `<span title="Requires Focus Mode" style="margin-right: 5px;">🔥</span>` : '';
 
                 const card = document.createElement('div');
                 if (ev.isReminder) {
@@ -1617,7 +1867,7 @@
                     else reminderControls = `<button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')" title="Edit">✏️</button><button class="btn-skip" style="background:rgba(0,0,0,0.2); color:inherit; border:none;" onclick="resolveMission('${ev.id}', '${currentWeek}', 'skip')" title="Skip (XP Penalty)">🚫</button>`;
 
                     card.innerHTML = `
-                        <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;"><span style="font-size:20px;">🔔</span><strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${rewardIcon}${criticalIcon}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}${ev.title}</strong></div>
+                        <div style="display:flex; align-items:center; gap: 10px; overflow:hidden;"><span style="font-size:20px;">🔔</span><strong style="font-size: 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${rewardIcon}${focusIcon}${criticalIcon}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}${ev.title}</strong></div>
                         <div style="display:flex; align-items:center; gap: 10px; flex-shrink:0;"><span style="font-family:'Share Tech Mono'; font-weight:bold;">${displayStart}</span>${reminderControls}</div>`;
                     container.appendChild(card); return; 
                 }
@@ -1646,7 +1896,7 @@
                 card.innerHTML = `
                     ${progressHTML}
                     <div style="display: flex; flex-direction: column; justify-content: flex-start; flex: 1; padding-right: 15px; position: relative; z-index: 10;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;"><strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${rewardIcon}${criticalIcon}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}${ev.title}</strong>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;"><strong style="color:${isPast ? '#999' : cColor}; font-size: 18px; cursor: pointer;" onclick="openInstanceModal('${ev.id}', '${currentWeek}')">${rewardIcon}${focusIcon}${criticalIcon}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}${ev.title}</strong>
                             ${controlsHtml}
                         </div>
                         <div style="font-size: 15px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center;">${ev.location ? `📍 ${ev.location}` : ""}</div>
