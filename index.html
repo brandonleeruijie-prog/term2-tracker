@@ -657,6 +657,7 @@
         let currentFocusEventId = null;
         let focusFailedThisSession = false;
         let lastNotifiedEventId = null;
+        let lastNotifiedTime = 0; // NEW: Tracks the 5-minute reminder intervals
 
         // --- GAMIFICATION: XP SYSTEM ---
         let userXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
@@ -949,8 +950,12 @@
 
             if (activeEv) {
                 // Check Desktop Notifications
+                const nowMs = Date.now();
+                
                 if (lastNotifiedEventId !== activeEv.id) {
+                    // Initial notification when component starts
                     lastNotifiedEventId = activeEv.id; 
+                    lastNotifiedTime = nowMs;
 
                     if ("Notification" in window && Notification.permission === "granted") {
                         let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
@@ -965,6 +970,19 @@
                             icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>',
                             requireInteraction: true 
                         });
+                    }
+                } else if (activeEv.requiresFocus && !isFocusModeActive) {
+                    // Recurring 5-minute (300,000 ms) notification if Focus Mode is required but not active
+                    if (nowMs - lastNotifiedTime >= 300000) {
+                        lastNotifiedTime = nowMs; // Reset timer baseline
+
+                        if ("Notification" in window && Notification.permission === "granted") {
+                            new Notification("⚠️ FOCUS MODE REQUIRED", {
+                                body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
+                                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
+                                requireInteraction: true
+                            });
+                        }
                     }
                 }
 
@@ -1001,6 +1019,7 @@
                 infoContainer.style.display = 'none';
                 bgBar.style.width = '0%';
                 lastNotifiedEventId = null; 
+                lastNotifiedTime = 0;
             }
         }
 
