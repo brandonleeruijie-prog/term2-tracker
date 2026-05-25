@@ -666,13 +666,31 @@
         let lastNotifiedTime = 0; 
 
         // --- GAMIFICATION: XP SYSTEM ---
-        let userXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
+        let userXP = 0; // Local initialization fallback
+        let xpLoadedFromCloud = false;
+
+        // Load XP from Cloud
+        db.collection("userStats").doc("player").onSnapshot(doc => {
+            if(doc.exists) {
+                userXP = doc.data().xp || 0;
+            } else {
+                // If it doesn't exist, seed it with local data if available, else 0
+                let localXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
+                db.collection("userStats").doc("player").set({ xp: localXP });
+                userXP = localXP;
+            }
+            xpLoadedFromCloud = true;
+            renderXP();
+        });
 
         function updateXP(change) {
+            if(!xpLoadedFromCloud) return; // Prevent overwriting before cloud load
             userXP += change;
             if (userXP < 0) userXP = 0; 
-            localStorage.setItem('tp_user_xp', userXP);
-            renderXP();
+            
+            // Sync up to Firebase
+            db.collection("userStats").doc("player").set({ xp: userXP }, { merge: true });
+            
             showToast(change > 0 ? `+${change} XP` : `${change} XP`, change > 0 ? '#00e5ff' : '#ff5252');
         }
 
@@ -967,6 +985,7 @@
                     
                     if ("Notification" in window && Notification.permission === "granted") {
                         try {
+                            playBeep(); // Audio backup
                             let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
                             let bodyText = `${activeEv.courseId && !activeEv.isReward ? activeEv.courseId + ' | ' : ''}${activeEv.title}\nEnds at ${format12Hour(activeEv.end)}`;
                             
@@ -998,6 +1017,7 @@
                         
                         if ("Notification" in window && Notification.permission === "granted") {
                             try {
+                                playBeep(); // Audio backup
                                 new Notification("⚠️ FOCUS MODE REQUIRED", {
                                     body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
                                     icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
