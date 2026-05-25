@@ -14,6 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
     <style>
         :root {
@@ -131,7 +132,7 @@
         .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
         .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
         
-        .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group input[type="date"], .form-group select, .form-group textarea { 
+        .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group input[type="date"], .form-group select, .form-group textarea, .form-group input[type="email"] { 
             background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; 
             padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px; 
         }
@@ -255,6 +256,7 @@
         <button class="tab-btn action-btn" data-view="builder">⚙️ Builder</button>
         <div class="segmented-control" id="week-tabs-container"></div>
         <button id="btn-focus-mode" class="tab-btn btn-focus" onclick="openFocusMode()" disabled>🔥 Focus Mode</button>
+        <button class="tab-btn action-btn" data-view="settings" style="margin-left: 15px;">⚙️ Settings</button>
     </div>
 
     <div class="container">
@@ -287,6 +289,20 @@
                             <div class="xp-bar-fill" id="xp-bar-fill"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div id="view-settings" style="display: none; flex-direction: column; height: 100%;">
+                <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚙️ System Settings</h2>
+                <div class="builder-section" style="background: rgba(255, 255, 255, 0.02);">
+                    <h3 style="margin-top:0; color: #ff5252;">Accountability Partner</h3>
+                    <p style="color: var(--text-muted); font-size: 15px;">Send an automated alert if you fail Focus Mode 3 times (15 minutes), and a weekly summary report every Monday.</p>
+                    <div class="form-group" style="max-width: 400px;">
+                        <label>Partner Email Address</label>
+                        <input type="email" id="inp-partner-email" placeholder="sister@example.com">
+                    </div>
+                    <button class="btn-submit" style="background: #ff5252; color: white;" onclick="saveSettings()">Save Accountability Target</button>
+                    <div id="settings-msg" style="margin-top: 10px; font-weight: bold; font-size: 14px;"></div>
                 </div>
             </div>
 
@@ -606,6 +622,38 @@
     <div id="ics-import-modal" class="modal-overlay"><div class="modal-content" style="max-width: 600px;"><button class="close-modal" onclick="closeICSModal()">✖</button><h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Verify Detected Courses</h2><div id="ics-course-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; padding-right: 10px;"></div><button class="btn-submit" style="width: 100%;" onclick="executeICSInjection()">Confirm & Inject Schedule</button></div></div>
 
     <script>
+        // --- EMAILJS HELPER ---
+        function sendAccountabilityEmail(type, params) {
+            if (!accountabilityEmail) return;
+
+            const serviceID = 'service_mfycgli';
+            let templateID = '';
+            const publicKey = 'DAhJlNrUs2aFVFxUZ';
+
+            if (type === 'strike') templateID = 'template_ptlw8ff';
+            if (type === 'report') templateID = 'template_0z19spp';
+
+            const templateParams = {
+                to_email: accountabilityEmail,
+                ...params
+            };
+
+            emailjs.send(serviceID, templateID, templateParams, publicKey)
+                .then((response) => console.log('Accountability Email Sent!', response.status, response.text))
+                .catch((error) => console.error('Failed to send Accountability Email...', error));
+        }
+
+        function saveSettings() {
+            const email = document.getElementById('inp-partner-email').value.trim();
+            db.collection("userStats").doc("player").set({ accountabilityEmail: email }, { merge: true }).then(() => {
+                accountabilityEmail = email;
+                const msg = document.getElementById('settings-msg');
+                msg.innerText = "Settings Saved!";
+                msg.style.color = "#4caf50";
+                setTimeout(() => msg.innerText = "", 3000);
+            });
+        }
+
         // --- FIREBASE INITIALIZATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyAzQghlZIMFFhxj4szLWyE461qXkWsdQFo",
@@ -641,7 +689,7 @@
         let courses = [];
         let events = [];
         let currentTermId = localStorage.getItem('tp_active_term') || null;
-        let loaders = { terms: false, courses: false, events: false };
+        let loaders = { terms: false, courses: false, events: false, userStats: false };
 
         let timeScale = 1.2; 
         let timeChartInstance = null;
@@ -664,33 +712,36 @@
         let focusFailedThisSession = false;
         let lastNotifiedEventId = null;
         let lastNotifiedTime = 0; 
+        let focusStrikeCount = 0; // The 3-Strike Counter
 
-        // --- GAMIFICATION: XP SYSTEM ---
-        let userXP = 0; // Local initialization fallback
-        let xpLoadedFromCloud = false;
+        // --- USER STATS LOGIC ---
+        let userXP = 0; 
+        let accountabilityEmail = "";
+        let lastReportWeek = 0;
 
-        // Load XP from Cloud
+        // Load Stats from Cloud
         db.collection("userStats").doc("player").onSnapshot(doc => {
             if(doc.exists) {
                 userXP = doc.data().xp || 0;
+                accountabilityEmail = doc.data().accountabilityEmail || "";
+                lastReportWeek = doc.data().lastReportWeek || 0;
+                document.getElementById('inp-partner-email').value = accountabilityEmail;
             } else {
-                // If it doesn't exist, seed it with local data if available, else 0
                 let localXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
-                db.collection("userStats").doc("player").set({ xp: localXP });
+                db.collection("userStats").doc("player").set({ xp: localXP, accountabilityEmail: "", lastReportWeek: 0 });
                 userXP = localXP;
             }
-            xpLoadedFromCloud = true;
+            loaders.userStats = true;
             renderXP();
+            checkLoaders();
         });
 
         function updateXP(change) {
-            if(!xpLoadedFromCloud) return; // Prevent overwriting before cloud load
+            if(!loaders.userStats) return; 
             userXP += change;
             if (userXP < 0) userXP = 0; 
             
-            // Sync up to Firebase
             db.collection("userStats").doc("player").set({ xp: userXP }, { merge: true });
-            
             showToast(change > 0 ? `+${change} XP` : `${change} XP`, change > 0 ? '#00e5ff' : '#ff5252');
         }
 
@@ -727,7 +778,6 @@
             let pending = [];
 
             events.forEach(ev => {
-                // Only show XP-enabled tasks that are NOT rewards as pending missions
                 if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
                 
                 const evDayIdx = daysArr.indexOf(ev.day);
@@ -738,7 +788,6 @@
                 else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
                 
                 weeksToCheck.forEach(w => {
-                    // It is resolved if it's in skippedWeeks (system delete), missionSkippedWeeks, or resolvedWeeks
                     if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || 
                         (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString())) ||
                         (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(w.toString()))) return;
@@ -830,11 +879,12 @@
         }
 
         function openFocusMode() {
-            initializeNotifications(); // Ensure notifications are active via gesture
+            initializeNotifications(); 
             
             if (!currentFocusEventId) return;
             isFocusModeActive = true;
             focusFailedThisSession = false;
+            focusStrikeCount = 0; // Reset Strikes
             
             const focusBtn = document.getElementById('btn-focus-mode');
             focusBtn.classList.remove('active-pulse');
@@ -861,7 +911,6 @@
                     </body></html>
                 `);
 
-                // Start 15 min interval (900000 ms)
                 focusInterval = setInterval(() => {
                     if (!focusWindow || focusWindow.closed) {
                         failFocusMode();
@@ -873,7 +922,6 @@
                     focusWindow.document.getElementById('check-container').style.display = 'block';
                     focusWindow.focus();
 
-                    // Give them 1 minute to click it
                     focusCheckTimeout = setTimeout(() => {
                         failFocusMode();
                     }, 60000);
@@ -890,10 +938,10 @@
             const focusBtn = document.getElementById('btn-focus-mode');
             
             if (activeEv && activeEv.requiresFocus) {
-                // If it's a new event, reset the fail state
                 if (currentFocusEventId !== activeEv.id) {
                     focusFailedThisSession = false;
                     currentFocusEventId = activeEv.id;
+                    focusStrikeCount = 0; // Reset
                 }
 
                 if (!isFocusModeActive && !focusFailedThisSession) {
@@ -905,14 +953,12 @@
                 focusBtn.disabled = true;
                 focusBtn.classList.remove('active-pulse');
                 
-                // If a block just ended
                 if (!activeEv && currentFocusEventId) {
                     let ev = events.find(e => e.id === currentFocusEventId);
                     if (ev && ev.requiresFocus) {
                         let weekNum = getCurrentCalendarWeek().toString();
                         let failedWeeks = [...(ev.focusFailedWeeks || [])];
                         
-                        // If it wasn't active at the end, OR it failed earlier, they get the penalty
                         if (!isFocusModeActive || focusFailedThisSession) {
                             if(!failedWeeks.includes(weekNum)) {
                                 failedWeeks.push(weekNum);
@@ -923,8 +969,64 @@
                     if (isFocusModeActive) closeFocusMode();
                     currentFocusEventId = null;
                     focusFailedThisSession = false;
+                    focusStrikeCount = 0;
                     focusBtn.innerText = "🔥 Focus Mode";
                 }
+            }
+        }
+
+        // --- WEEKLY REPORT SYNC ---
+        function checkWeeklyReport() {
+            const currentWeek = getCurrentCalendarWeek();
+            if (currentWeek <= 0) return;
+
+            if (lastReportWeek === 0) {
+                // Initialize silently on first load to prevent emailing past history
+                db.collection("userStats").doc("player").set({ lastReportWeek: currentWeek }, { merge: true });
+                return;
+            }
+
+            if (currentWeek > lastReportWeek) {
+                const prevWeek = lastReportWeek.toString();
+                let totalFocusTasks = 0;
+                let failedFocusTasks = 0;
+                let missedMins = 0;
+
+                events.forEach(ev => {
+                    if (ev.termId !== currentTermId || !ev.requiresFocus || ev.isReward) return;
+
+                    let happenedLastWeek = false;
+                    if (ev.weeks === "All" && !(ev.skippedWeeks && ev.skippedWeeks.includes(prevWeek))) happenedLastWeek = true;
+                    if (ev.weeks === prevWeek) happenedLastWeek = true;
+
+                    if (happenedLastWeek) {
+                        totalFocusTasks++;
+                        const failedFocus = ev.focusFailedWeeks && ev.focusFailedWeeks.includes(prevWeek);
+                        const skippedEntirely = ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(prevWeek);
+                        
+                        if (failedFocus || skippedEntirely) {
+                            failedFocusTasks++;
+                            const startMins = timeToMinutes(ev.start);
+                            const endMins = timeToMinutes(ev.end);
+                            missedMins += (endMins - startMins);
+                        }
+                    }
+                });
+
+                if (totalFocusTasks > 0) {
+                    const successTasks = totalFocusTasks - failedFocusTasks;
+                    const pct = Math.round((successTasks / totalFocusTasks) * 100);
+                    const missedHours = (missedMins / 60).toFixed(1);
+
+                    console.log("Sending Weekly Report Email...");
+                    sendAccountabilityEmail('report', {
+                        missed_sessions: failedFocusTasks,
+                        missed_hours: missedHours,
+                        focus_percentage: pct
+                    });
+                }
+
+                db.collection("userStats").doc("player").set({ lastReportWeek: currentWeek }, { merge: true });
             }
         }
 
@@ -975,17 +1077,15 @@
             }
 
             if (activeEv) {
-                // Check Desktop Notifications
                 const nowMs = Date.now();
                 
                 if (lastNotifiedEventId !== activeEv.id) {
-                    // Initial notification when component starts
                     console.log(`Notification Permission Status: ${"Notification" in window ? Notification.permission : 'unsupported'}`);
                     console.log(`Attempting to fire initial notification for: ${activeEv.title}`);
                     
                     if ("Notification" in window && Notification.permission === "granted") {
                         try {
-                            playBeep(); // Audio backup
+                            playBeep(); 
                             let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
                             let bodyText = `${activeEv.courseId && !activeEv.isReward ? activeEv.courseId + ' | ' : ''}${activeEv.title}\nEnds at ${format12Hour(activeEv.end)}`;
                             
@@ -1002,22 +1102,31 @@
                         } catch(e) {
                             console.error('Notification blocked by browser', e);
                         }
-                        
-                        lastNotifiedEventId = activeEv.id; 
-                        lastNotifiedTime = nowMs;
                     } else {
                         console.log('Notification blocked by browser (Permission: ' + Notification.permission + ')');
-                        lastNotifiedEventId = activeEv.id; 
-                        lastNotifiedTime = nowMs;
                     }
+                    lastNotifiedEventId = activeEv.id; 
+                    lastNotifiedTime = nowMs;
+
                 } else if (activeEv.requiresFocus && !isFocusModeActive) {
                     // Recurring 5-minute (300,000 ms) notification if Focus Mode is required but not active
                     if (nowMs - lastNotifiedTime >= 300000) {
                         console.log(`Attempting to fire 5-minute recurring focus notification for: ${activeEv.title}`);
                         
+                        // 3-Strike Alert Logic
+                        focusStrikeCount++;
+                        console.log(`Focus Strike: ${focusStrikeCount}/3`);
+                        if (focusStrikeCount === 3) {
+                            console.log("Sending strike email to partner...");
+                            sendAccountabilityEmail('strike', {
+                                course: activeEv.courseId || "General",
+                                title: activeEv.title
+                            });
+                        }
+
                         if ("Notification" in window && Notification.permission === "granted") {
                             try {
-                                playBeep(); // Audio backup
+                                playBeep(); 
                                 new Notification("⚠️ FOCUS MODE REQUIRED", {
                                     body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
                                     icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
@@ -1027,11 +1136,10 @@
                             } catch(e) {
                                 console.error('Recurring notification blocked by browser', e);
                             }
-                            lastNotifiedTime = nowMs; // Reset timer baseline
                         } else {
                             console.log('Recurring notification blocked by browser (Permission: ' + Notification.permission + ')');
-                            lastNotifiedTime = nowMs;
                         }
+                        lastNotifiedTime = nowMs; // Reset timer baseline
                     }
                 }
 
@@ -1074,7 +1182,7 @@
 
         // --- FIREBASE LISTENERS ---
         function checkLoaders() {
-            if(loaders.terms && loaders.courses && loaders.events) {
+            if(loaders.terms && loaders.courses && loaders.events && loaders.userStats) {
                 if(terms.length === 0) {
                     const defaultId = `T${Date.now()}`;
                     db.collection('terms').doc(defaultId).set({ id: defaultId, name: "Term 1", startDate: "2026-02-16", totalWeeks: 10 });
@@ -1085,7 +1193,8 @@
                     }
                     refreshUI();
                     renderXP();
-                    if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions") renderSchedule(currentView);
+                    checkWeeklyReport(); // Check for pending weekly reports
+                    if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions" && currentView !== "settings") renderSchedule(currentView);
                 }
             }
         }
@@ -1119,7 +1228,7 @@
         // --- UTILITIES & TIME ---
         function changeScale(val) {
             timeScale = parseFloat(val);
-            if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions") renderSchedule(currentView);
+            if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions" && currentView !== "settings") renderSchedule(currentView);
         }
 
         function getCurrentCalendarWeek() {
@@ -1196,7 +1305,7 @@
         function minsToTimeStr(mins) { return `${Math.floor(mins / 60).toString().padStart(2, '0')}:${(mins % 60).toString().padStart(2, '0')}`; }
 
         function switchView(view, btnElement) {
-            initializeNotifications(); // Ensure notifications are active via gesture
+            initializeNotifications(); 
             
             document.querySelectorAll('.subbar .tab-btn').forEach(b => b.classList.remove('active'));
             if(btnElement) { btnElement.classList.add('active'); } else { document.querySelector(`.subbar button[data-view="${view}"]`)?.classList.add('active'); }
@@ -1205,11 +1314,13 @@
             document.getElementById('view-builder').style.display = 'none'; 
             document.getElementById('view-schedule').style.display = 'none';
             document.getElementById('view-missions').style.display = 'none';
+            document.getElementById('view-settings').style.display = 'none';
             currentView = view;
 
             if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; renderTodayAgenda(false); } 
             else if (view === "missions") { document.getElementById('view-missions').style.display = 'flex'; renderMissions(); }
             else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
+            else if (view === "settings") { document.getElementById('view-settings').style.display = 'flex'; } 
             else { document.getElementById('view-schedule').style.display = 'flex'; document.getElementById('weekly-title').innerText = `Week ${view}`; renderSchedule(view); }
         }
 
@@ -1217,7 +1328,7 @@
             document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
             currentFilter = "All";
-            if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions") {
+            if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions" && currentView !== "settings") {
                 renderSchedule(currentView);
             }
         }
@@ -1299,7 +1410,7 @@
         function switchTerm(newTermId) { 
             currentTermId = newTermId; localStorage.setItem('tp_active_term', currentTermId);
             refreshUI(); 
-            if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions") renderSchedule(currentView);
+            if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions" && currentView !== "settings") renderSchedule(currentView);
         }
 
         function openTermModal() {
@@ -1370,7 +1481,7 @@
 
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
-            initializeNotifications(); // Ensure notifications are active via gesture
+            initializeNotifications(); 
             
             const isMulti = document.getElementById('inp-ev-multiday-toggle').checked;
             let checkedDays = isMulti ? Array.from(document.querySelectorAll('#inp-day-picker input:checked')).map(cb => cb.value) : [document.getElementById('inp-ev-day').value];
@@ -1796,7 +1907,7 @@
                 const opt = document.createElement('option'); opt.value = c.id; opt.innerText = c.id; if(selectEl) selectEl.appendChild(opt);
                 const opt2 = document.createElement('option'); opt2.value = c.id; opt2.innerText = c.id; if(modSelectEl) modSelectEl.appendChild(opt2);
                 const fBtn = document.createElement('button'); fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`; fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
-                fBtn.onclick = () => { document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active')); fBtn.classList.add('active'); currentFilter = c.id; if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions") renderSchedule(currentView); };
+                fBtn.onclick = () => { document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active')); fBtn.classList.add('active'); currentFilter = c.id; if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions" && currentView !== "settings") renderSchedule(currentView); };
                 if(filterContainer) filterContainer.appendChild(fBtn);
                 const li = document.createElement('li'); li.className = "mgmt-item"; li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
                 if(builderCourseList) builderCourseList.appendChild(li);
