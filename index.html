@@ -720,6 +720,7 @@
                 else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
                 
                 weeksToCheck.forEach(w => {
+                    // It is resolved if it's in skippedWeeks (system delete), missionSkippedWeeks, or resolvedWeeks
                     if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || 
                         (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString())) ||
                         (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(w.toString()))) return;
