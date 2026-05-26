@@ -864,6 +864,7 @@
         };
 
         function failFocusMode() {
+            // ADDED: Turn off the YouTube enforcer overlay
             broadcastFocusState(false);
             
             clearTimeout(focusCheckTimeout);
@@ -892,6 +893,7 @@
         }
 
         function closeFocusMode() {
+            // ADDED: Turn off the YouTube enforcer overlay
             broadcastFocusState(false);
             
             clearInterval(focusInterval);
@@ -909,6 +911,7 @@
             
             if (!currentFocusEventId) return;
             
+            // ADDED: Turn on the YouTube enforcer overlay
             broadcastFocusState(true);
             
             isFocusModeActive = true;
