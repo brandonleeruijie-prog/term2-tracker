@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planner</title>
+    <title>The Master Planner</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -241,7 +241,7 @@
 <body>
 
     <div class="topbar">
-        <div class="logo">🎯 <span>Planner</span></div>
+        <div class="logo">🎯 <span>The Master Planner</span></div>
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
             <button class="tab-btn" style="padding: 4px 12px; font-size: 16px; background: rgba(168, 199, 250, 0.1); border-color: var(--accent); color: var(--accent);" onclick="openTermModal()" title="Manage Terms">⚙️ Create/Edit Plan</button>
@@ -342,30 +342,20 @@
                     
                     <div style="flex: 1; min-width: 300px; background: rgba(255, 215, 0, 0.05); border: 1px solid #ffd700; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; overflow-y: auto;">
                         <h3 style="color: #ffd700; margin-top: 0; font-size: 20px; border-bottom: 1px dashed #ffd700; padding-bottom: 10px;">🏆 Reward Store</h3>
-                        <p style="color: var(--text-muted); font-size: 14px;">Use your XP to schedule Free Time.<br><strong style="color: #ffd700;">Rate: 300 XP = 1 Hour</strong> (Full hours only).</p>
-                        
-                        <form id="form-reward" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Activity Title</label>
-                                <input type="text" id="reward-title" placeholder="e.g. Play Video Games" required style="border-color: #ffd700;">
+                        <p style="color: var(--text-muted); font-size: 14px;">Bank free time using your XP to spend later in the Schedule Builder.</p>
+
+                        <div id="reward-store-dashboard" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px solid #ffd700; text-align: center;">
+                            <h3 style="margin-top: 0; color: #e3e3e3;">Banked Balance: <br><span id="banked-time-display" style="color: #ffd700; font-size: 28px; font-family: 'Share Tech Mono', monospace;">0h 0m</span></h3>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                                <button type="button" class="btn-reward-pkg" data-mins="5" data-cost="25" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">5 Mins<br><span style="color:#00e5ff; font-size:12px;">25 XP</span></button>
+                                <button type="button" class="btn-reward-pkg" data-mins="15" data-cost="75" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">15 Mins<br><span style="color:#00e5ff; font-size:12px;">75 XP</span></button>
+                                <button type="button" class="btn-reward-pkg" data-mins="30" data-cost="150" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">30 Mins<br><span style="color:#00e5ff; font-size:12px;">150 XP</span></button>
+                                <button type="button" class="btn-reward-pkg" data-mins="60" data-cost="300" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">1 Hour<br><span style="color:#00e5ff; font-size:12px;">300 XP</span></button>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Date</label>
-                                <input type="date" id="reward-date" required style="border-color: #ffd700;">
-                            </div>
-                            <div style="display: flex; gap: 10px;">
-                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                                    <label>Start Time</label>
-                                    <input type="time" id="reward-start" required style="border-color: #ffd700;">
-                                </div>
-                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                                    <label>End Time</label>
-                                    <input type="time" id="reward-end" required style="border-color: #ffd700;">
-                                </div>
-                            </div>
-                            <button type="button" class="btn-submit" style="background: #ffd700; color: #131314; margin-top: 10px;" onclick="attemptRewardPurchase()">Purchase Free Time</button>
-                        </form>
-                        <div id="reward-msg" style="margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center;"></div>
+                            
+                            <button type="button" class="btn-submit" style="background: #ffd700; color: #131314; margin-top: 15px; width: 100%;" onclick="cashInReward()">+ Cash In Package</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -419,8 +409,9 @@
                     <form id="form-event">
                         <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px; border: 1px solid var(--outline);">
                             <strong style="color: var(--accent);">Entry Type:</strong>
-                            <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="block" checked onchange="toggleReminder('inp', false)" style="accent-color: var(--accent);"> 🧱 Time Block</label>
-                            <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="reminder" onchange="toggleReminder('inp', true)" style="accent-color: var(--accent);"> 🔔 Reminder</label>
+                            <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="block" checked onchange="toggleEntryType('inp', 'block')" style="accent-color: var(--accent);"> 🧱 Time Block</label>
+                            <label style="cursor:pointer;"><input type="radio" name="inp-ev-type" value="reminder" onchange="toggleEntryType('inp', 'reminder')" style="accent-color: var(--accent);"> 🔔 Reminder</label>
+                            <label style="cursor:pointer; color: #ffd700;"><input type="radio" name="inp-ev-type" value="freetime" onchange="toggleEntryType('inp', 'freetime')" style="accent-color: #ffd700;"> ☕ Free Time</label>
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
@@ -441,9 +432,15 @@
 
                             <div class="form-group"><label>Location</label><input type="text" id="inp-ev-location"></div>
                             <div class="form-group">
-                                <label>Time (Start / End)</label>
+                                <label>Time</label>
                                 <div style="display: flex; gap: 10px;">
-                                    <input type="time" id="inp-ev-start" required style="flex: 1;"><input type="time" id="inp-ev-end" required style="flex: 1;">
+                                    <input type="time" id="inp-ev-start" required style="flex: 1;">
+                                    <div id="inp-ev-end-container" style="flex: 1; display: flex;">
+                                        <input type="time" id="inp-ev-end" required style="width: 100%;">
+                                    </div>
+                                    <div id="inp-ev-duration-container" class="hidden" style="flex: 1; display: flex;">
+                                        <select id="inp-ev-duration" style="width: 100%; border-color: #ffd700;"></select>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -464,7 +461,7 @@
                                 <label>Strategic Description</label><textarea id="inp-ev-desc"></textarea>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
+                            <div id="inp-wrapper-xp" class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
                                 <input type="checkbox" id="inp-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('inp', this.checked)">
                                 <label for="inp-ev-xp-enabled" style="margin: 0; color: var(--xp-color); font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
                                 
@@ -474,12 +471,12 @@
                                 </div>
                             </div>
 
-                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 152, 0, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff9800;">
+                            <div id="inp-wrapper-focus" class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 152, 0, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff9800;">
                                 <input type="checkbox" id="inp-ev-requires-focus" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff9800; margin: 0;" disabled>
                                 <label for="inp-ev-requires-focus" style="margin: 0; color: #ffcc80; font-weight: bold; cursor: pointer;">🔥 Requires Focus Mode</label>
                             </div>
                             
-                            <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
+                            <div id="inp-wrapper-critical" class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 82, 82, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff5252;">
                                 <input type="checkbox" id="inp-ev-critical" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff5252; margin: 0;" onchange="toggleWeightInput('inp-ev-weight-container', this.checked)">
                                 <label for="inp-ev-critical" style="margin: 0; color: #ffb4b4; font-weight: bold; cursor: pointer;">🚨 Mark as Key Date</label>
                                 <div id="inp-ev-weight-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
@@ -519,8 +516,9 @@
             <form id="form-instance-edit">
                 <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px; border: 1px solid var(--outline); margin-top: 15px;">
                     <strong style="color: var(--accent);">Entry Type:</strong>
-                    <label><input type="radio" name="mod-ev-type" value="block" checked onchange="toggleReminder('mod', false)"> 🧱 Time Block</label>
-                    <label><input type="radio" name="mod-ev-type" value="reminder" onchange="toggleReminder('mod', true)"> 🔔 Reminder</label>
+                    <label><input type="radio" name="mod-ev-type" value="block" checked onchange="toggleEntryType('mod', 'block')"> 🧱 Time Block</label>
+                    <label><input type="radio" name="mod-ev-type" value="reminder" onchange="toggleEntryType('mod', 'reminder')"> 🔔 Reminder</label>
+                    <label style="color: #ffd700;"><input type="radio" name="mod-ev-type" value="freetime" onchange="toggleEntryType('mod', 'freetime')" style="accent-color: #ffd700;"> ☕ Free Time</label>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                     <div class="form-group"><label>Course</label><select id="mod-ev-course" required></select></div>
@@ -528,7 +526,15 @@
                     <div class="form-group"><label>Location</label><input type="text" id="mod-ev-location"></div>
                     <div class="form-group">
                         <label>Time</label>
-                        <div style="display: flex; gap: 10px;"><input type="time" id="mod-ev-start" required style="flex: 1;"><input type="time" id="mod-ev-end" required style="flex: 1;"></div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="time" id="mod-ev-start" required style="flex: 1;">
+                            <div id="mod-ev-end-container" style="flex: 1; display: flex;">
+                                <input type="time" id="mod-ev-end" required style="width: 100%;">
+                            </div>
+                            <div id="mod-ev-duration-container" class="hidden" style="flex: 1; display: flex;">
+                                <select id="mod-ev-duration" style="width: 100%; border-color: #ffd700;"></select>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Day of Week</label>
@@ -553,7 +559,7 @@
                     </div>
                     <div class="form-group" style="grid-column: span 2;"><label>Strategic Description</label><textarea id="mod-ev-desc"></textarea></div>
                     
-                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
+                    <div id="mod-wrapper-xp" class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(0, 229, 255, 0.1); padding: 12px; border-radius: 4px; border: 1px solid var(--xp-color);">
                         <input type="checkbox" id="mod-ev-xp-enabled" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--xp-color); margin: 0;" onchange="toggleXPInput('mod', this.checked)">
                         <label for="mod-ev-xp-enabled" style="margin: 0; color: var(--xp-color); font-weight: bold; cursor: pointer;">⚔️ Enable XP Rewards</label>
                         <div id="mod-ev-difficulty-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
@@ -562,12 +568,12 @@
                         </div>
                     </div>
 
-                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 152, 0, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff9800;">
+                    <div id="mod-wrapper-focus" class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px; background: rgba(255, 152, 0, 0.1); padding: 12px; border-radius: 4px; border: 1px solid #ff9800;">
                         <input type="checkbox" id="mod-ev-requires-focus" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff9800; margin: 0;" disabled>
                         <label for="mod-ev-requires-focus" style="margin: 0; color: #ffcc80; font-weight: bold; cursor: pointer;">🔥 Requires Focus Mode</label>
                     </div>
 
-                    <div class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px;">
+                    <div id="mod-wrapper-critical" class="form-group" style="grid-column: span 2; flex-direction: row; align-items: center; gap: 10px;">
                         <input type="checkbox" id="mod-ev-critical" onchange="toggleWeightInput('mod-ev-weight-container', this.checked)">
                         <label for="mod-ev-critical">🚨 Mark as Key Date</label>
                         <div id="mod-ev-weight-container" class="hidden" style="display: flex; align-items: center; gap: 5px; margin-left: auto;">
@@ -659,13 +665,12 @@
         }
 
         function saveSettings() {
-            // Get raw input and safely split by comma to build a clean string
             const rawEmails = document.getElementById('inp-partner-email').value;
             const emailList = rawEmails.split(',').map(e => e.trim()).filter(e => e).join(', ');
 
             db.collection("userStats").doc("player").set({ accountabilityEmail: emailList }, { merge: true }).then(() => {
                 accountabilityEmail = emailList;
-                document.getElementById('inp-partner-email').value = emailList; // visually update input
+                document.getElementById('inp-partner-email').value = emailList; 
                 
                 const msg = document.getElementById('settings-msg');
                 msg.innerText = "Settings Saved!";
@@ -690,7 +695,6 @@
             console.log("Firebase Persistence Error: ", err.code);
         });
 
-        // --- REQUEST NOTIFICATION PERMISSION (INTERACTION-BASED) ---
         let notificationsInitialized = false;
         function initializeNotifications() {
             if (!notificationsInitialized && "Notification" in window) {
@@ -732,12 +736,13 @@
         let focusFailedThisSession = false;
         let lastNotifiedEventId = null;
         let lastNotifiedTime = 0; 
-        let focusStrikeCount = 0; // The 3-Strike Counter
+        let focusStrikeCount = 0;
 
         // --- USER STATS LOGIC ---
         let userXP = 0; 
         let accountabilityEmail = "";
         let lastReportWeek = 0;
+        let bankedFreeTimeMins = 0; // NEW: Global Banked Time
 
         // Load Stats from Cloud
         db.collection("userStats").doc("player").onSnapshot(doc => {
@@ -745,14 +750,17 @@
                 userXP = doc.data().xp || 0;
                 accountabilityEmail = doc.data().accountabilityEmail || "";
                 lastReportWeek = doc.data().lastReportWeek || 0;
+                bankedFreeTimeMins = doc.data().bankedFreeTimeMins || 0;
                 document.getElementById('inp-partner-email').value = accountabilityEmail;
             } else {
                 let localXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
-                db.collection("userStats").doc("player").set({ xp: localXP, accountabilityEmail: "", lastReportWeek: 0 });
+                db.collection("userStats").doc("player").set({ xp: localXP, accountabilityEmail: "", lastReportWeek: 0, bankedFreeTimeMins: 0 });
                 userXP = localXP;
+                bankedFreeTimeMins = 0;
             }
             loaders.userStats = true;
             renderXP();
+            if (typeof renderRewardStore === 'function') renderRewardStore();
             checkLoaders();
         });
 
@@ -781,6 +789,40 @@
             setTimeout(() => { toast.style.opacity = 0; }, 3000);
         }
 
+        // --- NEW REWARD BANK SYSTEM ---
+        let selectedRewardMins = 0;
+        let selectedRewardCost = 0;
+
+        function selectRewardPkg(btn) {
+            document.querySelectorAll('.btn-reward-pkg').forEach(b => b.style.borderColor = 'var(--outline)');
+            btn.style.borderColor = '#ffd700'; // Highlight selection
+            selectedRewardMins = parseInt(btn.dataset.mins);
+            selectedRewardCost = parseInt(btn.dataset.cost);
+        }
+
+        function cashInReward() {
+            if(selectedRewardCost === 0) { showToast("Select a time package first.", "#ff5252"); return; }
+            if(userXP < selectedRewardCost) { showToast(`Not enough XP. Need ${selectedRewardCost} XP.`, "#ff5252"); return; }
+            
+            if(confirm(`Exchange ${selectedRewardCost} XP for ${selectedRewardMins} minutes of Free Time?`)) {
+                updateXP(-selectedRewardCost);
+                bankedFreeTimeMins += selectedRewardMins;
+                
+                db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true }).then(() => {
+                    showToast(`Banked ${selectedRewardMins} mins of Free Time!`, "#ffd700");
+                    renderRewardStore();
+                });
+            }
+        }
+
+        function renderRewardStore() {
+            let h = Math.floor(bankedFreeTimeMins / 60);
+            let m = bankedFreeTimeMins % 60;
+            let display = document.getElementById('banked-time-display');
+            if(display) display.innerText = `${h}h ${m}m`;
+        }
+
+
         // --- PENDING MISSIONS & BADGE ---
         function getPendingMissions() {
             const currentTerm = terms.find(t => t.id === currentTermId);
@@ -798,7 +840,6 @@
             let pending = [];
 
             events.forEach(ev => {
-                // Only show XP-enabled tasks that are NOT rewards as pending missions
                 if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
                 
                 const evDayIdx = daysArr.indexOf(ev.day);
@@ -809,7 +850,6 @@
                 else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
                 
                 weeksToCheck.forEach(w => {
-                    // It is resolved if it's in skippedWeeks (system delete), missionSkippedWeeks, or resolvedWeeks
                     if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || 
                         (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString())) ||
                         (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(w.toString()))) return;
@@ -864,7 +904,6 @@
         };
 
         function failFocusMode() {
-            // ADDED: Turn off the YouTube enforcer overlay
             broadcastFocusState(false);
             
             clearTimeout(focusCheckTimeout);
@@ -880,7 +919,6 @@
             
             showToast("Focus Mode Failed! Penalty pending.", "#ff5252");
             
-            // Record failure in DB for this event/week so resolveMission knows
             let ev = events.find(e => e.id === currentFocusEventId);
             if(ev) {
                 let weekNum = getCurrentCalendarWeek().toString();
@@ -893,7 +931,6 @@
         }
 
         function closeFocusMode() {
-            // ADDED: Turn off the YouTube enforcer overlay
             broadcastFocusState(false);
             
             clearInterval(focusInterval);
@@ -911,12 +948,11 @@
             
             if (!currentFocusEventId) return;
             
-            // ADDED: Turn on the YouTube enforcer overlay
             broadcastFocusState(true);
             
             isFocusModeActive = true;
             focusFailedThisSession = false;
-            focusStrikeCount = 0; // Reset Strikes
+            focusStrikeCount = 0;
             
             const focusBtn = document.getElementById('btn-focus-mode');
             focusBtn.classList.remove('active-pulse');
@@ -932,51 +968,38 @@
                         body { background: #131314; color: #e3e3e3; font-family: sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
                         h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
                         #timer { font-family: 'Share Tech Mono', monospace; font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
-                        
-                        /* Work Phase Styles */
                         .work-phase h2 { color: #ff9800; }
                         .work-phase #timer { color: #ff9800; }
-                        
-                        /* Break Phase Styles */
                         .break-phase h2 { color: #4caf50; }
                         .break-phase #timer { color: #4caf50; }
                     </style>
                     </head><body class="work-phase" id="bg">
                         <h2 id="phase-title">🔥 Deep Work</h2>
                         <div id="timer">50:00</div>
-                        <p id="status-text" style="color: #c4c7c5;">LOCK IN. Stay on target.</p>
+                        <p id="status-text" style="color: #c4c7c5;">Immerse yourself. Stay on target.</p>
                     </body></html>
                 `);
 
                 let isWorkPhase = true;
-                let timeLeft = 50 * 60; // 50 minutes in seconds
+                let timeLeft = 50 * 60; 
 
                 if (focusInterval) clearInterval(focusInterval);
 
-                // 1-Second Tick Interval
                 focusInterval = setInterval(() => {
-                    // Detect Window Close
                     if (!focusWindow || focusWindow.closed) {
                         clearInterval(focusInterval);
-                        if (isWorkPhase) {
-                            failFocusMode(); // Penalty if closed during Deep Work!
-                        } else {
-                            closeFocusMode(); // Safe to close during a break
-                        }
+                        if (isWorkPhase) { failFocusMode(); } else { closeFocusMode(); }
                         return;
                     }
 
                     timeLeft--;
-
-                    // Update UI Time
                     let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
                     let s = (timeLeft % 60).toString().padStart(2, '0');
                     focusWindow.document.getElementById('timer').innerText = `${m}:${s}`;
 
-                    // Phase Switching
                     if (timeLeft <= 0) {
-                        playBeep(); // Audio cue
-                        isWorkPhase = !isWorkPhase; // Toggle phase
+                        playBeep(); 
+                        isWorkPhase = !isWorkPhase; 
                         
                         if (isWorkPhase) {
                             timeLeft = 50 * 60;
@@ -989,7 +1012,7 @@
                             focusWindow.document.getElementById('phase-title').innerText = "☕ Rest & Recharge";
                             focusWindow.document.getElementById('status-text').innerText = "Step away from the screen.";
                         }
-                        focusWindow.focus(); // Pop window to front on phase change
+                        focusWindow.focus(); 
                     }
                 }, 1000); 
 
@@ -1001,15 +1024,15 @@
                 focusBtn.innerText = "🔥 Focus Mode";
             }
         }
+        
         function updateFocusButtonState(activeEv) {
             const focusBtn = document.getElementById('btn-focus-mode');
             
             if (activeEv && activeEv.requiresFocus) {
-                // If it's a new event, reset the fail state
                 if (currentFocusEventId !== activeEv.id) {
                     focusFailedThisSession = false;
                     currentFocusEventId = activeEv.id;
-                    focusStrikeCount = 0; // Reset
+                    focusStrikeCount = 0;
                 }
 
                 if (!isFocusModeActive && !focusFailedThisSession) {
@@ -1021,14 +1044,12 @@
                 focusBtn.disabled = true;
                 focusBtn.classList.remove('active-pulse');
                 
-                // If a block just ended
                 if (!activeEv && currentFocusEventId) {
                     let ev = events.find(e => e.id === currentFocusEventId);
                     if (ev && ev.requiresFocus) {
                         let weekNum = getCurrentCalendarWeek().toString();
                         let failedWeeks = [...(ev.focusFailedWeeks || [])];
                         
-                        // If it wasn't active at the end, OR it failed earlier, they get the penalty
                         if (!isFocusModeActive || focusFailedThisSession) {
                             if(!failedWeeks.includes(weekNum)) {
                                 failedWeeks.push(weekNum);
@@ -1051,7 +1072,6 @@
             if (currentWeek <= 0) return;
 
             if (lastReportWeek === 0) {
-                // Initialize silently on first load to prevent emailing past history
                 db.collection("userStats").doc("player").set({ lastReportWeek: currentWeek }, { merge: true });
                 return;
             }
@@ -1150,9 +1170,6 @@
                 const nowMs = Date.now();
                 
                 if (lastNotifiedEventId !== activeEv.id) {
-                    console.log(`Notification Permission Status: ${"Notification" in window ? Notification.permission : 'unsupported'}`);
-                    console.log(`Attempting to fire initial notification for: ${activeEv.title}`);
-                    
                     if ("Notification" in window && Notification.permission === "granted") {
                         try {
                             playBeep(); 
@@ -1168,26 +1185,15 @@
                                 icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>',
                                 requireInteraction: true 
                             });
-                            console.log('Notification fired successfully');
-                        } catch(e) {
-                            console.error('Notification blocked by browser', e);
-                        }
-                    } else {
-                        console.log('Notification blocked by browser (Permission: ' + Notification.permission + ')');
+                        } catch(e) {}
                     }
                     lastNotifiedEventId = activeEv.id; 
                     lastNotifiedTime = nowMs;
 
                 } else if (activeEv.requiresFocus && !isFocusModeActive) {
-                    // Recurring 5-minute (300,000 ms) notification if Focus Mode is required but not active
                     if (nowMs - lastNotifiedTime >= 300000) {
-                        console.log(`Attempting to fire 5-minute recurring focus notification for: ${activeEv.title}`);
-                        
-                        // 3-Strike Alert Logic
                         focusStrikeCount++;
-                        console.log(`Focus Strike: ${focusStrikeCount}/3`);
                         if (focusStrikeCount === 3) {
-                            console.log("Sending strike email to partner...");
                             sendAccountabilityEmail('strike', {
                                 course: activeEv.courseId || "General",
                                 title: activeEv.title
@@ -1202,14 +1208,9 @@
                                     icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
                                     requireInteraction: true
                                 });
-                                console.log('Recurring notification fired successfully');
-                            } catch(e) {
-                                console.error('Recurring notification blocked by browser', e);
-                            }
-                        } else {
-                            console.log('Recurring notification blocked by browser (Permission: ' + Notification.permission + ')');
+                            } catch(e) {}
                         }
-                        lastNotifiedTime = nowMs; // Reset timer baseline
+                        lastNotifiedTime = nowMs; 
                     }
                 }
 
@@ -1263,7 +1264,7 @@
                     }
                     refreshUI();
                     renderXP();
-                    checkWeeklyReport(); // Check for pending weekly reports
+                    checkWeeklyReport(); 
                     if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions" && currentView !== "settings") renderSchedule(currentView);
                 }
             }
@@ -1423,11 +1424,60 @@
             }
         }
 
-        function toggleReminder(prefix, isReminder) {
-            const endContainer = document.getElementById(`${prefix}-ev-end`);
+        function toggleEntryType(prefix, type) {
+            const endContainer = document.getElementById(`${prefix}-ev-end-container`);
+            const endInput = document.getElementById(`${prefix}-ev-end`);
+            const durationContainer = document.getElementById(`${prefix}-ev-duration-container`);
+            const durationSelect = document.getElementById(`${prefix}-ev-duration`);
             const courseSelect = document.getElementById(`${prefix}-ev-course`);
-            if(isReminder) { endContainer.style.display = 'none'; endContainer.required = false; courseSelect.required = false; } 
-            else { endContainer.style.display = 'inline-block'; endContainer.required = true; courseSelect.required = true; }
+            
+            const wrapXp = document.getElementById(`${prefix}-wrapper-xp`);
+            const wrapFocus = document.getElementById(`${prefix}-wrapper-focus`);
+            const wrapCrit = document.getElementById(`${prefix}-wrapper-critical`);
+
+            if (type === 'reminder') {
+                endContainer.classList.add('hidden'); endInput.required = false;
+                durationContainer.classList.add('hidden'); durationSelect.required = false;
+                courseSelect.disabled = false;
+                if(wrapXp) wrapXp.classList.remove('hidden');
+                if(wrapFocus) wrapFocus.classList.remove('hidden');
+                if(wrapCrit) wrapCrit.classList.remove('hidden');
+                
+            } else if (type === 'freetime') {
+                endContainer.classList.add('hidden'); endInput.required = false;
+                durationContainer.classList.remove('hidden'); durationSelect.required = true;
+                
+                durationSelect.innerHTML = '';
+                const intervals = [5, 15, 30, 60];
+                let optionsAdded = false;
+                intervals.forEach(m => {
+                    if (bankedFreeTimeMins >= m) {
+                        durationSelect.innerHTML += `<option value="${m}">${m} Minutes</option>`;
+                        optionsAdded = true;
+                    }
+                });
+                if (!optionsAdded) durationSelect.innerHTML = `<option value="">Insufficient Banked Balance</option>`;
+
+                if(!Array.from(courseSelect.options).some(o => o.value === "Free Time")) {
+                    courseSelect.innerHTML += '<option value="Free Time" style="color: #ffd700; font-weight: bold;">Free Time</option>';
+                }
+                courseSelect.value = "Free Time";
+                courseSelect.disabled = true;
+
+                if(wrapXp) wrapXp.classList.add('hidden');
+                if(wrapFocus) wrapFocus.classList.add('hidden');
+                if(wrapCrit) wrapCrit.classList.add('hidden');
+
+            } else { 
+                endContainer.classList.remove('hidden'); endInput.required = true;
+                durationContainer.classList.add('hidden'); durationSelect.required = false;
+                courseSelect.disabled = false;
+                if(courseSelect.value === "Free Time") courseSelect.selectedIndex = 0;
+                
+                if(wrapXp) wrapXp.classList.remove('hidden');
+                if(wrapFocus) wrapFocus.classList.remove('hidden');
+                if(wrapCrit) wrapCrit.classList.remove('hidden');
+            }
         }
 
         function toggleDayPill(labelEl) {
@@ -1549,6 +1599,7 @@
             }
         };
 
+        // Master Schedule Form Submit
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
             initializeNotifications(); 
@@ -1557,31 +1608,49 @@
             let checkedDays = isMulti ? Array.from(document.querySelectorAll('#inp-day-picker input:checked')).map(cb => cb.value) : [document.getElementById('inp-ev-day').value];
             if (checkedDays.length === 0) { alert("Please select at least one day."); return; }
 
-            const isCrit = document.getElementById('inp-ev-critical').checked;
+            const evType = document.querySelector('input[name="inp-ev-type"]:checked').value;
+            const isReminder = evType === 'reminder';
+            const isFreeTime = evType === 'freetime';
+            const isCrit = !isFreeTime && document.getElementById('inp-ev-critical').checked;
             const weightVal = document.getElementById('inp-ev-weight').value;
-            const isReminder = document.querySelector('input[name="inp-ev-type"]:checked').value === 'reminder';
-
-            const isXpEnabled = document.getElementById('inp-ev-xp-enabled').checked;
+            const isXpEnabled = !isFreeTime && document.getElementById('inp-ev-xp-enabled').checked;
+            const reqFocus = !isFreeTime && document.getElementById('inp-ev-requires-focus').checked;
             const xpDiff = document.getElementById('inp-ev-difficulty').value;
-            const reqFocus = document.getElementById('inp-ev-requires-focus').checked;
+
+            let startTimeStr = document.getElementById('inp-ev-start').value;
+            let endTimeStr = document.getElementById('inp-ev-end').value;
+            let durationCost = 0;
+
+            if (isFreeTime) {
+                durationCost = parseInt(document.getElementById('inp-ev-duration').value);
+                if (isNaN(durationCost) || bankedFreeTimeMins < (durationCost * checkedDays.length)) {
+                    alert(`Not enough banked free time to cover ${checkedDays.length} day(s).`); return;
+                }
+                let startMins = timeToMinutes(startTimeStr);
+                endTimeStr = minsToTimeStr(startMins + durationCost);
+            } else if (isReminder) {
+                endTimeStr = startTimeStr;
+            }
 
             const baseData = {
                 termId: currentTermId,
-                courseId: document.getElementById('inp-ev-course').value,
+                courseId: isFreeTime ? "Free Time" : document.getElementById('inp-ev-course').value,
                 title: document.getElementById('inp-ev-title').value,
                 weeks: document.getElementById('inp-ev-occurrence').value,
                 location: document.getElementById('inp-ev-location').value,
-                start: document.getElementById('inp-ev-start').value,
-                end: isReminder ? document.getElementById('inp-ev-start').value : document.getElementById('inp-ev-end').value,
+                start: startTimeStr,
+                end: endTimeStr,
                 desc: document.getElementById('inp-ev-desc').value,
-                isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null,
-                resolvedWeeks: [],
+                isCritical: isCrit, 
+                isReminder: isReminder, 
+                weight: isCrit && weightVal ? parseInt(weightVal) : null,
+                resolvedWeeks: isFreeTime ? ["All"] : [], 
                 missionSkippedWeeks: [],
                 focusFailedWeeks: [],
                 xpEnabled: isXpEnabled,
                 xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null,
                 requiresFocus: reqFocus,
-                isReward: false
+                isReward: isFreeTime
             };
 
             const batch = db.batch();
@@ -1591,8 +1660,8 @@
                 let keptOriginal = false;
                 checkedDays.forEach((day, index) => {
                     let docId = Date.now().toString() + index;
-                    let skipped = []; let resolved = []; let mSkipped = []; let fFailed = [];
-                    if (originalEv && day === originalEv.day) { docId = originalEv.id; skipped = originalEv.skippedWeeks || []; resolved = originalEv.resolvedWeeks || []; mSkipped = originalEv.missionSkippedWeeks || []; fFailed = originalEv.focusFailedWeeks || []; keptOriginal = true; }
+                    let skipped = []; let resolved = isFreeTime ? ["All"] : []; let mSkipped = []; let fFailed = [];
+                    if (originalEv && day === originalEv.day) { docId = originalEv.id; skipped = originalEv.skippedWeeks || []; resolved = originalEv.resolvedWeeks || resolved; mSkipped = originalEv.missionSkippedWeeks || []; fFailed = originalEv.focusFailedWeeks || []; keptOriginal = true; }
                     batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: skipped, resolvedWeeks: resolved, missionSkippedWeeks: mSkipped, focusFailedWeeks: fFailed });
                 });
                 if (originalEv && !keptOriginal) batch.delete(db.collection('events').doc(originalEv.id));
@@ -1604,6 +1673,10 @@
             }
 
             batch.commit().then(() => {
+                if (isFreeTime && !editingEventId) {
+                    bankedFreeTimeMins -= (durationCost * checkedDays.length);
+                    db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true });
+                }
                 if (editingEventId) { cancelEdit(); } 
                 else { 
                     document.getElementById('inp-ev-title').value = ''; 
@@ -1615,14 +1688,29 @@
             });
         };
 
+        window.deleteMasterEvent = function(eventId) {
+            const ev = events.find(e => e.id === eventId);
+            if(!ev) return;
+            
+            if(confirm(`Delete ${ev.title}?`)) {
+                if (ev.isReward) {
+                    const refundMins = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                    bankedFreeTimeMins += refundMins;
+                    db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true });
+                    showToast(`Refunded ${refundMins} mins to Bank!`, "#ffd700");
+                }
+                db.collection('events').doc(eventId).delete();
+            }
+        };
+
         function editMasterEvent(id) {
             const ev = events.find(e => e.id === id);
             if(!ev) return;
             switchView('builder');
             
-            const isRem = ev.isReminder || false;
-            document.querySelector(`input[name="inp-ev-type"][value="${isRem ? 'reminder' : 'block'}"]`).checked = true;
-            toggleReminder('inp', isRem);
+            const eType = ev.isReward ? 'freetime' : (ev.isReminder ? 'reminder' : 'block');
+            document.querySelector(`input[name="inp-ev-type"][value="${eType}"]`).checked = true;
+            toggleEntryType('inp', eType);
 
             document.getElementById('inp-ev-course').value = ev.courseId || ""; 
             document.getElementById('inp-ev-title').value = ev.title;
@@ -1634,6 +1722,16 @@
             document.getElementById('inp-ev-location').value = ev.location || ""; 
             document.getElementById('inp-ev-start').value = ev.start;
             document.getElementById('inp-ev-end').value = ev.end || ev.start; 
+            
+            if (ev.isReward) {
+                const dur = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                // Temporarily inject to allow selection if they don't have balance right now to cover the edit
+                if(!document.querySelector(`#inp-ev-duration option[value="${dur}"]`)) {
+                    document.getElementById('inp-ev-duration').innerHTML += `<option value="${dur}">${dur} Minutes</option>`;
+                }
+                document.getElementById('inp-ev-duration').value = dur;
+            }
+            
             document.getElementById('inp-ev-desc').value = ev.desc || "";
             
             const isCrit = ev.isCritical; document.getElementById('inp-ev-critical').checked = isCrit; toggleWeightInput('inp-ev-weight-container', isCrit);
@@ -1649,7 +1747,8 @@
         function cancelEdit() {
             editingEventId = null; document.getElementById('form-event').reset();
             document.getElementById('btn-submit-event').innerText = "Add to Master Schedule"; document.getElementById('btn-cancel-edit').style.display = "none";
-            toggleWeightInput('inp-ev-weight-container', false); toggleReminder('inp', false);
+            toggleWeightInput('inp-ev-weight-container', false); 
+            document.querySelector('input[name="inp-ev-type"][value="block"]').checked = true; toggleEntryType('inp', 'block');
             document.getElementById('inp-ev-xp-enabled').checked = false; toggleXPInput('inp', false); document.getElementById('inp-ev-difficulty').value = 10;
             document.getElementById('inp-ev-multiday-toggle').checked = false; toggleMultiDay('inp', false); setDays('inp-day-picker', ['Monday']);
         }
@@ -1658,12 +1757,22 @@
             const ev = events.find(e => e.id === id); if(!ev) return;
             modalInstanceId = id; modalInstanceWeek = week.toString();
             
-            const isRem = ev.isReminder || false;
-            document.querySelector(`input[name="mod-ev-type"][value="${isRem ? 'reminder' : 'block'}"]`).checked = true; toggleReminder('mod', isRem);
+            const eType = ev.isReward ? 'freetime' : (ev.isReminder ? 'reminder' : 'block');
+            document.querySelector(`input[name="mod-ev-type"][value="${eType}"]`).checked = true; toggleEntryType('mod', eType);
 
             document.getElementById('mod-ev-course').value = ev.courseId || ""; document.getElementById('mod-ev-title').value = ev.title;
             document.getElementById('mod-ev-day').value = ev.day; document.getElementById('mod-ev-multiday-toggle').checked = false; toggleMultiDay('mod', false); setDays('mod-day-picker', [ev.day]);
-            document.getElementById('mod-ev-location').value = ev.location || ""; document.getElementById('mod-ev-start').value = ev.start; document.getElementById('mod-ev-end').value = ev.end || ev.start; document.getElementById('mod-ev-desc').value = ev.desc || "";
+            document.getElementById('mod-ev-location').value = ev.location || ""; document.getElementById('mod-ev-start').value = ev.start; document.getElementById('mod-ev-end').value = ev.end || ev.start; 
+            
+            if (ev.isReward) {
+                const dur = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                if(!document.querySelector(`#mod-ev-duration option[value="${dur}"]`)) {
+                    document.getElementById('mod-ev-duration').innerHTML += `<option value="${dur}">${dur} Minutes</option>`;
+                }
+                document.getElementById('mod-ev-duration').value = dur;
+            }
+            
+            document.getElementById('mod-ev-desc').value = ev.desc || "";
             
             const isCrit = ev.isCritical; document.getElementById('mod-ev-critical').checked = isCrit; toggleWeightInput('mod-ev-weight-container', isCrit);
             if(isCrit) document.getElementById('mod-ev-weight').value = ev.weight || '';
@@ -1681,7 +1790,7 @@
         function openCreateModal(day, startMins, endMins, week) {
             modalInstanceId = null; modalInstanceWeek = week.toString();
             const courseDrop = document.getElementById('mod-ev-course'); if(courseDrop.options.length > 0) courseDrop.selectedIndex = 0;
-            document.querySelector('input[name="mod-ev-type"][value="block"]').checked = true; toggleReminder('mod', false);
+            document.querySelector('input[name="mod-ev-type"][value="block"]').checked = true; toggleEntryType('mod', 'block');
             document.getElementById('mod-ev-title').value = ''; document.getElementById('mod-ev-day').value = day;
             document.getElementById('mod-ev-multiday-toggle').checked = false; toggleMultiDay('mod', false); setDays('mod-day-picker', [day]);
             document.getElementById('mod-ev-location').value = ''; document.getElementById('mod-ev-start').value = minsToTimeStr(startMins); document.getElementById('mod-ev-end').value = minsToTimeStr(endMins); document.getElementById('mod-ev-desc').value = '';
@@ -1695,30 +1804,70 @@
         function closeInstanceModal() { document.getElementById('instance-edit-modal').style.display = 'none'; modalInstanceId = null; modalInstanceWeek = null; }
 
         function deleteModalEvent() {
-            if(modalInstanceId && modalInstanceWeek) { skipEventOccurrence(modalInstanceId, modalInstanceWeek); closeInstanceModal(); }
+            if(modalInstanceId && modalInstanceWeek) { 
+                const ev = events.find(e => e.id === modalInstanceId);
+                if (ev && ev.isReward) {
+                    const refundMins = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                    bankedFreeTimeMins += refundMins;
+                    db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true });
+                    showToast(`Refunded ${refundMins} mins to Bank!`, "#ffd700");
+                }
+                skipEventOccurrence(modalInstanceId, modalInstanceWeek); 
+                closeInstanceModal(); 
+            }
         }
 
+        // Instance Form Submit
         document.getElementById('form-instance-edit').onsubmit = (e) => {
             e.preventDefault();
             const isMulti = document.getElementById('mod-ev-multiday-toggle').checked;
             let checkedDays = isMulti ? Array.from(document.querySelectorAll('#mod-day-picker input:checked')).map(cb => cb.value) : [document.getElementById('mod-ev-day').value];
             if (checkedDays.length === 0) { alert("Please select at least one day."); return; }
 
-            const isCrit = document.getElementById('mod-ev-critical').checked;
+            const evType = document.querySelector('input[name="mod-ev-type"]:checked').value;
+            const isReminder = evType === 'reminder';
+            const isFreeTime = evType === 'freetime';
+            const isCrit = !isFreeTime && document.getElementById('mod-ev-critical').checked;
             const weightVal = document.getElementById('mod-ev-weight').value;
-            const isReminder = document.querySelector('input[name="mod-ev-type"]:checked').value === 'reminder';
-
-            const isXpEnabled = document.getElementById('mod-ev-xp-enabled').checked;
+            const isXpEnabled = !isFreeTime && document.getElementById('mod-ev-xp-enabled').checked;
+            const reqFocus = !isFreeTime && document.getElementById('mod-ev-requires-focus').checked;
             const xpDiff = document.getElementById('mod-ev-difficulty').value;
-            const reqFocus = document.getElementById('mod-ev-requires-focus').checked;
+
+            let startTimeStr = document.getElementById('mod-ev-start').value;
+            let endTimeStr = document.getElementById('mod-ev-end').value;
+            let durationCost = 0;
+
+            if (isFreeTime) {
+                durationCost = parseInt(document.getElementById('mod-ev-duration').value);
+                // Allow it if they are just editing the time of an existing free time block without expanding it
+                let originalCost = 0;
+                if (modalInstanceId) {
+                     const originalEv = events.find(ev => ev.id === modalInstanceId);
+                     if (originalEv && originalEv.isReward) originalCost = timeToMinutes(originalEv.end) - timeToMinutes(originalEv.start);
+                }
+                let extraCost = (durationCost * checkedDays.length) - originalCost;
+
+                if (isNaN(durationCost) || (extraCost > 0 && bankedFreeTimeMins < extraCost)) {
+                    alert(`Not enough banked free time to cover this edit.`); return;
+                }
+                let startMins = timeToMinutes(startTimeStr);
+                endTimeStr = minsToTimeStr(startMins + durationCost);
+                
+                if (extraCost !== 0) {
+                     bankedFreeTimeMins -= extraCost;
+                     db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true });
+                }
+            } else if (isReminder) {
+                endTimeStr = startTimeStr;
+            }
 
             const baseData = {
-                termId: currentTermId, courseId: document.getElementById('mod-ev-course').value, title: document.getElementById('mod-ev-title').value,
-                weeks: modalInstanceWeek, location: document.getElementById('mod-ev-location').value, start: document.getElementById('mod-ev-start').value,
-                end: isReminder ? document.getElementById('mod-ev-start').value : document.getElementById('mod-ev-end').value, desc: document.getElementById('mod-ev-desc').value,
-                isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null, resolvedWeeks: [],
+                termId: currentTermId, courseId: isFreeTime ? "Free Time" : document.getElementById('mod-ev-course').value, title: document.getElementById('mod-ev-title').value,
+                weeks: modalInstanceWeek, location: document.getElementById('mod-ev-location').value, start: startTimeStr,
+                end: endTimeStr, desc: document.getElementById('mod-ev-desc').value,
+                isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null, resolvedWeeks: isFreeTime ? [modalInstanceWeek] : [],
                 missionSkippedWeeks: [], focusFailedWeeks: [],
-                xpEnabled: isXpEnabled, xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null, requiresFocus: reqFocus, isReward: false
+                xpEnabled: isXpEnabled, xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null, requiresFocus: reqFocus, isReward: isFreeTime
             };
 
             const batch = db.batch();
@@ -1743,151 +1892,6 @@
             batch.commit().then(closeInstanceModal);
         };
 
-        // --- MISSIONS GAMIFICATION & REWARD LOGIC ---
-        function attemptRewardPurchase() {
-            const title = document.getElementById('reward-title').value.trim();
-            const dateVal = document.getElementById('reward-date').value;
-            const startVal = document.getElementById('reward-start').value;
-            const endVal = document.getElementById('reward-end').value;
-            const msgBox = document.getElementById('reward-msg');
-
-            if(!title || !dateVal || !startVal || !endVal) {
-                msgBox.innerHTML = `<span style="color:#ff5252;">Please fill out all fields.</span>`;
-                return;
-            }
-
-            const startMins = timeToMinutes(startVal);
-            const endMins = timeToMinutes(endVal);
-            let durationMins = endMins - startMins;
-
-            if (durationMins <= 0) {
-                msgBox.innerHTML = `<span style="color:#ff5252;">End time must be after start time.</span>`;
-                return;
-            }
-
-            if (durationMins % 60 !== 0) {
-                msgBox.innerHTML = `<span style="color:#ff5252;">Free time can only be purchased in full hour increments.</span>`;
-                return;
-            }
-
-            const hours = durationMins / 60;
-            const cost = hours * 300; 
-
-            if (userXP < cost) {
-                msgBox.innerHTML = `<span style="color:#ff5252;">Not enough XP. Do more missions to earn more XP. (Need ${cost} XP)</span>`;
-                return;
-            }
-
-            if(confirm(`Confirm and buy with ${cost}xp?`)) {
-                executeRewardPurchase(title, dateVal, startVal, endVal, cost);
-            }
-        }
-
-        function executeRewardPurchase(title, dateVal, startVal, endVal, cost) {
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(!currentTerm) { alert("No active plan to schedule this in."); return; }
-
-            // Local Date parsing to avoid timezone drift
-            const [y, m, d] = dateVal.split('-').map(Number);
-            const localTarget = new Date(y, m - 1, d);
-            
-            const [ty, tm, td] = currentTerm.startDate.split('-').map(Number);
-            const termStart = new Date(ty, tm - 1, td);
-            
-            const diffDays = getDaysDiff(termStart, localTarget);
-            
-            if (diffDays < 0 || diffDays >= (currentTerm.totalWeeks * 7)) {
-                document.getElementById('reward-msg').innerHTML = `<span style="color:#ff5252;">Date is outside the active dates of the current plan.</span>`;
-                return;
-            }
-
-            const weekNum = Math.floor(diffDays / 7) + 1;
-            const daysArr = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            const dayName = daysArr[localTarget.getDay()];
-
-            const docId = `REWARD_${Date.now()}`;
-            const newEvent = {
-                id: docId,
-                termId: currentTermId,
-                courseId: "Free Time",
-                title: title,
-                weeks: weekNum.toString(),
-                day: dayName,
-                start: startVal,
-                end: endVal,
-                location: "",
-                desc: "Purchased with XP.",
-                isCritical: false,
-                isReminder: false,
-                weight: null,
-                xpEnabled: false,
-                xpDifficulty: null,
-                requiresFocus: false,
-                isReward: true,
-                skippedWeeks: [],
-                resolvedWeeks: [weekNum.toString()], // Pushed so it doesn't show up in missions as unresolved
-                missionSkippedWeeks: [],
-                focusFailedWeeks: []
-            };
-
-            db.collection('events').doc(docId).set(newEvent).then(() => {
-                updateXP(-cost);
-                document.getElementById('form-reward').reset();
-                document.getElementById('reward-msg').innerHTML = `<span style="color:#4caf50;">Free time purchased and scheduled!</span>`;
-                setTimeout(() => { document.getElementById('reward-msg').innerHTML = ''; }, 3000);
-            }).catch(err => {
-                console.error(err);
-                document.getElementById('reward-msg').innerHTML = `<span style="color:#ff5252;">Error saving to database.</span>`;
-            });
-        }
-
-        function renderMissions() {
-            const container = document.getElementById('missions-list');
-            if(!container) return;
-            container.innerHTML = '';
-            
-            let pendingMissions = getPendingMissions();
-
-            if (pendingMissions.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding: 40px; background: rgba(0,0,0,0.2); border: 1px dashed var(--outline); border-radius: 8px;"><span style="font-size: 40px;">🏅</span><h3 style="color: var(--text-main); margin: 10px 0;">All clear, Commander!</h3><p style="color: var(--text-muted);">No unresolved blocks found in the past timeline.</p></div>`; return;
-            }
-            
-            const daysArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-            pendingMissions.sort((a,b) => a.week - b.week || daysArr.indexOf(a.ev.day) - daysArr.indexOf(b.ev.day) || timeToMinutes(a.ev.start) - timeToMinutes(b.ev.start));
-            
-            pendingMissions.forEach(mission => {
-                const termCourses = courses.filter(c => c.termId === currentTermId);
-                const cColor = mission.ev.isReward ? "#ffd700" : (mission.ev.courseId ? (termCourses.find(c => c.id === mission.ev.courseId)?.color || "var(--accent)") : "var(--accent)");
-
-                let baseXP = (mission.ev.xpEnabled && mission.ev.xpDifficulty) ? mission.ev.xpDifficulty * 10 : 0;
-                let focusWarn = mission.ev.requiresFocus ? '🔥 ' : '';
-                let focusFailed = mission.ev.focusFailedWeeks && mission.ev.focusFailedWeeks.includes(mission.week.toString());
-                
-                // Calculate potential display text
-                let potentialXP = baseXP;
-                let failPenalties = [];
-                if(focusFailed && mission.ev.requiresFocus) {
-                    potentialXP -= 50;
-                    failPenalties.push("-50 Focus");
-                }
-                
-                let xpTooltip = potentialXP > 0 ? `(+${potentialXP} XP)` : `(${potentialXP} XP)`;
-                if(failPenalties.length > 0) xpTooltip += ` [${failPenalties.join(', ')}]`;
-
-                const div = document.createElement('div');
-                div.className = 'mission-item'; div.style.borderLeftColor = cColor;
-                div.innerHTML = `
-                    <div style="flex: 1; padding-right: 15px;">
-                        <strong style="color: ${cColor}; font-size: 18px;">${mission.ev.isReminder ? '🔔' : ''} ${focusWarn}${mission.ev.courseId || ''} | ${mission.ev.title}</strong><br>
-                        <small style="color: var(--text-muted); font-size: 14px;">Week ${mission.week} • ${mission.ev.day} (${format12Hour(mission.ev.start)})</small>
-                    </div>
-                    <div class="mission-actions">
-                        <button class="mission-btn btn-check" onclick="resolveMission('${mission.ev.id}', '${mission.week}', 'complete')" title="Task Completed ${xpTooltip}">✔️</button>
-                        <button class="mission-btn btn-cross" onclick="openReschedulePanel('${mission.ev.id}', '${mission.week}')" title="Task Failed (Reschedule / Skip)">✖️</button>
-                    </div>`;
-                container.appendChild(div);
-            });
-        }
 
         function resolveMission(eventId, weekNum, action) {
             const ev = events.find(e => e.id === eventId); if(!ev) return;
@@ -1907,12 +1911,10 @@
                 let baseXP = (ev.xpEnabled && ev.xpDifficulty) ? ev.xpDifficulty * 10 : 0;
                 let focusPenalty = 0;
 
-                // Apply Focus Penalty if required and failed (or if skipped/rescheduled entirely)
                 if (ev.requiresFocus) {
                     if (ev.focusFailedWeeks && ev.focusFailedWeeks.includes(weekNum.toString())) {
                         focusPenalty = 50;
                     } else if (action === 'skip' || action === 'reschedule') {
-                        // Skipping/Rescheduling means they definitely didn't focus through the block
                         focusPenalty = 50;
                     }
                 }
@@ -2006,7 +2008,7 @@
 
                 const li = document.createElement('li'); li.className = "mgmt-item";
                 li.innerHTML = `<div><strong style="color:${cColor}">${remBadge}${rewardBadge}${criticalBadge}${e.courseId ? e.courseId + ' | ' : ''}</strong> ${e.title} ${xpBadge} ${focusBadge}<br><small style="color:var(--text-muted)">${e.day} | ${e.start} ${e.isReminder ? '' : '- ' + e.end} | 🔁 ${occurrenceText} ${skippedNotice}</small></div>
-                    <div style="display:flex; gap: 8px;"><button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button><button class="btn-delete" onclick="db.collection('events').doc('${e.id}').delete();">Delete</button></div>`;
+                    <div style="display:flex; gap: 8px;"><button class="btn-edit-list" onclick="editMasterEvent('${e.id}')">Edit Master</button><button class="btn-delete" onclick="deleteMasterEvent('${e.id}')">Delete</button></div>`;
                 if(eventList) eventList.appendChild(li);
             });
 
@@ -2079,7 +2081,6 @@
 
             dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
             
-            // Only pull events that haven't been "system skipped" (edited into standalone instances)
             let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())));
             
             if (!isTickUpdate) renderTimeGraph(todayEvents);
