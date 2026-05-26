@@ -622,6 +622,21 @@
     <div id="ics-import-modal" class="modal-overlay"><div class="modal-content" style="max-width: 600px;"><button class="close-modal" onclick="closeICSModal()">✖</button><h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Verify Detected Courses</h2><div id="ics-course-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; padding-right: 10px;"></div><button class="btn-submit" style="width: 100%;" onclick="executeICSInjection()">Confirm & Inject Schedule</button></div></div>
 
     <script>
+        // --- EXTENSION BRIDGE CONFIG ---
+        const EXTENSION_ID = "hnefcnjfgkefmecikelfmpeapclhjboa";
+
+        function broadcastFocusState(isActive) {
+            if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.runtime.sendMessage(EXTENSION_ID, { isFocusModeActive: isActive }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.log("Extension bridge not connected (is the extension loaded and matching your URL?).");
+                    } else {
+                        console.log(`Successfully broadcasted Focus Mode: ${isActive}`);
+                    }
+                });
+            }
+        }
+
         // --- EMAILJS HELPER ---
         function sendAccountabilityEmail(type, params) {
             if (!accountabilityEmail) return;
@@ -849,6 +864,8 @@
         };
 
         function failFocusMode() {
+            broadcastFocusState(false);
+            
             clearTimeout(focusCheckTimeout);
             clearInterval(focusInterval);
             isFocusModeActive = false;
@@ -875,6 +892,8 @@
         }
 
         function closeFocusMode() {
+            broadcastFocusState(false);
+            
             clearInterval(focusInterval);
             clearTimeout(focusCheckTimeout);
             isFocusModeActive = false;
@@ -889,6 +908,9 @@
             initializeNotifications(); 
             
             if (!currentFocusEventId) return;
+            
+            broadcastFocusState(true);
+            
             isFocusModeActive = true;
             focusFailedThisSession = false;
             focusStrikeCount = 0; // Reset Strikes
@@ -970,6 +992,7 @@
 
             } else {
                 alert("Pop-up blocked! Please allow pop-ups for Focus Mode to work.");
+                broadcastFocusState(false);
                 isFocusModeActive = false;
                 focusBtn.classList.add('active-pulse');
                 focusBtn.innerText = "🔥 Focus Mode";
