@@ -849,6 +849,7 @@
         };
 
         function failFocusMode() {
+            chrome.storage.local.set({ isFocusModeActive: false });
             clearTimeout(focusCheckTimeout);
             clearInterval(focusInterval);
             isFocusModeActive = false;
@@ -875,6 +876,7 @@
         }
 
         function closeFocusMode() {
+            chrome.storage.local.set({ isFocusModeActive: false });
             clearInterval(focusInterval);
             clearTimeout(focusCheckTimeout);
             isFocusModeActive = false;
@@ -886,6 +888,8 @@
         }
 
         function openFocusMode() {
+            
+            chrome.storage.local.set({ isFocusModeActive: true });
             initializeNotifications(); 
             
             if (!currentFocusEventId) return;
