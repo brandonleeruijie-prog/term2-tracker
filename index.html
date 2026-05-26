@@ -886,7 +886,7 @@
         }
 
         function openFocusMode() {
-            initializeNotifications(); // Ensure notifications are active via gesture
+            initializeNotifications(); 
             
             if (!currentFocusEventId) return;
             isFocusModeActive = true;
@@ -897,44 +897,77 @@
             focusBtn.classList.remove('active-pulse');
             focusBtn.innerText = "🔥 Focus Active";
 
-            focusWindow = window.open("", "FocusMode", "width=350,height=250,top=100,left=100,menubar=no,toolbar=no,location=no,status=no");
+            focusWindow = window.open("", "FocusMode", "width=400,height=300,top=100,left=100,menubar=no,toolbar=no,location=no,status=no");
             
             if (focusWindow) {
                 focusWindow.document.write(`
                     <html><head><title>Focus Mode</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
                     <style>
-                        body { background: #131314; color: #e3e3e3; font-family: sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100vh; margin: 0; }
-                        button { background: #4caf50; color: white; border: none; padding: 15px 20px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.2s;}
-                        button:hover { background: #388e3c; transform: translateY(-2px); }
+                        body { background: #131314; color: #e3e3e3; font-family: sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
+                        h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+                        #timer { font-family: 'Share Tech Mono', monospace; font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
+                        
+                        /* Work Phase Styles */
+                        .work-phase h2 { color: #ff9800; }
+                        .work-phase #timer { color: #ff9800; }
+                        
+                        /* Break Phase Styles */
+                        .break-phase h2 { color: #4caf50; }
+                        .break-phase #timer { color: #4caf50; }
                     </style>
-                    </head><body>
-                        <h2 style="color: #ff9800; margin-top: 0;">🔥 Deep Focus Active</h2>
-                        <p id="status-text" style="color: #c4c7c5;">Keep up the good work.</p>
-                        <div id="check-container" style="display:none;">
-                            <p style="color: #ff5252; font-weight: bold; font-size: 20px; margin-bottom: 5px;">Are you still working?</p>
-                            <p style="color: #c4c7c5; font-size: 14px; margin-top: 0;">Click below to prevent an XP Penalty.</p>
-                            <button onclick="window.opener.confirmFocusCheck()">YES, I'M WORKING</button>
-                        </div>
+                    </head><body class="work-phase" id="bg">
+                        <h2 id="phase-title">🔥 Deep Work</h2>
+                        <div id="timer">50:00</div>
+                        <p id="status-text" style="color: #c4c7c5;">Immerse yourself. Stay on target.</p>
                     </body></html>
                 `);
 
-                // Start 15 min interval (900000 ms)
+                let isWorkPhase = true;
+                let timeLeft = 50 * 60; // 50 minutes in seconds
+
+                if (focusInterval) clearInterval(focusInterval);
+
+                // 1-Second Tick Interval
                 focusInterval = setInterval(() => {
+                    // Detect Window Close
                     if (!focusWindow || focusWindow.closed) {
-                        failFocusMode();
+                        clearInterval(focusInterval);
+                        if (isWorkPhase) {
+                            failFocusMode(); // Penalty if closed during Deep Work!
+                        } else {
+                            closeFocusMode(); // Safe to close during a break
+                        }
                         return;
                     }
-                    
-                    playBeep();
-                    focusWindow.document.getElementById('status-text').style.display = 'none';
-                    focusWindow.document.getElementById('check-container').style.display = 'block';
-                    focusWindow.focus();
 
-                    // Give them 1 minute to click it
-                    focusCheckTimeout = setTimeout(() => {
-                        failFocusMode();
-                    }, 60000);
-                }, 900000); 
+                    timeLeft--;
+
+                    // Update UI Time
+                    let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                    let s = (timeLeft % 60).toString().padStart(2, '0');
+                    focusWindow.document.getElementById('timer').innerText = `${m}:${s}`;
+
+                    // Phase Switching
+                    if (timeLeft <= 0) {
+                        playBeep(); // Audio cue
+                        isWorkPhase = !isWorkPhase; // Toggle phase
+                        
+                        if (isWorkPhase) {
+                            timeLeft = 50 * 60;
+                            focusWindow.document.getElementById('bg').className = 'work-phase';
+                            focusWindow.document.getElementById('phase-title').innerText = "🔥 Deep Work";
+                            focusWindow.document.getElementById('status-text').innerText = "Back to the grind.";
+                        } else {
+                            timeLeft = 10 * 60;
+                            focusWindow.document.getElementById('bg').className = 'break-phase';
+                            focusWindow.document.getElementById('phase-title').innerText = "☕ Rest & Recharge";
+                            focusWindow.document.getElementById('status-text').innerText = "Step away from the screen.";
+                        }
+                        focusWindow.focus(); // Pop window to front on phase change
+                    }
+                }, 1000); 
+
             } else {
                 alert("Pop-up blocked! Please allow pop-ups for Focus Mode to work.");
                 isFocusModeActive = false;
@@ -942,7 +975,6 @@
                 focusBtn.innerText = "🔥 Focus Mode";
             }
         }
-
         function updateFocusButtonState(activeEv) {
             const focusBtn = document.getElementById('btn-focus-mode');
             
