@@ -52,6 +52,8 @@
         .form-group label { color: var(--text-muted); font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
         .form-group input, .form-group select, .form-group textarea { background: rgba(0,0,0,0.3); border: 1px solid var(--outline); color: white; padding: 10px; border-radius: 4px; font-family: 'Rajdhani'; font-size: 16px; }
         .btn-submit { background: var(--accent); color: var(--bg-dark); border: none; padding: 10px 20px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; text-transform: uppercase; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--bg-panel); padding: 30px; border-radius: 8px; border: 1px solid var(--accent); width: 90%; max-width: 650px; position: relative; }
     </style>
 </head>
 <body>
@@ -102,54 +104,33 @@
                 <h2 id="dash-welcome-title" style="color: var(--accent);">Dashboard</h2>
                 <div id="dashboard-today-agenda"></div>
             </div>
-            
-            <div id="view-missions" style="display:none;">
-                <h2 style="color: var(--accent);">Missions</h2>
-                </div>
         </div>
     </div>
 
     <div id="toast" class="toast">XP Updated</div>
 
     <script>
-        // --- EXTENSION BRIDGE CONFIG ---
-        const EXTENSION_ID = "hnefcnjfgkefmecikelfmpeapclhjboa";
-
-        function broadcastFocusState(isActive) {
-            if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
-                chrome.runtime.sendMessage(EXTENSION_ID, { isFocusModeActive: isActive }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.log("Extension bridge not connected.");
-                    } else {
-                        console.log(`Successfully broadcasted Focus Mode: ${isActive}`);
-                    }
-                });
-            }
-        }
-
         // --- EMAIL CONFIGURATION ---
+        // REPLACE WITH YOUR KEYS
         const SERVICE_ID = 'service_mfycgli';
         const STRIKE_TEMPLATE = 'template_ptlw8ff';
         const REPORT_TEMPLATE = 'template_0z19spp';
         const PUBLIC_KEY = 'DAhJlNrUs2aFVFxUZ';
 
         let accountabilityEmails = "";
-        let isFocusModeActive = false;
-        let focusWindow = null;
-        let focusInterval = null;
-        let focusCheckTimeout = null;
-        let focusFailedThisSession = false;
-        let focusStrikeCount = 0;
-        let currentFocusEventId = null;
-        let userXP = 0;
         
+        // --- EMAIL SENDER ---
         function sendAccountabilityEmail(type, params) {
             if (!accountabilityEmails) return;
+
             const templateID = (type === 'strike') ? STRIKE_TEMPLATE : REPORT_TEMPLATE;
+
+            // EmailJS handles comma-separated strings perfectly in the "to_email" field
             const templateParams = {
-                to_email: accountabilityEmails, 
+                to_email: accountabilityEmails, // EmailJS sends to all comma-separated emails
                 ...params
             };
+
             emailjs.send(SERVICE_ID, templateID, templateParams, PUBLIC_KEY)
                 .then(res => console.log("Accountability email sent!"))
                 .catch(err => console.error("Email error:", err));
@@ -157,7 +138,9 @@
 
         function saveSettings() {
             const input = document.getElementById('inp-partner-email').value;
+            // Clean up the string: replace semicolons with commas, remove whitespace
             const cleanEmails = input.split(/[,;]/).map(e => e.trim()).filter(e => e).join(', ');
+            
             db.collection("userStats").doc("player").set({ accountabilityEmails: cleanEmails }, { merge: true }).then(() => {
                 accountabilityEmails = cleanEmails;
                 document.getElementById('inp-partner-email').value = cleanEmails;
@@ -180,6 +163,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
+        // Load Global Stats
         db.collection("userStats").doc("player").onSnapshot(doc => {
             if(doc.exists) {
                 userXP = doc.data().xp || 0;
@@ -189,6 +173,7 @@
             renderXP();
         });
 
+        // Initialize UI
         function initializeNotifications() {
             if ("Notification" in window && Notification.permission === "default") {
                 Notification.requestPermission();
@@ -211,8 +196,10 @@
             document.getElementById('view-dashboard').style.display = (view === 'dashboard') ? 'block' : 'none';
             document.getElementById('view-settings').style.display = (view === 'settings') ? 'flex' : 'none';
             document.getElementById('view-missions').style.display = (view === 'missions') ? 'flex' : 'none';
+            // ... (Add builder/schedule visibility logic here)
         }
 
+        // Simple Toast Notification
         function showToast(msg, color) {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
@@ -228,112 +215,6 @@
             document.getElementById('xp-bar-fill').style.width = `${fillPct}%`;
         }
 
-        // --- FOCUS MODE LOGIC ---
-        function openFocusMode() {
-            initializeNotifications(); 
-            // Note: Remove this return for testing if you don't have an active event selected yet
-            // if (!currentFocusEventId) return; 
-            
-            broadcastFocusState(true);
-
-            isFocusModeActive = true;
-            focusFailedThisSession = false;
-            focusStrikeCount = 0;
-            
-            const focusBtn = document.getElementById('btn-focus-mode');
-            focusBtn.classList.remove('active-pulse');
-            focusBtn.innerText = "🔥 Focus Active";
-
-            focusWindow = window.open("", "FocusMode", "width=400,height=300,top=100,left=100,menubar=no,toolbar=no,location=no,status=no");
-            
-            if (focusWindow) {
-                focusWindow.document.write(`
-                    <html><head><title>Focus Mode</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-                    <style>
-                        body { background: #131314; color: #e3e3e3; font-family: sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
-                        h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-                        #timer { font-family: 'Share Tech Mono', monospace; font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
-                        .work-phase h2 { color: #ff9800; }
-                        .work-phase #timer { color: #ff9800; }
-                    </style>
-                    </head><body class="work-phase" id="bg">
-                        <h2 id="phase-title">🔥 Deep Work</h2>
-                        <div id="timer">50:00</div>
-                        <p id="status-text" style="color: #c4c7c5;">Immerse yourself. Stay on target.</p>
-                    </body></html>
-                `);
-
-                let isWorkPhase = true;
-                let timeLeft = 50 * 60; 
-
-                if (focusInterval) clearInterval(focusInterval);
-
-                focusInterval = setInterval(() => {
-                    if (!focusWindow || focusWindow.closed) {
-                        clearInterval(focusInterval);
-                        if (isWorkPhase) {
-                            failFocusMode(); 
-                        } else {
-                            closeFocusMode(); 
-                        }
-                        return;
-                    }
-
-                    timeLeft--;
-                    let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                    let s = (timeLeft % 60).toString().padStart(2, '0');
-                    focusWindow.document.getElementById('timer').innerText = `${m}:${s}`;
-
-                    if (timeLeft <= 0) {
-                        isWorkPhase = !isWorkPhase;
-                        if (isWorkPhase) {
-                            timeLeft = 50 * 60;
-                            focusWindow.document.getElementById('phase-title').innerText = "🔥 Deep Work";
-                        } else {
-                            timeLeft = 10 * 60;
-                            focusWindow.document.getElementById('phase-title').innerText = "☕ Rest & Recharge";
-                        }
-                        focusWindow.focus(); 
-                    }
-                }, 1000); 
-            } else {
-                alert("Pop-up blocked! Please allow pop-ups for Focus Mode to work.");
-                broadcastFocusState(false);
-                isFocusModeActive = false;
-                focusBtn.classList.add('active-pulse');
-                focusBtn.innerText = "🔥 Focus Mode";
-            }
-        }
-
-        function closeFocusMode() {
-            broadcastFocusState(false);
-            clearInterval(focusInterval);
-            clearTimeout(focusCheckTimeout);
-            isFocusModeActive = false;
-            if (focusWindow && !focusWindow.closed) focusWindow.close();
-            
-            const focusBtn = document.getElementById('btn-focus-mode');
-            focusBtn.innerText = "🔥 Focus Mode";
-            focusBtn.classList.remove('active-pulse');
-            focusBtn.disabled = false;
-        }
-
-        function failFocusMode() {
-            broadcastFocusState(false);
-            clearTimeout(focusCheckTimeout);
-            clearInterval(focusInterval);
-            isFocusModeActive = false;
-            focusFailedThisSession = true;
-            if (focusWindow && !focusWindow.closed) focusWindow.close();
-            
-            const focusBtn = document.getElementById('btn-focus-mode');
-            focusBtn.innerText = "🔥 Focus Failed";
-            focusBtn.disabled = true;
-            focusBtn.classList.remove('active-pulse');
-            
-            showToast("Focus Mode Failed! Penalty pending.", "#ff5252");
-        }
     </script>
 </body>
 </html>
