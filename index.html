@@ -295,13 +295,13 @@
             <div id="view-settings" style="display: none; flex-direction: column; height: 100%;">
                 <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚙️ System Settings</h2>
                 <div class="builder-section" style="background: rgba(255, 255, 255, 0.02);">
-                    <h3 style="margin-top:0; color: #ff5252;">Accountability Partner</h3>
+                    <h3 style="margin-top:0; color: #ff5252;">Accountability Partners</h3>
                     <p style="color: var(--text-muted); font-size: 15px;">Send an automated alert if you fail Focus Mode 3 times (15 minutes), and a weekly summary report every Monday.</p>
-                    <div class="form-group" style="max-width: 400px;">
-                        <label>Partner Email Address</label>
-                        <input type="email" id="inp-partner-email" placeholder="sister@example.com">
+                    <div class="form-group" style="max-width: 500px;">
+                        <label>Partner Email Addresses (Comma Separated)</label>
+                        <input type="text" id="inp-partner-email" placeholder="sister@example.com, dad@example.com">
                     </div>
-                    <button class="btn-submit" style="background: #ff5252; color: white;" onclick="saveSettings()">Save Accountability Target</button>
+                    <button class="btn-submit" style="background: #ff5252; color: white;" onclick="saveSettings()">Save Accountability Targets</button>
                     <div id="settings-msg" style="margin-top: 10px; font-weight: bold; font-size: 14px;"></div>
                 </div>
             </div>
@@ -644,9 +644,14 @@
         }
 
         function saveSettings() {
-            const email = document.getElementById('inp-partner-email').value.trim();
-            db.collection("userStats").doc("player").set({ accountabilityEmail: email }, { merge: true }).then(() => {
-                accountabilityEmail = email;
+            // Get raw input and safely split by comma to build a clean string
+            const rawEmails = document.getElementById('inp-partner-email').value;
+            const emailList = rawEmails.split(',').map(e => e.trim()).filter(e => e).join(', ');
+
+            db.collection("userStats").doc("player").set({ accountabilityEmail: emailList }, { merge: true }).then(() => {
+                accountabilityEmail = emailList;
+                document.getElementById('inp-partner-email').value = emailList; // visually update input
+                
                 const msg = document.getElementById('settings-msg');
                 msg.innerText = "Settings Saved!";
                 msg.style.color = "#4caf50";
@@ -778,6 +783,7 @@
             let pending = [];
 
             events.forEach(ev => {
+                // Only show XP-enabled tasks that are NOT rewards as pending missions
                 if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
                 
                 const evDayIdx = daysArr.indexOf(ev.day);
@@ -788,6 +794,7 @@
                 else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
                 
                 weeksToCheck.forEach(w => {
+                    // It is resolved if it's in skippedWeeks (system delete), missionSkippedWeeks, or resolvedWeeks
                     if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || 
                         (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString())) ||
                         (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(w.toString()))) return;
@@ -879,7 +886,7 @@
         }
 
         function openFocusMode() {
-            initializeNotifications(); 
+            initializeNotifications(); // Ensure notifications are active via gesture
             
             if (!currentFocusEventId) return;
             isFocusModeActive = true;
@@ -911,6 +918,7 @@
                     </body></html>
                 `);
 
+                // Start 15 min interval (900000 ms)
                 focusInterval = setInterval(() => {
                     if (!focusWindow || focusWindow.closed) {
                         failFocusMode();
@@ -922,6 +930,7 @@
                     focusWindow.document.getElementById('check-container').style.display = 'block';
                     focusWindow.focus();
 
+                    // Give them 1 minute to click it
                     focusCheckTimeout = setTimeout(() => {
                         failFocusMode();
                     }, 60000);
@@ -938,6 +947,7 @@
             const focusBtn = document.getElementById('btn-focus-mode');
             
             if (activeEv && activeEv.requiresFocus) {
+                // If it's a new event, reset the fail state
                 if (currentFocusEventId !== activeEv.id) {
                     focusFailedThisSession = false;
                     currentFocusEventId = activeEv.id;
@@ -953,12 +963,14 @@
                 focusBtn.disabled = true;
                 focusBtn.classList.remove('active-pulse');
                 
+                // If a block just ended
                 if (!activeEv && currentFocusEventId) {
                     let ev = events.find(e => e.id === currentFocusEventId);
                     if (ev && ev.requiresFocus) {
                         let weekNum = getCurrentCalendarWeek().toString();
                         let failedWeeks = [...(ev.focusFailedWeeks || [])];
                         
+                        // If it wasn't active at the end, OR it failed earlier, they get the penalty
                         if (!isFocusModeActive || focusFailedThisSession) {
                             if(!failedWeeks.includes(weekNum)) {
                                 failedWeeks.push(weekNum);
