@@ -635,7 +635,7 @@
             if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
                 chrome.runtime.sendMessage(EXTENSION_ID, { isFocusModeActive: isActive }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.log("Extension bridge not connected (is the extension loaded and matching your URL?).");
+                        console.log("Extension bridge not connected.");
                     } else {
                         console.log(`Successfully broadcasted Focus Mode: ${isActive}`);
                     }
@@ -702,8 +702,6 @@
                     Notification.requestPermission().then(permission => {
                         console.log("Notification Permission Status requested: ", permission);
                     });
-                } else {
-                    console.log("Notification Permission previously set to: ", Notification.permission);
                 }
                 notificationsInitialized = true;
             }
@@ -727,24 +725,12 @@
         let modalInstanceWeek = null;
         let activeRescheduleMission = null;
 
-        // --- FOCUS MODE STATE ---
-        let focusWindow = null;
-        let focusInterval = null;
-        let focusCheckTimeout = null;
-        let isFocusModeActive = false;
-        let currentFocusEventId = null;
-        let focusFailedThisSession = false;
-        let lastNotifiedEventId = null;
-        let lastNotifiedTime = 0; 
-        let focusStrikeCount = 0;
-
         // --- USER STATS LOGIC ---
         let userXP = 0; 
         let accountabilityEmail = "";
         let lastReportWeek = 0;
         let bankedFreeTimeMins = 0; // NEW: Global Banked Time
 
-        // Load Stats from Cloud
         db.collection("userStats").doc("player").onSnapshot(doc => {
             if(doc.exists) {
                 userXP = doc.data().xp || 0;
@@ -795,7 +781,7 @@
 
         function selectRewardPkg(btn) {
             document.querySelectorAll('.btn-reward-pkg').forEach(b => b.style.borderColor = 'var(--outline)');
-            btn.style.borderColor = '#ffd700'; // Highlight selection
+            btn.style.borderColor = '#ffd700'; 
             selectedRewardMins = parseInt(btn.dataset.mins);
             selectedRewardCost = parseInt(btn.dataset.cost);
         }
@@ -876,7 +862,19 @@
             }
         }
 
-        // --- FOCUS MODE LOGIC ---
+        // --- NEW FOCUS MODE STATE & ENGINE (PiP / Fallback) ---
+        let focusInterval = null;
+        let targetEndTime = 0;
+        let isWorkPhase = true;
+        let pipWindow = null;
+        let fallbackTimerUI = null;
+        let isFocusModeActive = false;
+        let currentFocusEventId = null;
+        let focusFailedThisSession = false;
+        let focusStrikeCount = 0;
+        let lastNotifiedEventId = null;
+        let lastNotifiedTime = 0; 
+
         function playBeep() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -891,32 +889,181 @@
                 gainNode.connect(audioCtx.destination);
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.5);
-            } catch(e) { console.log("Audio not supported"); }
+            } catch(e) { }
         }
 
-        window.confirmFocusCheck = function() {
-            clearTimeout(focusCheckTimeout);
-            if (focusWindow && !focusWindow.closed) {
-                focusWindow.document.getElementById('status-text').style.display = 'block';
-                focusWindow.document.getElementById('check-container').style.display = 'none';
+        async function openFocusMode() {
+            initializeNotifications(); 
+            
+            if (!currentFocusEventId) return;
+            
+            broadcastFocusState(true);
+            
+            isFocusModeActive = true;
+            focusFailedThisSession = false;
+            focusStrikeCount = 0; 
+            isWorkPhase = true;
+            
+            const focusBtn = document.getElementById('btn-focus-mode');
+            focusBtn.classList.remove('active-pulse');
+            focusBtn.innerText = "🔥 Focus Active";
+
+            targetEndTime = Date.now() + (50 * 60 * 1000);
+
+            if ('documentPictureInPicture' in window) {
+                try {
+                    pipWindow = await documentPictureInPicture.requestWindow({
+                        width: 400,
+                        height: 250
+                    });
+
+                    const style = pipWindow.document.createElement('style');
+                    style.textContent = `
+                        body { background: #131314; color: #e3e3e3; font-family: 'Share Tech Mono', monospace, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
+                        h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+                        #timer { font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
+                        .work-phase h2 { color: #ff9800; }
+                        .work-phase #timer { color: #ff9800; }
+                        .break-phase h2 { color: #4caf50; }
+                        .break-phase #timer { color: #4caf50; }
+                    `;
+                    pipWindow.document.head.appendChild(style);
+
+                    pipWindow.document.body.className = 'work-phase';
+                    pipWindow.document.body.innerHTML = `
+                        <h2 id="phase-title">🔥 Deep Work</h2>
+                        <div id="timer">50:00</div>
+                        <p id="status-text" style="color: #c4c7c5; font-family: sans-serif;">Immerse yourself. Stay on target.</p>
+                    `;
+
+                    pipWindow.addEventListener("pagehide", () => {
+                        if (isFocusModeActive) {
+                            isWorkPhase ? failFocusMode() : closeFocusMode();
+                        }
+                    });
+
+                } catch (error) {
+                    console.warn("PiP initialization failed. Falling back.", error);
+                    launchFallbackUI();
+                }
+            } else {
+                launchFallbackUI(); 
             }
-            showToast("Focus maintained! (Stay on target)", "#4caf50");
+
+            if (focusInterval) clearInterval(focusInterval);
+            focusInterval = setInterval(focusLoopTick, 1000);
+            focusLoopTick(); 
+        }
+
+        function focusLoopTick() {
+            let diff = targetEndTime - Date.now();
+
+            if (diff <= 0) {
+                if (typeof playBeep === 'function') playBeep();
+                
+                isWorkPhase = !isWorkPhase;
+                
+                if (isWorkPhase) {
+                    targetEndTime = Date.now() + (50 * 60 * 1000);
+                    updateUIStyles("🔥 Deep Work", "Back to the grind.", "work-phase", "#ff9800");
+                } else {
+                    targetEndTime = Date.now() + (10 * 60 * 1000);
+                    updateUIStyles("☕ Rest & Recharge", "Step away from the screen.", "break-phase", "#4caf50");
+                }
+                diff = targetEndTime - Date.now(); 
+            }
+
+            let totalSeconds = Math.ceil(diff / 1000);
+            let m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            let s = (totalSeconds % 60).toString().padStart(2, '0');
+            let timeString = `${m}:${s}`;
+
+            if (pipWindow && !pipWindow.closed) {
+                const t = pipWindow.document.getElementById('timer');
+                if (t) t.innerText = timeString;
+            } else if (fallbackTimerUI) {
+                const t = document.getElementById('fb-timer');
+                if (t) t.innerText = timeString;
+            }
+        }
+
+        function updateUIStyles(title, status, phaseClass, color) {
+            if (pipWindow && !pipWindow.closed) {
+                pipWindow.document.body.className = phaseClass;
+                pipWindow.document.getElementById('phase-title').innerText = title;
+                pipWindow.document.getElementById('status-text').innerText = status;
+            } else if (fallbackTimerUI) {
+                fallbackTimerUI.className = phaseClass;
+                document.getElementById('fb-phase-title').innerText = title;
+                document.getElementById('fb-phase-title').style.color = color;
+                document.getElementById('fb-timer').style.color = color;
+                fallbackTimerUI.style.borderColor = color;
+                document.getElementById('fb-status-text').innerText = status;
+            }
+        }
+
+        function launchFallbackUI() {
+            if (fallbackTimerUI) fallbackTimerUI.remove();
+            fallbackTimerUI = document.createElement('div');
+            fallbackTimerUI.style.cssText = `
+                position: fixed; bottom: 20px; right: 20px; width: 300px; padding: 20px;
+                background: rgba(19, 19, 20, 0.95); border: 2px solid #ff9800; border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 99999; text-align: center;
+                backdrop-filter: blur(10px); color: #e3e3e3; font-family: sans-serif;
+            `;
+            fallbackTimerUI.className = 'work-phase';
+            fallbackTimerUI.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 id="fb-phase-title" style="margin: 0; color: #ff9800; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;">🔥 Deep Work</h3>
+                    <button onclick="handleFallbackClose()" style="background: transparent; border: none; color: #c4c7c5; font-size: 20px; cursor: pointer;">✖</button>
+                </div>
+                <div id="fb-timer" style="font-family: 'Share Tech Mono', monospace; font-size: 48px; font-weight: bold; color: #ff9800;">50:00</div>
+                <p id="fb-status-text" style="margin: 5px 0 0 0; font-size: 14px; color: #c4c7c5;">Immerse yourself. Stay on target.</p>
+            `;
+            document.body.appendChild(fallbackTimerUI);
+        }
+
+        window.handleFallbackClose = function() {
+            isWorkPhase ? failFocusMode() : closeFocusMode();
         };
+
+        function cleanupFocusEngine() {
+            clearInterval(focusInterval);
+            isFocusModeActive = false;
+
+            if (pipWindow && !pipWindow.closed) {
+                pipWindow.close();
+                pipWindow = null;
+            }
+            if (fallbackTimerUI) {
+                fallbackTimerUI.remove();
+                fallbackTimerUI = null;
+            }
+        }
+
+        function closeFocusMode() {
+            broadcastFocusState(false);
+            cleanupFocusEngine();
+            
+            const focusBtn = document.getElementById('btn-focus-mode');
+            if (focusBtn) {
+                focusBtn.innerText = "🔥 Focus Mode";
+                focusBtn.classList.remove('active-pulse');
+                focusBtn.disabled = false;
+            }
+        }
 
         function failFocusMode() {
             broadcastFocusState(false);
-            
-            clearTimeout(focusCheckTimeout);
-            clearInterval(focusInterval);
-            isFocusModeActive = false;
             focusFailedThisSession = true;
-            if (focusWindow && !focusWindow.closed) focusWindow.close();
+            cleanupFocusEngine();
             
             const focusBtn = document.getElementById('btn-focus-mode');
-            focusBtn.innerText = "🔥 Focus Failed";
-            focusBtn.disabled = true;
-            focusBtn.classList.remove('active-pulse');
-            
+            if (focusBtn) {
+                focusBtn.innerText = "🔥 Focus Failed";
+                focusBtn.disabled = true;
+                focusBtn.classList.remove('active-pulse');
+            }
             showToast("Focus Mode Failed! Penalty pending.", "#ff5252");
             
             let ev = events.find(e => e.id === currentFocusEventId);
@@ -927,101 +1074,6 @@
                     failedWeeks.push(weekNum);
                     db.collection('events').doc(ev.id).update({ focusFailedWeeks: failedWeeks });
                 }
-            }
-        }
-
-        function closeFocusMode() {
-            broadcastFocusState(false);
-            
-            clearInterval(focusInterval);
-            clearTimeout(focusCheckTimeout);
-            isFocusModeActive = false;
-            if (focusWindow && !focusWindow.closed) focusWindow.close();
-            
-            const focusBtn = document.getElementById('btn-focus-mode');
-            focusBtn.innerText = "🔥 Focus Mode";
-            focusBtn.classList.remove('active-pulse');
-        }
-
-        function openFocusMode() {
-            initializeNotifications(); 
-            
-            if (!currentFocusEventId) return;
-            
-            broadcastFocusState(true);
-            
-            isFocusModeActive = true;
-            focusFailedThisSession = false;
-            focusStrikeCount = 0;
-            
-            const focusBtn = document.getElementById('btn-focus-mode');
-            focusBtn.classList.remove('active-pulse');
-            focusBtn.innerText = "🔥 Focus Active";
-
-            focusWindow = window.open("", "FocusMode", "width=400,height=300,top=100,left=100,menubar=no,toolbar=no,location=no,status=no");
-            
-            if (focusWindow) {
-                focusWindow.document.write(`
-                    <html><head><title>Focus Mode</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-                    <style>
-                        body { background: #131314; color: #e3e3e3; font-family: sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
-                        h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-                        #timer { font-family: 'Share Tech Mono', monospace; font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
-                        .work-phase h2 { color: #ff9800; }
-                        .work-phase #timer { color: #ff9800; }
-                        .break-phase h2 { color: #4caf50; }
-                        .break-phase #timer { color: #4caf50; }
-                    </style>
-                    </head><body class="work-phase" id="bg">
-                        <h2 id="phase-title">🔥 Deep Work</h2>
-                        <div id="timer">50:00</div>
-                        <p id="status-text" style="color: #c4c7c5;">Immerse yourself. Stay on target.</p>
-                    </body></html>
-                `);
-
-                let isWorkPhase = true;
-                let timeLeft = 50 * 60; 
-
-                if (focusInterval) clearInterval(focusInterval);
-
-                focusInterval = setInterval(() => {
-                    if (!focusWindow || focusWindow.closed) {
-                        clearInterval(focusInterval);
-                        if (isWorkPhase) { failFocusMode(); } else { closeFocusMode(); }
-                        return;
-                    }
-
-                    timeLeft--;
-                    let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-                    let s = (timeLeft % 60).toString().padStart(2, '0');
-                    focusWindow.document.getElementById('timer').innerText = `${m}:${s}`;
-
-                    if (timeLeft <= 0) {
-                        playBeep(); 
-                        isWorkPhase = !isWorkPhase; 
-                        
-                        if (isWorkPhase) {
-                            timeLeft = 50 * 60;
-                            focusWindow.document.getElementById('bg').className = 'work-phase';
-                            focusWindow.document.getElementById('phase-title').innerText = "🔥 Deep Work";
-                            focusWindow.document.getElementById('status-text').innerText = "Back to the grind.";
-                        } else {
-                            timeLeft = 10 * 60;
-                            focusWindow.document.getElementById('bg').className = 'break-phase';
-                            focusWindow.document.getElementById('phase-title').innerText = "☕ Rest & Recharge";
-                            focusWindow.document.getElementById('status-text').innerText = "Step away from the screen.";
-                        }
-                        focusWindow.focus(); 
-                    }
-                }, 1000); 
-
-            } else {
-                alert("Pop-up blocked! Please allow pop-ups for Focus Mode to work.");
-                broadcastFocusState(false);
-                isFocusModeActive = false;
-                focusBtn.classList.add('active-pulse');
-                focusBtn.innerText = "🔥 Focus Mode";
             }
         }
         
@@ -1725,7 +1777,6 @@
             
             if (ev.isReward) {
                 const dur = timeToMinutes(ev.end) - timeToMinutes(ev.start);
-                // Temporarily inject to allow selection if they don't have balance right now to cover the edit
                 if(!document.querySelector(`#inp-ev-duration option[value="${dur}"]`)) {
                     document.getElementById('inp-ev-duration').innerHTML += `<option value="${dur}">${dur} Minutes</option>`;
                 }
@@ -1839,7 +1890,6 @@
 
             if (isFreeTime) {
                 durationCost = parseInt(document.getElementById('mod-ev-duration').value);
-                // Allow it if they are just editing the time of an existing free time block without expanding it
                 let originalCost = 0;
                 if (modalInstanceId) {
                      const originalEv = events.find(ev => ev.id === modalInstanceId);
