@@ -729,7 +729,7 @@
         let userXP = 0; 
         let accountabilityEmail = "";
         let lastReportWeek = 0;
-        let bankedFreeTimeMins = 0; // NEW: Global Banked Time
+        let bankedFreeTimeMins = 0; 
 
         db.collection("userStats").doc("player").onSnapshot(doc => {
             if(doc.exists) {
@@ -775,7 +775,7 @@
             setTimeout(() => { toast.style.opacity = 0; }, 3000);
         }
 
-        // --- NEW REWARD BANK SYSTEM ---
+        // --- REWARD BANK SYSTEM ---
         let selectedRewardMins = 0;
         let selectedRewardCost = 0;
 
@@ -817,7 +817,6 @@
             const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
             const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
             
-            // Bug 1 Fix: Handle 24:00 edge case from Intl parser
             let currentH = parseInt(parts.find(p => p.type === 'hour').value);
             if (currentH === 24) currentH = 0; 
             const currentTotalMinutes = (currentH * 60) + parseInt(parts.find(p => p.type === 'minute').value);
@@ -829,6 +828,7 @@
             let pending = [];
 
             events.forEach(ev => {
+                // Bug Fixed: Free time rewards evaluate as resolved and won't block validation counters
                 if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
                 
                 const evDayIdx = daysArr.indexOf(ev.day);
@@ -839,10 +839,10 @@
                 else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
                 
                 weeksToCheck.forEach(w => {
-                    let wStr = w.toString(); // Force strict string type for array checking
+                    let wStr = w.toString(); 
                     
                     if ((ev.skippedWeeks && ev.skippedWeeks.includes(wStr)) || 
-                        (ev.resolvedWeeks && ev.resolvedWeeks.includes(wStr)) ||
+                        (ev.resolvedWeeks && (ev.resolvedWeeks.includes(wStr) || ev.resolvedWeeks.includes("All"))) ||
                         (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(wStr))) return;
                     
                     let isPast = false;
@@ -852,7 +852,7 @@
                         if (evDayIdx < currentDayIdx) { 
                             isPast = true; 
                         } else if (evDayIdx === currentDayIdx && currentTotalMinutes >= evEndMins) { 
-                            isPast = true; // Instantly flags as pending the minute it ends
+                            isPast = true; 
                         } 
                     }
                     
@@ -1031,7 +1031,7 @@
                 </div>
                 <div id="fb-timer" style="font-family: 'Share Tech Mono', monospace; font-size: 48px; font-weight: bold; color: #ff9800;">50:00</div>
                 <p id="fb-status-text" style="margin: 5px 0 0 0; font-size: 14px; color: #c4c7c5;">Immerse yourself. Stay on target.</p>
-            `;
+    `;
             document.body.appendChild(fallbackTimerUI);
         }
 
@@ -1219,7 +1219,7 @@
                     let wStr = currentWeek.toString();
                     const isSkipped = ev.skippedWeeks && ev.skippedWeeks.includes(wStr);
                     const isMissionSkipped = ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(wStr);
-                    const isResolved = ev.resolvedWeeks && ev.resolvedWeeks.includes(wStr);
+                    const isResolved = ev.resolvedWeeks && (ev.resolvedWeeks.includes(wStr) || ev.resolvedWeeks.includes("All"));
                     
                     if(isSkipped || isMissionSkipped || isResolved) continue;
 
@@ -1262,7 +1262,7 @@
                     lastNotifiedTime = nowMs;
 
                 } else if (activeEv.requiresFocus && !isFocusModeActive) {
-                    // Bug 2 Fix: Prevent trailing edge strikes by ensuring > 5 seconds remain in the block
+                    // Bug Fixed: Trailing boundary buffer stops false alarms at closing boundary
                     if (secondsRemaining > 5 && (nowMs - lastNotifiedTime >= 300000)) {
                         focusStrikeCount++;
                         if (focusStrikeCount === 3) {
@@ -2000,7 +2000,7 @@
         }
 
         function openReschedulePanel(eventId, weekNum) {
-            const ev = events.find(e => e.id === eventId); if(!ev) return;
+            const ev = events.find(e => e.id === id); if(!ev) return;
             activeRescheduleMission = { id: eventId, week: weekNum };
             document.getElementById('reschedule-day').value = ev.day; document.getElementById('reschedule-start').value = ev.start; document.getElementById('reschedule-end').value = ev.end || ev.start;
             document.getElementById('reschedule-modal').style.display = 'flex';
@@ -2008,20 +2008,7 @@
 
         function closeRescheduleModal() { document.getElementById('reschedule-modal').style.display = 'none'; activeRescheduleMission = null; }
 
-        function submitReschedule() {
-            if(!activeRescheduleMission) return;
-            const ev = events.find(e => e.id === activeRescheduleMission.id); if(!ev) return;
-            const docId = `RESCHED_${Date.now()}`;
-            const newEvent = { ...ev, id: docId, day: document.getElementById('reschedule-day').value, start: document.getElementById('reschedule-start').value, end: document.getElementById('reschedule-end').value, weeks: getCurrentCalendarWeek().toString(), skippedWeeks: [], resolvedWeeks: [], missionSkippedWeeks: [], focusFailedWeeks: [] };
-            db.collection('events').doc(docId).set(newEvent).then(() => { resolveMission(activeRescheduleMission.id, activeRescheduleMission.week, 'reschedule'); closeRescheduleModal(); });
-        }
-
-        function submitSkipMission() {
-            if(!activeRescheduleMission) return;
-            resolveMission(activeRescheduleMission.id, activeRescheduleMission.week, 'skip'); closeRescheduleModal();
-        }
-
-        // --- RENDERERS (Radar, Charts, Schedule) ---
+        // --- RENDERERS ---
         function refreshUI() {
             const currentTerm = terms.find(t => t.id === currentTermId);
             const totalWeeks = currentTerm?.totalWeeks || 10;
@@ -2160,7 +2147,7 @@
                 const startMins = timeToMinutes(ev.start); const endMins = ev.isReminder ? startMins : timeToMinutes(ev.end);
                 
                 const isMissionSkipped = ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(currentWeek.toString());
-                const isResolved = ev.resolvedWeeks && ev.resolvedWeeks.includes(currentWeek.toString()) && !isMissionSkipped;
+                const isResolved = ev.resolvedWeeks && (ev.resolvedWeeks.includes(currentWeek.toString()) || ev.resolvedWeeks.includes("All")) && !isMissionSkipped;
                 
                 if (!lineInserted && currentTotalMinutes < startMins) {
                     const redLine = document.createElement('div'); redLine.style.cssText = "position: relative; height: 2px; background-color: #ff5252; margin: 15px 0 25px 0; box-shadow: 0 0 8px rgba(255,82,82,0.8); border-radius: 2px;";
@@ -2247,7 +2234,7 @@
             const ctx = document.getElementById('todayTimeChart'); if (timeChartInstance) timeChartInstance.destroy();
             if (labels.length > 0 && ctx) {
                 ctx.style.display = 'block'; document.getElementById('empty-chart-msg').style.display = 'none';
-                timeChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#c4c7c5', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' } });
+                timeChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false Glen: { position: 'bottom', labels: { color: '#c4c7c5', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' } });
             } else if (ctx) { ctx.style.display = 'none'; document.getElementById('empty-chart-msg').style.display = 'block'; }
         }
 
