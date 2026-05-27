@@ -1851,6 +1851,8 @@
             if(isXp) document.getElementById('mod-ev-requires-focus').checked = ev.requiresFocus || false;
 
             document.getElementById('instance-modal-title').innerText = "Edit Specific Block"; document.getElementById('mod-btn-delete').style.display = 'block';
+            
+            // Toggle Logic Fix
             const toggleContainer = document.getElementById('modal-series-toggle-container');
             if(ev.weeks === "All") { 
                 document.getElementById('modal-week-num').innerText = week; 
@@ -1859,6 +1861,7 @@
             } else { 
                 toggleContainer.style.display = 'none'; 
             }
+            
             document.getElementById('instance-edit-modal').style.display = 'flex';
         }
 
@@ -1873,7 +1876,7 @@
             document.getElementById('mod-ev-critical').checked = false; toggleWeightInput('mod-ev-weight-container', false);
             document.getElementById('mod-ev-xp-enabled').checked = false; toggleXPInput('mod', false); document.getElementById('mod-ev-difficulty').value = 10;
             
-            document.getElementById('modal-warning').style.display = 'none'; document.getElementById('instance-modal-title').innerText = `Create Component (Week ${week})`; document.getElementById('mod-btn-delete').style.display = 'none'; document.getElementById('instance-edit-modal').style.display = 'flex';
+            document.getElementById('modal-series-toggle-container').style.display = 'none'; document.getElementById('instance-modal-title').innerText = `Create Component (Week ${week})`; document.getElementById('mod-btn-delete').style.display = 'none'; document.getElementById('instance-edit-modal').style.display = 'flex';
         }
 
         function closeInstanceModal() { document.getElementById('instance-edit-modal').style.display = 'none'; modalInstanceId = null; modalInstanceWeek = null; }
@@ -1985,6 +1988,7 @@
             }
 
             batch.commit().then(closeInstanceModal);
+        };
 
 
         function resolveMission(eventId, weekNum, action) {
@@ -2026,51 +2030,7 @@
                 if (currentView === "missions") renderMissions();
             });
         }
-function renderMissions() {
-            const container = document.getElementById('missions-list');
-            if (!container) return;
-            container.innerHTML = '';
-            renderRewardStore();
 
-            const pending = getPendingMissions();
-
-            if (pending.length === 0) {
-                container.innerHTML = `<p style="color:var(--text-muted); text-align:center; margin: 60px 0; font-size: 20px;">✅ All clear. No unresolved missions.</p>`;
-                return;
-            }
-
-            const termCourses = courses.filter(c => c.termId === currentTermId);
-
-            pending.forEach(({ ev, week }) => {
-                const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
-                const xpValue = (ev.xpEnabled && ev.xpDifficulty) ? ev.xpDifficulty * 10 : 0;
-                const xpBadge = xpValue > 0 ? `<span style="color:#00e5ff; font-family:'Share Tech Mono'; font-size:13px; margin-left:8px;">[${xpValue} XP]</span>` : '';
-                const focusBadge = ev.requiresFocus ? `<span style="color:#ff9800; font-size:13px; margin-left:4px;">[🔥 Focus]</span>` : '';
-                const critBadge = ev.isCritical ? `🚨 ` : '';
-                const weekLabel = `<span style="font-family:'Share Tech Mono'; font-size:12px; color:var(--text-muted); background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:3px; margin-left:8px;">W${week}</span>`;
-
-                const item = document.createElement('div');
-                item.className = 'mission-item';
-                item.style.borderLeftColor = cColor;
-
-                item.innerHTML = `
-                    <div style="flex:1; min-width:0;">
-                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
-                            <strong style="color:${cColor}; font-size:17px;">${critBadge}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}${ev.title}</strong>
-                            ${xpBadge}${focusBadge}${weekLabel}
-                        </div>
-                        <div style="font-size:14px; color:var(--text-muted); margin-top:4px; font-family:'Share Tech Mono';">
-                            ${ev.day} &nbsp;·&nbsp; ${format12Hour(ev.start)}${ev.isReminder ? '' : ' – ' + format12Hour(ev.end)}
-                        </div>
-                    </div>
-                    <div class="mission-actions">
-                        <button class="mission-btn btn-check" title="Mark Complete (+XP)" onclick="resolveMission('${ev.id}', ${week}, 'complete')">✔</button>
-                        <button class="mission-btn btn-cross" title="Reschedule / Skip" onclick="openReschedulePanel('${ev.id}', ${week})">✖</button>
-                    </div>`;
-
-                container.appendChild(item);
-            });
-        }
         function openReschedulePanel(eventId, weekNum) {
             const ev = events.find(e => e.id === eventId); if(!ev) return;
             activeRescheduleMission = { id: eventId, week: weekNum };
@@ -2219,7 +2179,6 @@ function renderMissions() {
 
             dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
             
-            // Only pull events that haven't been "system skipped" (edited into standalone instances)
             let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())));
             
             if (!isTickUpdate) renderTimeGraph(todayEvents);
