@@ -508,9 +508,15 @@
         <div class="modal-content">
             <button class="close-modal" onclick="closeInstanceModal()">✖</button>
             <h2 id="instance-modal-title" style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Edit Specific Block</h2>
-            <p id="modal-warning" style="font-size: 15px; color: #ffb4b4; background: rgba(255,82,82,0.1); padding: 8px; border-radius: 4px; display: none;">
-                ⚠️ You are editing a recurring event. Saving changes will isolate this update to <b>Week <span id="modal-week-num"></span></b> only.
-            </p>
+            <div id="modal-series-toggle-container" style="display: none; background: rgba(255, 152, 0, 0.1); border: 1px solid #ff9800; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                <strong style="color: #ff9800; display: block; margin-bottom: 5px;">⚠️ Recurring Event Detected</strong>
+                <label style="cursor: pointer; color: white; display: inline-flex; align-items: center; gap: 8px; margin-right: 15px; font-size: 15px;">
+                    <input type="radio" name="mod-apply-to" value="instance" checked style="accent-color: #ff9800;"> Edit Week <span id="modal-week-num"></span> Only
+                </label>
+                <label style="cursor: pointer; color: white; display: inline-flex; align-items: center; gap: 8px; font-size: 15px;">
+                    <input type="radio" name="mod-apply-to" value="series" style="accent-color: #ff9800;"> Edit Entire Series
+                </label>
+            </div>
             <form id="form-instance-edit">
                 <div class="form-group" style="grid-column: span 2; flex-direction: row; gap: 20px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 4px; border: 1px solid var(--outline); margin-top: 15px;">
                     <strong style="color: var(--accent);">Entry Type:</strong>
@@ -1845,8 +1851,14 @@
             if(isXp) document.getElementById('mod-ev-requires-focus').checked = ev.requiresFocus || false;
 
             document.getElementById('instance-modal-title').innerText = "Edit Specific Block"; document.getElementById('mod-btn-delete').style.display = 'block';
-            const warning = document.getElementById('modal-warning');
-            if(ev.weeks === "All") { document.getElementById('modal-week-num').innerText = week; warning.style.display = 'block'; } else { warning.style.display = 'none'; }
+            const toggleContainer = document.getElementById('modal-series-toggle-container');
+            if(ev.weeks === "All") { 
+                document.getElementById('modal-week-num').innerText = week; 
+                toggleContainer.style.display = 'block'; 
+                document.querySelector('input[name="mod-apply-to"][value="instance"]').checked = true;
+            } else { 
+                toggleContainer.style.display = 'none'; 
+            }
             document.getElementById('instance-edit-modal').style.display = 'flex';
         }
 
@@ -1936,23 +1948,43 @@
 
             if (modalInstanceId) {
                 const originalEv = events.find(ev => ev.id === modalInstanceId);
+                const applyTo = document.querySelector('input[name="mod-apply-to"]:checked')?.value || 'instance';
+
                 if (originalEv) {
                     if (originalEv.weeks === "All") {
-                        let newSkipped = [...originalEv.skippedWeeks];
-                        if (!newSkipped.includes(modalInstanceWeek)) { newSkipped.push(modalInstanceWeek); batch.update(db.collection('events').doc(originalEv.id), { skippedWeeks: newSkipped }); }
-                        checkedDays.forEach((day, index) => { let docId = Date.now().toString() + index; batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: [] }); });
+                        if (applyTo === 'instance') {
+                            // Isolate this specific week
+                            let newSkipped = [...originalEv.skippedWeeks];
+                            if (!newSkipped.includes(modalInstanceWeek)) { newSkipped.push(modalInstanceWeek); batch.update(db.collection('events').doc(originalEv.id), { skippedWeeks: newSkipped }); }
+                            checkedDays.forEach((day, index) => { let docId = Date.now().toString() + index; batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: [] }); });
+                        } else {
+                            // Apply to the Entire Series
+                            baseData.weeks = "All";
+                            baseData.resolvedWeeks = originalEv.resolvedWeeks;
+                            baseData.missionSkippedWeeks = originalEv.missionSkippedWeeks;
+                            baseData.focusFailedWeeks = originalEv.focusFailedWeeks;
+
+                            let keptOriginal = false;
+                            checkedDays.forEach((day, index) => { 
+                                let docId = Date.now().toString() + index; 
+                                if (day === originalEv.day) { docId = originalEv.id; keptOriginal = true; } 
+                                batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: originalEv.skippedWeeks }); 
+                            });
+                            if (!keptOriginal) batch.delete(db.collection('events').doc(originalEv.id));
+                        }
                     } else {
+                        // Editing a standalone block
                         let keptOriginal = false;
                         checkedDays.forEach((day, index) => { let docId = Date.now().toString() + index; if (day === originalEv.day) { docId = originalEv.id; keptOriginal = true; } batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: originalEv.skippedWeeks }); });
                         if (!keptOriginal) batch.delete(db.collection('events').doc(originalEv.id));
                     }
                 }
             } else {
+                // Creating a brand new block
                 checkedDays.forEach((day, index) => { let docId = Date.now().toString() + index; batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: [] }); });
             }
 
             batch.commit().then(closeInstanceModal);
-        };
 
 
         function resolveMission(eventId, weekNum, action) {
