@@ -809,47 +809,59 @@
         }
 
 
-        // --- PENDING MISSIONS & BADGE ---
-        function getPendingMissions() {
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            if(!currentTerm) return [];
+// --- PENDING MISSIONS & BADGE ---
+function getPendingMissions() {
+    const currentTerm = terms.find(t => t.id === currentTermId);
+    if(!currentTerm) return [];
 
-            const now = new Date();
-            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
-            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
-            const currentTotalMinutes = (parseInt(parts.find(p => p.type === 'hour').value) * 60) + parseInt(parts.find(p => p.type === 'minute').value);
+    const now = new Date();
+    const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+    const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+    
+    // Bug 1 Fix: Handle 24:00 edge case from Intl parser
+    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+    if (currentH === 24) currentH = 0; 
+    const currentTotalMinutes = (currentH * 60) + parseInt(parts.find(p => p.type === 'minute').value);
+    
+    const currentWeek = getCurrentCalendarWeek();
+    const daysArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    let currentDayIdx = daysArr.indexOf(new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now));
+    
+    let pending = [];
+
+    events.forEach(ev => {
+        if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
+        
+        const evDayIdx = daysArr.indexOf(ev.day);
+        const evEndMins = ev.isReminder ? timeToMinutes(ev.start) : timeToMinutes(ev.end);
+        
+        let weeksToCheck = [];
+        if (ev.weeks === "All") { for(let w = 1; w <= currentWeek; w++) weeksToCheck.push(w); } 
+        else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
+        
+        weeksToCheck.forEach(w => {
+            let wStr = w.toString(); // Force strict string type for array checking
             
-            const currentWeek = getCurrentCalendarWeek();
-            const daysArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-            let currentDayIdx = daysArr.indexOf(new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now));
+            if ((ev.skippedWeeks && ev.skippedWeeks.includes(wStr)) || 
+                (ev.resolvedWeeks && ev.resolvedWeeks.includes(wStr)) ||
+                (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(wStr))) return;
             
-            let pending = [];
-
-            events.forEach(ev => {
-                if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
-                
-                const evDayIdx = daysArr.indexOf(ev.day);
-                const evEndMins = ev.isReminder ? timeToMinutes(ev.start) : timeToMinutes(ev.end);
-                
-                let weeksToCheck = [];
-                if (ev.weeks === "All") { for(let w = 1; w <= currentWeek; w++) weeksToCheck.push(w); } 
-                else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
-                
-                weeksToCheck.forEach(w => {
-                    if ((ev.skippedWeeks && ev.skippedWeeks.includes(w.toString())) || 
-                        (ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString())) ||
-                        (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(w.toString()))) return;
-                    
-                    let isPast = false;
-                    if (w < currentWeek) { isPast = true; } 
-                    else if (w === currentWeek) { if (evDayIdx < currentDayIdx) { isPast = true; } else if (evDayIdx === currentDayIdx && currentTotalMinutes > evEndMins) { isPast = true; } }
-                    
-                    if (isPast) pending.push({ ev, week: w });
-                });
-            });
-            return pending;
-        }
-
+            let isPast = false;
+            if (w < currentWeek) { 
+                isPast = true; 
+            } else if (w === currentWeek) { 
+                if (evDayIdx < currentDayIdx) { 
+                    isPast = true; 
+                } else if (evDayIdx === currentDayIdx && currentTotalMinutes >= evEndMins) { 
+                    isPast = true; // Instantly flags as pending the minute it ends
+                } 
+            }
+            
+            if (isPast) pending.push({ ev, week: w });
+        });
+    });
+    return pending;
+}
         function updateMissionsBadge() {
             const pending = getPendingMissions();
             const badge = document.getElementById('missions-badge');
@@ -1172,137 +1184,141 @@
             }
         }
 
-        // --- GLOBAL ACTIVE TASK TRACKER ---
-        function checkGlobalActiveTask(nowDate) {
-            const currentTerm = terms.find(t => t.id === currentTermId);
-            const bgBar = document.getElementById('global-task-progress');
-            const infoContainer = document.getElementById('global-active-task-container');
-            const taskTitle = document.getElementById('global-task-title');
-            const taskTimer = document.getElementById('global-task-timer');
+    
+// --- GLOBAL ACTIVE TASK TRACKER ---
+function checkGlobalActiveTask(nowDate) {
+    const currentTerm = terms.find(t => t.id === currentTermId);
+    const bgBar = document.getElementById('global-task-progress');
+    const infoContainer = document.getElementById('global-active-task-container');
+    const taskTitle = document.getElementById('global-task-title');
+    const taskTimer = document.getElementById('global-task-timer');
 
-            if (!currentTerm || !events.length || !bgBar) return;
+    if (!currentTerm || !events.length || !bgBar) return;
 
-            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(nowDate);
-            let currentH = parseInt(parts.find(p => p.type === 'hour').value);
-            let currentM = parseInt(parts.find(p => p.type === 'minute').value);
-            let currentS = parseInt(parts.find(p => p.type === 'second').value);
+    const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(nowDate);
+    
+    let currentH = parseInt(parts.find(p => p.type === 'hour').value);
+    if (currentH === 24) currentH = 0;
+    let currentM = parseInt(parts.find(p => p.type === 'minute').value);
+    let currentS = parseInt(parts.find(p => p.type === 'second').value);
+    
+    const currentTotalMinutes = currentH * 60 + currentM;
+    const totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
+
+    const currentWeek = getCurrentCalendarWeek();
+    const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(nowDate);
+
+    let activeEv = null;
+
+    if (currentWeek > 0 && currentWeek <= (currentTerm.totalWeeks || 10)) {
+        let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek));
+        
+        for (let ev of todayEvents) {
+            if (ev.isReminder) continue;
             
-            const currentTotalMinutes = currentH * 60 + currentM;
-            const totalCurrentSeconds = (currentH * 3600) + (currentM * 60) + currentS;
+            let wStr = currentWeek.toString();
+            const isSkipped = ev.skippedWeeks && ev.skippedWeeks.includes(wStr);
+            const isMissionSkipped = ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(wStr);
+            const isResolved = ev.resolvedWeeks && ev.resolvedWeeks.includes(wStr);
+            
+            if(isSkipped || isMissionSkipped || isResolved) continue;
 
-            const currentWeek = getCurrentCalendarWeek();
-            const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(nowDate);
+            const startMins = timeToMinutes(ev.start); 
+            const endMins = timeToMinutes(ev.end);
 
-            let activeEv = null;
-
-            if (currentWeek > 0 && currentWeek <= (currentTerm.totalWeeks || 10)) {
-                let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek));
-                
-                for (let ev of todayEvents) {
-                    if (ev.isReminder) continue;
-                    
-                    const isSkipped = ev.skippedWeeks && ev.skippedWeeks.includes(currentWeek.toString());
-                    const isMissionSkipped = ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(currentWeek.toString());
-                    const isResolved = ev.resolvedWeeks && ev.resolvedWeeks.includes(currentWeek.toString());
-                    
-                    if(isSkipped || isMissionSkipped || isResolved) continue;
-
-                    const startMins = timeToMinutes(ev.start); 
-                    const endMins = timeToMinutes(ev.end);
-
-                    if (currentTotalMinutes >= startMins && currentTotalMinutes < endMins) {
-                        activeEv = ev;
-                        break; 
-                    }
-                }
+            if (currentTotalMinutes >= startMins && currentTotalMinutes < endMins) {
+                activeEv = ev;
+                break; 
             }
+        }
+    }
 
-            if (activeEv) {
-                const nowMs = Date.now();
-                
-                if (lastNotifiedEventId !== activeEv.id) {
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        try {
-                            playBeep(); 
-                            let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
-                            let bodyText = `${activeEv.courseId && !activeEv.isReward ? activeEv.courseId + ' | ' : ''}${activeEv.title}\nEnds at ${format12Hour(activeEv.end)}`;
-                            
-                            if (activeEv.requiresFocus) {
-                                bodyText += "\n🔥 Requires Focus Mode! Activate it in the planner.";
-                            }
-
-                            new Notification(notifTitle, {
-                                body: bodyText,
-                                icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>',
-                                requireInteraction: true 
-                            });
-                        } catch(e) {}
+    if (activeEv) {
+        const nowMs = Date.now();
+        const startMins = timeToMinutes(activeEv.start);
+        const endMins = timeToMinutes(activeEv.end);
+        const totalEndSeconds = endMins * 60;
+        const secondsRemaining = totalEndSeconds - totalCurrentSeconds;
+        
+        if (lastNotifiedEventId !== activeEv.id) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                try {
+                    playBeep(); 
+                    let notifTitle = activeEv.isReward ? "🏆 Free Time Started!" : (activeEv.isCritical ? "🚨 CRITICAL TASK!" : "⚡ Component Started");
+                    let bodyText = `${activeEv.courseId && !activeEv.isReward ? activeEv.courseId + ' | ' : ''}${activeEv.title}\nEnds at ${format12Hour(activeEv.end)}`;
+                    
+                    if (activeEv.requiresFocus) {
+                        bodyText += "\n🔥 Requires Focus Mode! Activate it in the planner.";
                     }
-                    lastNotifiedEventId = activeEv.id; 
-                    lastNotifiedTime = nowMs;
 
-                } else if (activeEv.requiresFocus && !isFocusModeActive) {
-                    if (nowMs - lastNotifiedTime >= 300000) {
-                        focusStrikeCount++;
-                        if (focusStrikeCount === 3) {
-                            sendAccountabilityEmail('strike', {
-                                course: activeEv.courseId || "General",
-                                title: activeEv.title
-                            });
-                        }
+                    new Notification(notifTitle, {
+                        body: bodyText,
+                        icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>',
+                        requireInteraction: true 
+                    });
+                } catch(e) {}
+            }
+            lastNotifiedEventId = activeEv.id; 
+            lastNotifiedTime = nowMs;
 
-                        if ("Notification" in window && Notification.permission === "granted") {
-                            try {
-                                playBeep(); 
-                                new Notification("⚠️ FOCUS MODE REQUIRED", {
-                                    body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
-                                    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
-                                    requireInteraction: true
-                                });
-                            } catch(e) {}
-                        }
-                        lastNotifiedTime = nowMs; 
-                    }
+        } else if (activeEv.requiresFocus && !isFocusModeActive) {
+            // Bug 2 Fix: Prevent trailing edge strikes by ensuring > 5 seconds remain in the block
+            if (secondsRemaining > 5 && (nowMs - lastNotifiedTime >= 300000)) {
+                focusStrikeCount++;
+                if (focusStrikeCount === 3) {
+                    sendAccountabilityEmail('strike', {
+                        course: activeEv.courseId || "General",
+                        title: activeEv.title
+                    });
                 }
 
-                updateFocusButtonState(activeEv);
-
-                infoContainer.style.display = 'flex';
-                
-                let prefix = activeEv.isReward ? "🏆 " : (activeEv.isCritical ? "🚨 " : "⚡ ");
-                let courseText = activeEv.courseId && !activeEv.isReward ? `${activeEv.courseId} | ` : '';
-                taskTitle.innerText = `${prefix}CURRENT: ${courseText}${activeEv.title}`;
-
-                const startMins = timeToMinutes(activeEv.start);
-                const endMins = timeToMinutes(activeEv.end);
-                
-                let totalEndSeconds = endMins * 60;
-                let diff = totalEndSeconds - totalCurrentSeconds;
-                
-                if (diff > 0) {
-                    let h = Math.floor(diff / 3600).toString().padStart(2, '0');
-                    let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-                    let s = (diff % 60).toString().padStart(2, '0');
-                    taskTimer.innerText = `${h}:${m}:${s}`;
-                } else {
-                    taskTimer.innerText = "00:00:00";
+                if ("Notification" in window && Notification.permission === "granted") {
+                    try {
+                        playBeep(); 
+                        new Notification("⚠️ FOCUS MODE REQUIRED", {
+                            body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
+                            icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
+                            requireInteraction: true
+                        });
+                    } catch(e) {}
                 }
-
-                let totalDurationSecs = (endMins - startMins) * 60;
-                let elapsedSecs = totalCurrentSeconds - (startMins * 60);
-                let pct = (elapsedSecs / totalDurationSecs) * 100;
-                bgBar.style.width = `${Math.min(Math.max(pct, 0), 100)}%`;
-                bgBar.style.background = 'rgba(255, 255, 255, 0.08)';
-            } else {
-                updateFocusButtonState(null);
-                infoContainer.style.display = 'none';
-                bgBar.style.width = '0%';
-                lastNotifiedEventId = null; 
-                lastNotifiedTime = 0;
+                lastNotifiedTime = nowMs; 
             }
         }
 
+        updateFocusButtonState(activeEv);
+
+        infoContainer.style.display = 'flex';
+        
+        let prefix = activeEv.isReward ? "🏆 " : (activeEv.isCritical ? "🚨 " : "⚡ ");
+        let courseText = activeEv.courseId && !activeEv.isReward ? `${activeEv.courseId} | ` : '';
+        taskTitle.innerText = `${prefix}CURRENT: ${courseText}${activeEv.title}`;
+
+        let diff = totalEndSeconds - totalCurrentSeconds;
+        
+        if (diff > 0) {
+            let h = Math.floor(diff / 3600).toString().padStart(2, '0');
+            let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+            let s = (diff % 60).toString().padStart(2, '0');
+            taskTimer.innerText = `${h}:${m}:${s}`;
+        } else {
+            taskTimer.innerText = "00:00:00";
+        }
+
+        let totalDurationSecs = (endMins - startMins) * 60;
+        let elapsedSecs = totalCurrentSeconds - (startMins * 60);
+        let pct = (elapsedSecs / totalDurationSecs) * 100;
+        bgBar.style.width = `${Math.min(Math.max(pct, 0), 100)}%`;
+        bgBar.style.background = 'rgba(255, 255, 255, 0.08)';
+    } else {
+        updateFocusButtonState(null);
+        infoContainer.style.display = 'none';
+        bgBar.style.width = '0%';
+        lastNotifiedEventId = null; 
+        lastNotifiedTime = 0;
+    }
+}
         // --- FIREBASE LISTENERS ---
         function checkLoaders() {
             if(loaders.terms && loaders.courses && loaders.events && loaders.userStats) {
