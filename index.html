@@ -828,7 +828,6 @@
             let pending = [];
 
             events.forEach(ev => {
-                // Bug Fixed: Free time rewards evaluate as resolved and won't block validation counters
                 if(ev.termId !== currentTermId || ev.isReward || !ev.xpEnabled) return; 
                 
                 const evDayIdx = daysArr.indexOf(ev.day);
@@ -1031,7 +1030,7 @@
                 </div>
                 <div id="fb-timer" style="font-family: 'Share Tech Mono', monospace; font-size: 48px; font-weight: bold; color: #ff9800;">50:00</div>
                 <p id="fb-status-text" style="margin: 5px 0 0 0; font-size: 14px; color: #c4c7c5;">Immerse yourself. Stay on target.</p>
-    `;
+            `;
             document.body.appendChild(fallbackTimerUI);
         }
 
@@ -1262,7 +1261,6 @@
                     lastNotifiedTime = nowMs;
 
                 } else if (activeEv.requiresFocus && !isFocusModeActive) {
-                    // Bug Fixed: Trailing boundary buffer stops false alarms at closing boundary
                     if (secondsRemaining > 5 && (nowMs - lastNotifiedTime >= 300000)) {
                         focusStrikeCount++;
                         if (focusStrikeCount === 3) {
@@ -2000,7 +1998,7 @@
         }
 
         function openReschedulePanel(eventId, weekNum) {
-            const ev = events.find(e => e.id === id); if(!ev) return;
+            const ev = events.find(e => e.id === eventId); if(!ev) return;
             activeRescheduleMission = { id: eventId, week: weekNum };
             document.getElementById('reschedule-day').value = ev.day; document.getElementById('reschedule-start').value = ev.start; document.getElementById('reschedule-end').value = ev.end || ev.start;
             document.getElementById('reschedule-modal').style.display = 'flex';
@@ -2008,7 +2006,20 @@
 
         function closeRescheduleModal() { document.getElementById('reschedule-modal').style.display = 'none'; activeRescheduleMission = null; }
 
-        // --- RENDERERS ---
+        function submitReschedule() {
+            if(!activeRescheduleMission) return;
+            const ev = events.find(e => e.id === activeRescheduleMission.id); if(!ev) return;
+            const docId = `RESCHED_${Date.now()}`;
+            const newEvent = { ...ev, id: docId, day: document.getElementById('reschedule-day').value, start: document.getElementById('reschedule-start').value, end: document.getElementById('reschedule-end').value, weeks: getCurrentCalendarWeek().toString(), skippedWeeks: [], resolvedWeeks: [], missionSkippedWeeks: [], focusFailedWeeks: [] };
+            db.collection('events').doc(docId).set(newEvent).then(() => { resolveMission(activeRescheduleMission.id, activeRescheduleMission.week, 'reschedule'); closeRescheduleModal(); });
+        }
+
+        function submitSkipMission() {
+            if(!activeRescheduleMission) return;
+            resolveMission(activeRescheduleMission.id, activeRescheduleMission.week, 'skip'); closeRescheduleModal();
+        }
+
+        // --- RENDERERS (Radar, Charts, Schedule) ---
         function refreshUI() {
             const currentTerm = terms.find(t => t.id === currentTermId);
             const totalWeeks = currentTerm?.totalWeeks || 10;
@@ -2226,16 +2237,47 @@
         }
 
         function renderTimeGraph(todayEvents) {
-            const courseTimeMap = {}; const termCourses = courses.filter(c => c.termId === currentTermId);
-            todayEvents.forEach(ev => { if(ev.isReminder || ev.isReward) return; const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start); if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration; });
-            const labels = Object.keys(courseTimeMap); const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); 
+            const courseTimeMap = {}; 
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            
+            todayEvents.forEach(ev => { 
+                if(ev.isReminder || ev.isReward) return; 
+                const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start); 
+                if (duration > 0) courseTimeMap[ev.courseId] = (courseTimeMap[ev.courseId] || 0) + duration; 
+            });
+            
+            const labels = Object.keys(courseTimeMap); 
+            const data = Object.values(courseTimeMap).map(mins => (mins / 60).toFixed(1)); 
             const bgColors = labels.map(id => termCourses.find(c => c.id === id)?.color || "#888");
 
-            const ctx = document.getElementById('todayTimeChart'); if (timeChartInstance) timeChartInstance.destroy();
+            const ctx = document.getElementById('todayTimeChart'); 
+            if (timeChartInstance) timeChartInstance.destroy();
+            
             if (labels.length > 0 && ctx) {
-                ctx.style.display = 'block'; document.getElementById('empty-chart-msg').style.display = 'none';
-                timeChartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false Glen: { position: 'bottom', labels: { color: '#c4c7c5', font: { family: 'Rajdhani', size: 14 } } } }, cutout: '75%' } });
-            } else if (ctx) { ctx.style.display = 'none'; document.getElementById('empty-chart-msg').style.display = 'block'; }
+                ctx.style.display = 'block'; 
+                document.getElementById('empty-chart-msg').style.display = 'none';
+                timeChartInstance = new Chart(ctx, { 
+                    type: 'doughnut', 
+                    data: { 
+                        labels: labels, 
+                        datasets: [{ data: data, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }] 
+                    }, 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: {
+                            legend: { 
+                                position: 'bottom', 
+                                labels: { color: '#c4c7c5', font: { family: 'Rajdhani', size: 14 } } 
+                            }
+                        },
+                        cutout: '75%'
+                    } 
+                });
+            } else if (ctx) { 
+                ctx.style.display = 'none'; 
+                document.getElementById('empty-chart-msg').style.display = 'block'; 
+            }
         }
 
         let isDragging = false; let dragStartMins = 0; let dragCurrentDay = ''; let currentDragWeek = null; let ghostEl = null;
