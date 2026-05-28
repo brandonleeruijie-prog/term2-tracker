@@ -236,6 +236,31 @@
         .btn-cross:hover { background: #ff5252; color: white; box-shadow: 0 0 12px rgba(255,82,82,0.6); transform: scale(1.1); }
         
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); padding: 12px 24px; border-radius: 30px; font-weight: bold; border: 1px solid; z-index: 3000; opacity: 0; pointer-events: none; transition: opacity 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+    /* ── Google-Calendar-style time picker ── */
+        .tp-wrapper { position: relative; display: flex; }
+        .tp-text {
+            flex: 1; width: 100%;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--outline);
+            color: white; padding: 10px; border-radius: 4px;
+            font-family: 'Rajdhani', sans-serif; font-size: 16px;
+            cursor: pointer; box-sizing: border-box;
+        }
+        .tp-text:focus { outline: none; border-color: var(--accent); }
+        .tp-dropdown {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0;
+            width: 160px; max-height: 220px; overflow-y: auto;
+            background: #1e1e2e; border: 1px solid var(--outline);
+            border-radius: 6px; z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            scrollbar-width: thin; scrollbar-color: var(--accent) transparent;
+        }
+        .tp-dropdown.open { display: block; }
+        .tp-item {
+            padding: 8px 14px; cursor: pointer; font-family: 'Share Tech Mono', monospace;
+            font-size: 14px; color: var(--text-main);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .tp-item:hover { background: rgba(255,255,255,0.08); }
+        .tp-item.active { background: rgba(0,229,255,0.15); color: var(--accent); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -432,9 +457,17 @@
                             <div class="form-group">
                                 <label>Time</label>
                                 <div style="display: flex; gap: 10px;">
-                                    <input type="time" id="inp-ev-start" required style="flex: 1;">
+                                  <div class="tp-wrapper" style="flex:1;" data-tp="inp-ev-start">
+                                        <input type="hidden" id="inp-ev-start">
+                                        <input type="text" class="tp-text" placeholder="9:00 AM">
+                                        <div class="tp-dropdown"></div>
+                                    </div>
                                     <div id="inp-ev-end-container" style="flex: 1; display: flex;">
-                                        <input type="time" id="inp-ev-end" required style="width: 100%;">
+                                        <div class="tp-wrapper" style="flex:1;" data-tp="inp-ev-end">
+                                            <input type="hidden" id="inp-ev-end">
+                                            <input type="text" class="tp-text" placeholder="10:00 AM">
+                                            <div class="tp-dropdown"></div>
+                                        </div>
                                     </div>
                                     <div id="inp-ev-duration-container" class="hidden" style="flex: 1; display: flex;">
                                         <select id="inp-ev-duration" style="width: 100%; border-color: #ffd700;"></select>
@@ -531,9 +564,17 @@
                     <div class="form-group">
                         <label>Time</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="time" id="mod-ev-start" required style="flex: 1;">
+                          <div class="tp-wrapper" style="flex:1;" data-tp="mod-ev-start">
+                                <input type="hidden" id="mod-ev-start">
+                                <input type="text" class="tp-text" placeholder="9:00 AM">
+                                <div class="tp-dropdown"></div>
+                            </div>
                             <div id="mod-ev-end-container" style="flex: 1; display: flex;">
-                                <input type="time" id="mod-ev-end" required style="width: 100%;">
+                                <div class="tp-wrapper" style="flex:1;" data-tp="mod-ev-end">
+                                    <input type="hidden" id="mod-ev-end">
+                                    <input type="text" class="tp-text" placeholder="10:00 AM">
+                                    <div class="tp-dropdown"></div>
+                                </div>
                             </div>
                             <div id="mod-ev-duration-container" class="hidden" style="flex: 1; display: flex;">
                                 <select id="mod-ev-duration" style="width: 100%; border-color: #ffd700;"></select>
@@ -614,8 +655,16 @@
             <div class="form-group">
                 <label>New Allocation Time</label>
                 <div style="display: flex; gap: 10px;">
-                    <input type="time" id="reschedule-start" required style="flex: 1;">
-                    <input type="time" id="reschedule-end" required style="flex: 1;">
+                   <div class="tp-wrapper" style="flex:1;" data-tp="reschedule-start">
+                        <input type="hidden" id="reschedule-start">
+                        <input type="text" class="tp-text" placeholder="9:00 AM">
+                        <div class="tp-dropdown"></div>
+                    </div>
+                    <div class="tp-wrapper" style="flex:1;" data-tp="reschedule-end">
+                        <input type="hidden" id="reschedule-end">
+                        <input type="text" class="tp-text" placeholder="10:00 AM">
+                        <div class="tp-dropdown"></div>
+                    </div>
                 </div>
             </div>
             
@@ -2479,6 +2528,129 @@
             });
             setTimeout(() => { const calBody = document.getElementById('cal-scroll-container'); if(calBody) calBody.scrollTop = (8 * 60 * timeScale) - 20; }, 10);
         }
+    // ── Time Picker Engine ──────────────────────────────────────
+        function parseTimeInput(str) {
+            str = str.trim().toLowerCase().replace(/\s+/g, '');
+            let match;
+            // 12:30pm  or  12:30am
+            match = str.match(/^(\d{1,2}):(\d{2})(am|pm)$/);
+            if (match) {
+                let h = parseInt(match[1]), m = parseInt(match[2]);
+                if (match[3] === 'pm' && h !== 12) h += 12;
+                if (match[3] === 'am' && h === 12) h = 0;
+                if (h < 24 && m < 60) return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+            }
+            // 1230pm
+            match = str.match(/^(\d{3,4})(am|pm)$/);
+            if (match) {
+                const num = match[1].padStart(4,'0');
+                let h = parseInt(num.slice(0,2)), m = parseInt(num.slice(2));
+                if (match[2] === 'pm' && h !== 12) h += 12;
+                if (match[2] === 'am' && h === 12) h = 0;
+                if (h < 24 && m < 60) return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+            }
+            // 9am
+            match = str.match(/^(\d{1,2})(am|pm)$/);
+            if (match) {
+                let h = parseInt(match[1]);
+                if (match[2] === 'pm' && h !== 12) h += 12;
+                if (match[2] === 'am' && h === 12) h = 0;
+                if (h < 24) return `${h.toString().padStart(2,'0')}:00`;
+            }
+            // 12:30 (24hr fallback)
+            match = str.match(/^(\d{1,2}):(\d{2})$/);
+            if (match) {
+                const h = parseInt(match[1]), m = parseInt(match[2]);
+                if (h < 24 && m < 60) return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+            }
+            return null;
+        }
+
+        function tpSetValue(wrapper, val24) {
+            const hidden = wrapper.querySelector('input[type="hidden"]');
+            const text   = wrapper.querySelector('.tp-text');
+            const drop   = wrapper.querySelector('.tp-dropdown');
+            hidden._tpVal = val24;
+            text.value = val24 ? format12Hour(val24) : '';
+            drop.querySelectorAll('.tp-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.value === val24);
+            });
+            const active = drop.querySelector('.tp-item.active');
+            if (active) active.scrollIntoView({ block: 'nearest' });
+        }
+
+        function initTimePickers() {
+            document.querySelectorAll('.tp-wrapper').forEach(wrapper => {
+                const hidden = wrapper.querySelector('input[type="hidden"]');
+                const text   = wrapper.querySelector('.tp-text');
+                const drop   = wrapper.querySelector('.tp-dropdown');
+
+                // Build 15-min interval list
+                for (let h = 0; h < 24; h++) {
+                    for (let m = 0; m < 60; m += 15) {
+                        const val = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                        const item = document.createElement('div');
+                        item.className = 'tp-item';
+                        item.textContent = format12Hour(val);
+                        item.dataset.value = val;
+                        item.addEventListener('mousedown', e => {
+                            e.preventDefault();
+                            tpSetValue(wrapper, val);
+                            drop.classList.remove('open');
+                            text.blur();
+                        });
+                        drop.appendChild(item);
+                    }
+                }
+
+                // Intercept .value reads/writes on the hidden input
+                Object.defineProperty(hidden, 'value', {
+                    get() { return hidden._tpVal || ''; },
+                    set(v) { tpSetValue(wrapper, v); }
+                });
+                hidden._tpVal = '';
+
+                // Typing handler — parse as you type, scroll dropdown
+                text.addEventListener('input', () => {
+                    const parsed = parseTimeInput(text.value);
+                    if (parsed) {
+                        hidden._tpVal = parsed;
+                        const target = drop.querySelector(`[data-value="${parsed}"]`);
+                        if (target) {
+                            drop.querySelectorAll('.tp-item').forEach(i => i.classList.remove('active'));
+                            target.classList.add('active');
+                            target.scrollIntoView({ block: 'nearest' });
+                        }
+                    }
+                });
+
+                // On blur — snap display to parsed value
+                text.addEventListener('blur', () => {
+                    const parsed = parseTimeInput(text.value);
+                    if (parsed) {
+                        tpSetValue(wrapper, parsed);
+                    } else if (hidden._tpVal) {
+                        text.value = format12Hour(hidden._tpVal);
+                    }
+                    setTimeout(() => drop.classList.remove('open'), 200);
+                });
+
+                // Open dropdown on focus, scroll to current
+                text.addEventListener('focus', () => {
+                    drop.classList.add('open');
+                    const active = drop.querySelector('.tp-item.active');
+                    if (active) setTimeout(() => active.scrollIntoView({ block: 'center' }), 10);
+                });
+
+                // Close if clicking outside
+                document.addEventListener('mousedown', e => {
+                    if (!wrapper.contains(e.target)) drop.classList.remove('open');
+                }, true);
+            });
+        }
+
+        initTimePickers();
+        // ── End Time Picker Engine ───────────────────────────────────    
     </script>
 </body>
 </html>
