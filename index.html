@@ -1457,12 +1457,18 @@
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
         
+            // -- ROBUST SYDNEY DATE ALIGNMENT --
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(dashViewingDate);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyViewingDate = new Date(sY, sM - 1, sD);
+            const viewDayName = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(sydneyViewingDate);
+            
             const [y, m, d] = currentTerm.startDate.split('-').map(Number); 
             const termStart = new Date(y, m - 1, d);
-            const viewWeek = Math.floor(getDaysDiff(termStart, dashViewingDate) / 7) + 1;
-            const viewDayName = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(dashViewingDate);
-            
-            // Draw 24-hour grid scale (1 pixel = 1 minute)
+            const viewWeek = Math.floor(getDaysDiff(termStart, sydneyViewingDate) / 7) + 1;
+            // ----------------------------------
+        
+            // Draw 24-hour grid scale
             let htmlLabels = '';
             for(let i=0; i<24; i++) { 
                 htmlLabels += `<div style="height: 60px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span></div>`; 
@@ -1470,7 +1476,7 @@
             timeLabels.innerHTML = htmlLabels;
             eventTrack.innerHTML = '';
             
-            // Red Current Time Line (Only if looking at today)
+            // Red Current Time Line
             const now = new Date();
             if (dashViewingDate.toDateString() === now.toDateString()) {
                 const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -1485,14 +1491,19 @@
             }
         
             let dayEvents = [];
-    
-             // Check if the date we are viewing is actually within the active term weeks
+            let isOutOfBounds = false;
+            
+            // Strict bounds checking
             if (viewWeek >= 1 && viewWeek <= (currentTerm.totalWeeks || 10)) {
                 dayEvents = events.filter(e => e.termId === currentTermId && e.day === viewDayName && (e.weeks === "All" || parseInt(e.weeks) === viewWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(viewWeek.toString())));
+            } else {
+                isOutOfBounds = true;
             }
-    
+            
             let conflictIds = new Set();
             for (let i = 0; i < dayEvents.length; i++) { for (let j = i + 1; j < dayEvents.length; j++) { if (checkOverlap(dayEvents[i], dayEvents[j])) { conflictIds.add(dayEvents[i].id); conflictIds.add(dayEvents[j].id); } } }
+        
+            const termCourses = courses.filter(c => c.termId === currentTermId);
             
             dayEvents.forEach(ev => {
                 const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
@@ -1528,6 +1539,13 @@
                 eventTrack.appendChild(block);
             });
             
+            // -- NEW: Empty State Messages --
+            if (isOutOfBounds) {
+                eventTrack.innerHTML += `<div style="position:absolute; top:40%; left:0; right:0; text-align:center; color:var(--text-muted); padding:20px; font-size:16px;">This date falls on <b>Week ${viewWeek}</b>, which is outside your active plan dates.</div>`;
+            } else if (dayEvents.length === 0) {
+                eventTrack.innerHTML += `<div style="position:absolute; top:40%; left:0; right:0; text-align:center; color:var(--text-muted); padding:20px; font-size:16px;">No blocks scheduled for this day. Enjoy your free time!</div>`;
+            }
+            
             setTimeout(() => { document.getElementById('dash-timeline-container').scrollTop = 8 * 60 - 20; }, 10);
             renderTimeGraph(dayEvents);
         }
@@ -1540,16 +1558,21 @@
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(!currentTerm) return;
         
+            // -- ROBUST SYDNEY DATE ALIGNMENT --
+            const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(dashViewingDate);
+            const [sM, sD, sY] = sydneyDateString.split('/');
+            const sydneyViewingDate = new Date(sY, sM - 1, sD);
+            
             const [y, m, d] = currentTerm.startDate.split('-').map(Number); 
             const termStart = new Date(y, m - 1, d);
-            const viewWeek = Math.floor(getDaysDiff(termStart, dashViewingDate) / 7) + 1;
+            const viewWeek = Math.floor(getDaysDiff(termStart, sydneyViewingDate) / 7) + 1;
+            // ----------------------------------
             
             let weekKeyDates = [];
-    
-            // Only fetch key dates if the viewed date falls within active term boundaries
+            
             if (viewWeek >= 1 && viewWeek <= (currentTerm.totalWeeks || 10)) {
                 const termEvents = events.filter(e => e.termId === currentTermId && e.isCritical && !e.isReward);
-        
+                
                 termEvents.forEach(ev => {
                     if(ev.weeks === "All" || parseInt(ev.weeks) === viewWeek) {
                         if(!(ev.skippedWeeks && ev.skippedWeeks.includes(viewWeek.toString()))) {
@@ -1563,7 +1586,11 @@
             weekKeyDates.sort((a,b) => a.targetDate - b.targetDate);
             
             if(weekKeyDates.length === 0) {
-                container.innerHTML = `<p style="color:var(--text-muted); font-size: 14px; font-style: italic;">No key dates scheduled for Week ${viewWeek}.</p>`;
+                let msg = `No key dates scheduled for Week ${viewWeek}.`;
+                if (viewWeek < 1 || viewWeek > (currentTerm.totalWeeks || 10)) {
+                    msg = `Date is outside your active plan (Week ${viewWeek}).`;
+                }
+                container.innerHTML = `<p style="color:var(--text-muted); font-size: 14px; font-style: italic;">${msg}</p>`;
                 return;
             }
         
