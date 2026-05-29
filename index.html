@@ -301,7 +301,7 @@
     </div>
 
     <div class="subbar">
-        <button class="tab-btn action-btn active" data-view="dashboard">🏠 Dashboard</button>
+        <button class="tab-btn action-btn active" data-view="Weekly Overview">🏠 Weekly Overview</button>
         <button class="tab-btn action-btn" data-view="missions">⚔️ Missions <span id="missions-badge" class="notification-badge hidden">0</span></button>
         <button class="tab-btn action-btn" data-view="builder">⚙️ Builder</button>
         <div class="segmented-control" id="week-tabs-container"></div>
@@ -324,20 +324,33 @@
                 <div class="global-task-progress" id="global-task-progress"></div>
                 <div class="xp-content-wrapper">
                     <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
                             <strong style="color: var(--text-main); font-size: 36px; line-height: 1; letter-spacing: 1px;">Brandon Lee</strong>
-                            <span id="player-xp-text" style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 24px; font-weight: bold; line-height: 1;">0 XP</span>
                         </div>
                         
                         <div id="global-active-task-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 10px; font-family: 'Share Tech Mono', monospace; color: var(--accent);">
                             <span id="global-task-title" style="font-size: 18px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;"></span>
                             <span id="global-task-timer" style="font-size: 18px; font-weight: bold; color: #ffb4b4;"></span>
                         </div>
-
-                        <div class="xp-bar-bg" style="margin-top: 0;">
-                            <div class="xp-bar-fill" id="xp-bar-fill"></div>
+                    
+                        <div id="github-activity-grid" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; min-height: 100px;">
+                            </div>
+                    
+                        <div style="margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--accent);">Hours Focus Studied (Past 7 Days): <strong id="past-7-days-hours" style="color: #4caf50; font-size: 16px;">0h 0m</strong></span>
+                            
+                            <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted);">
+                                <span>Less</span>
+                                <div style="width: 12px; height: 12px; background: #1e1e2e; border-radius: 2px; border: 1px solid rgba(255,255,255,0.05);"></div>
+                                <div style="width: 12px; height: 12px; background: #0e4429; border-radius: 2px;"></div>
+                                <div style="width: 12px; height: 12px; background: #006d32; border-radius: 2px;"></div>
+                                <div style="width: 12px; height: 12px; background: #26a641; border-radius: 2px;"></div>
+                                <div style="width: 12px; height: 12px; background: #39d353; border-radius: 2px;"></div>
+                                <span>More</span>
+                            </div>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -2440,7 +2453,94 @@
             if(!activeRescheduleMission) return;
             resolveMission(activeRescheduleMission.id, activeRescheduleMission.week, 'skip'); closeRescheduleModal();
         }
-
+        function renderActivityGrid() {
+            const gridContainer = document.getElementById('github-activity-grid');
+            const past7DaysEl = document.getElementById('past-7-days-hours');
+            if (!gridContainer || !past7DaysEl) return;
+        
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if (!currentTerm) return;
+        
+            const totalWeeks = currentTerm.totalWeeks || 10;
+            const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            
+            const now = new Date();
+            // Normalize today to midnight for clean 7-day lookback logic
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()); 
+            let past7Mins = 0;
+        
+            gridContainer.innerHTML = '';
+            let maxScore = 0;
+            let dayScores = [];
+        
+            // Calculate grid scores block by block
+            for (let w = 1; w <= totalWeeks; w++) {
+                for (let d = 0; d < 7; d++) {
+                    const dayName = daysOfWeek[d];
+                    const targetDate = getSpecificDate(currentTerm.startDate, w, dayName);
+                    let score = 0;
+        
+                    const dayEvents = events.filter(e =>
+                        e.termId === currentTermId &&
+                        e.day === dayName &&
+                        e.requiresFocus && 
+                        (e.weeks === "All" || parseInt(e.weeks) === w)
+                    );
+        
+                    dayEvents.forEach(ev => {
+                        // Ensure the event was actually marked complete on this week
+                        const isResolved = ev.resolvedWeeks && ev.resolvedWeeks.includes(w.toString());
+                        
+                        if (isResolved) {
+                            const startMins = timeToMinutes(ev.start);
+                            const endMins = timeToMinutes(ev.end);
+                            const durationMins = (endMins - startMins);
+                            const durationHrs = durationMins / 60;
+                            
+                            // Score = Difficulty * Hours
+                            const diff = ev.xpDifficulty || 10; 
+                            score += (durationHrs * diff);
+        
+                            // Check if this falls in the exact past 7 days window
+                            const targetMidnight = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+                            const diffDays = Math.floor((todayMidnight - targetMidnight) / (1000 * 60 * 60 * 24));
+                            
+                            if (diffDays >= 0 && diffDays < 7) {
+                                past7Mins += durationMins;
+                            }
+                        }
+                    });
+        
+                    if (score > maxScore) maxScore = score;
+                    dayScores.push({ date: targetDate, score: score, isFuture: targetDate > now });
+                }
+            }
+        
+            // Render grid visually
+            dayScores.forEach(ds => {
+                const cell = document.createElement('div');
+                cell.style.width = '14px';
+                cell.style.height = '14px';
+                cell.style.borderRadius = '3px';
+                cell.style.backgroundColor = '#1e1e2e'; 
+                cell.style.border = '1px solid rgba(255,255,255,0.05)';
+                cell.title = `${ds.date.toLocaleDateString('en-GB')}: Score ${ds.score.toFixed(1)}`;
+        
+                if (ds.score > 0) {
+                    let intensity = ds.score / (maxScore || 1); 
+                    if (intensity <= 0.25) cell.style.backgroundColor = '#0e4429';
+                    else if (intensity <= 0.5) cell.style.backgroundColor = '#006d32';
+                    else if (intensity <= 0.75) cell.style.backgroundColor = '#26a641';
+                    else cell.style.backgroundColor = '#39d353';
+                }
+        
+                if (ds.isFuture && ds.score === 0) cell.style.opacity = '0.3';
+                gridContainer.appendChild(cell);
+            });
+        
+            // Update bottom tracker
+            past7DaysEl.innerText = `${Math.floor(past7Mins / 60)}h ${past7Mins % 60}m`;
+        }
         // --- RENDERERS (Radar, Charts, Schedule) ---
         function refreshUI() {
             const currentTerm = terms.find(t => t.id === currentTermId);
@@ -2499,6 +2599,7 @@
             });
 
             updateKeyDates(); updateMissionsBadge(); if (currentView === "dashboard") updateDashboardView(); if (currentView === "missions") renderMissions();
+            renderActivityGrid();
         }
 
         function updateKeyDates() {
