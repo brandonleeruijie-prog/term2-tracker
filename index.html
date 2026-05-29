@@ -193,7 +193,7 @@
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
         
         .avatar-img { height: 130px; width: auto; image-rendering: pixelated; border-radius: 4px; }
-        .chart-container { position: relative; height: 200px; width: 200px; margin: 0 auto; }
+        .chart-container { position: relative; height: 200px; width: 100%; margin: 0 auto; }
 
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -2953,11 +2953,18 @@
                         maintainAspectRatio: false, 
                         plugins: {
                             legend: { 
-                                position: 'bottom', 
-                                labels: { color: '#c4c7c5', font: { family: 'Rajdhani', size: 14 } } 
+                                position: 'right', // <-- Moves the legend to the right
+                                labels: { 
+                                    color: '#c4c7c5', 
+                                    font: { family: 'Share Tech Mono', size: 12 }, // Tweaked font for better fit
+                                    padding: 15
+                                } 
                             }
                         },
-                        cutout: '75%'
+                        cutout: '55%', // <-- Reduces the center hole, making the ring thicker
+                        layout: {
+                            padding: { left: 0, right: 10, top: 10, bottom: 10 }
+                        }
                     } 
                 });
             } else if (ctx) { 
