@@ -2122,7 +2122,15 @@
                 events.filter(e => e.termId === currentTermId && e.courseId === courseId).forEach(e => db.collection('events').doc(e.id).delete());
             }
         };
-
+        window.toggleCourseAcademic = function(courseId, currentStatus) {
+            db.collection('courses').doc(currentTermId + "_" + courseId).update({
+                isAcademic: !currentStatus
+            }).then(() => {
+                showToast(!currentStatus ? `${courseId} is now Academic` : `${courseId} removed from Academic`, "var(--accent)");
+            }).catch(err => {
+                console.error("Error updating course: ", err);
+            });
+        };
         // Master Schedule Form Submit
         document.getElementById('form-event').onsubmit = (e) => {
             e.preventDefault();
@@ -2673,7 +2681,13 @@
                 if(filterContainer) filterContainer.appendChild(fBtn);
                 const badge = c.isAcademic ? '<span style="background: rgba(168, 199, 250, 0.2); color: var(--accent); font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold; border: 1px solid var(--accent);">ACADEMIC</span>' : '';
                 const li = document.createElement('li'); li.className = "mgmt-item"; 
-                li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong>${badge}</div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
+                li.innerHTML = `
+                    <div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong>${badge}</div>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-edit-list" style="background: transparent; color: var(--accent); border: 1px solid var(--accent);" onclick="toggleCourseAcademic('${c.id}', ${c.isAcademic ? 'true' : 'false'})">Toggle Academic</button>
+                        <button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>
+                    </div>
+                `;
                 if(builderCourseList) builderCourseList.appendChild(li);
             });
 
