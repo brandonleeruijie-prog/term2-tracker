@@ -336,8 +336,13 @@
                         </div>
             
                         <!-- GITHUB GRID CONTAINER -->
-                        <div id="github-activity-grid" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; justify-content: start;">
-                            <!-- JS will populate the squares -->
+                        <div style="display: flex; gap: 20px; align-items: flex-end; width: 100%;">
+                            <div id="github-activity-grid" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; justify-content: start; flex-shrink: 0;">
+                                </div>
+                            
+                            <div style="flex: 1; height: 110px; min-width: 0; position: relative;">
+                                <canvas id="academic-barchart"></canvas>
+                            </div>
                         </div>
             
                         <!-- 7-DAY HOURS TRACKER & LEGEND -->
@@ -478,6 +483,10 @@
                         <div class="form-group" style="flex: 1;">
                             <label>Course Code / Routine Name</label>
                             <input type="text" id="inp-course-name" placeholder="e.g. MMAN1130 or Gym" required>
+                        </div>
+                        <div class="form-group" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 5px;">
+                            <label for="inp-course-academic" style="cursor: pointer; margin-bottom: 8px;">Academic?</label>
+                            <input type="checkbox" id="inp-course-academic" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); margin: 0;">
                         </div>
                         <div class="form-group">
                             <label>Color</label>
@@ -744,6 +753,91 @@
     <div id="ics-import-modal" class="modal-overlay"><div class="modal-content" style="max-width: 600px;"><button class="close-modal" onclick="closeICSModal()">✖</button><h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Verify Detected Courses</h2><div id="ics-course-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; padding-right: 10px;"></div><button class="btn-submit" style="width: 100%;" onclick="executeICSInjection()">Confirm & Inject Schedule</button></div></div>
 
     <script>
+        let academicChartInstance = null;
+        
+        function renderAcademicBarChart() {
+            const ctx = document.getElementById('academic-barchart');
+            if (!ctx) return;
+        
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if (!currentTerm) return;
+        
+            // Filter courses for Academic only
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            const academicCourses = termCourses.filter(c => c.isAcademic);
+        
+            if (academicCourses.length === 0) {
+                if (academicChartInstance) academicChartInstance.destroy();
+                ctx.style.display = 'none';
+                return;
+            }
+            ctx.style.display = 'block';
+        
+            // Generate the last 7 days (X-Axis)
+            const last7Days = [];
+            const labels = [];
+            const now = new Date();
+            const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(todayMidnight);
+                d.setDate(d.getDate() - i);
+                last7Days.push(d);
+                labels.push(new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric' }).format(d));
+            }
+        
+            // Build the Datasets (Y-Axis Hours)
+            const datasets = academicCourses.map(course => {
+                return {
+                    label: course.id,
+                    backgroundColor: course.color,
+                    data: last7Days.map(targetDate => {
+                        const termStart = new Date(currentTerm.startDate.split('-')[0], currentTerm.startDate.split('-')[1] - 1, currentTerm.startDate.split('-')[2]);
+                        const diffDays = Math.floor((targetDate - termStart) / (1000 * 60 * 60 * 24));
+                        const weekNum = Math.floor(diffDays / 7) + 1;
+                        const dayName = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(targetDate);
+        
+                        let totalMins = 0;
+        
+                        if (weekNum >= 1 && weekNum <= (currentTerm.totalWeeks || 10)) {
+                            const dayEvents = events.filter(e =>
+                                e.termId === currentTermId &&
+                                e.courseId === course.id &&
+                                e.day === dayName &&
+                                (e.weeks === "All" || parseInt(e.weeks) === weekNum)
+                            );
+        
+                            dayEvents.forEach(ev => {
+                                // Only count time that was actually resolved/completed
+                                if (ev.resolvedWeeks && ev.resolvedWeeks.includes(weekNum.toString())) {
+                                    totalMins += (timeToMinutes(ev.end) - timeToMinutes(ev.start));
+                                }
+                            });
+                        }
+                        return parseFloat((totalMins / 60).toFixed(2));
+                    })
+                };
+            });
+        
+            // Render the Chart
+            if (academicChartInstance) academicChartInstance.destroy();
+            academicChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'var(--text-muted)', font: { family: 'Share Tech Mono', size: 10 } } },
+                        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'var(--text-muted)', font: { family: 'Share Tech Mono', size: 10 } }, beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { display: false }, // Hidden to save vertical space
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }     
         // --- EXTENSION BRIDGE CONFIG ---
         const EXTENSION_ID = "hnefcnjfgkefmecikelfmpeapclhjboa";
 
@@ -2007,9 +2101,17 @@
             e.preventDefault();
             const courseId = document.getElementById('inp-course-name').value.trim().toUpperCase();
             const color = document.getElementById('inp-course-color').value;
+            const isAcademic = document.getElementById('inp-course-academic').checked; // <-- Capture academic status
+            
             if (courseId) {
-                db.collection('courses').doc(currentTermId + "_" + courseId).set({ id: courseId, termId: currentTermId, color: color }).then(() => {
+                db.collection('courses').doc(currentTermId + "_" + courseId).set({ 
+                    id: courseId, 
+                    termId: currentTermId, 
+                    color: color,
+                    isAcademic: isAcademic 
+                }).then(() => {
                     document.getElementById('form-course').reset();
+                    document.getElementById('inp-course-academic').checked = false;
                 });
             }
         };
@@ -2569,7 +2671,9 @@
                 const fBtn = document.createElement('button'); fBtn.className = `course-filter-btn ${currentFilter === c.id ? 'active' : ''}`; fBtn.style.borderLeftColor = c.color; fBtn.innerText = c.id;
                 fBtn.onclick = () => { document.querySelectorAll('.course-filter-btn').forEach(b => b.classList.remove('active')); fBtn.classList.add('active'); currentFilter = c.id; if(currentView !== "dashboard" && currentView !== "builder" && currentView !== "missions" && currentView !== "settings") renderSchedule(currentView); };
                 if(filterContainer) filterContainer.appendChild(fBtn);
-                const li = document.createElement('li'); li.className = "mgmt-item"; li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong></div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
+                const badge = c.isAcademic ? '<span style="background: rgba(168, 199, 250, 0.2); color: var(--accent); font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold; border: 1px solid var(--accent);">ACADEMIC</span>' : '';
+                const li = document.createElement('li'); li.className = "mgmt-item"; 
+                li.innerHTML = `<div><span class="color-swatch" style="background:${c.color}"></span><strong>${c.id}</strong>${badge}</div><button class="btn-delete" onclick="deleteCourse('${c.id}')">Delete</button>`;
                 if(builderCourseList) builderCourseList.appendChild(li);
             });
 
@@ -2602,6 +2706,7 @@
 
             updateKeyDates(); updateMissionsBadge(); if (currentView === "dashboard") updateDashboardView(); if (currentView === "missions") renderMissions();
             renderActivityGrid();
+            renderAcademicBarChart(); // <-- Add this line
         }
 
         function updateKeyDates() {
