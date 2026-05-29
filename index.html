@@ -2451,21 +2451,60 @@
             const s1 = timeToMinutes(event1.start); const e1 = timeToMinutes(event1.end); const s2 = timeToMinutes(event2.start); const e2 = timeToMinutes(event2.end);
             return (s1 < e2 && s2 < e1);
         }
+        function generateHoursSummary(eventsList) {
+    const courseTimeMap = {};
+    eventsList.forEach(ev => {
+        if (ev.isReminder || ev.isReward) return;
+        const duration = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+        if (duration > 0) {
+            const cId = ev.courseId || "General";
+            courseTimeMap[cId] = (courseTimeMap[cId] || 0) + duration;
+        }
+    });
 
+    if (Object.keys(courseTimeMap).length === 0) return "No hours scheduled.";
+
+    let summary = "Total Hours Breakdown:\n";
+    for (const [course, mins] of Object.entries(courseTimeMap)) {
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        summary += `• ${course}: ${h}h ${m}m\n`;
+    }
+    return summary.trim();
+}
         function renderSchedule(weekNum) {
             const container = document.getElementById('weekly-schedule-content'); container.innerHTML = '';
             const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
 
-            let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
+           let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
+    
+            // --- NEW: Update the main Week title tooltip ---
+            const weeklyTitleEl = document.getElementById('weekly-title');
+            if (weeklyTitleEl) {
+                weeklyTitleEl.title = generateHoursSummary(filteredEvents);
+                weeklyTitleEl.style.cursor = "help"; // Adds a question mark cursor on hover
+            }
+            // ----------------------------------------------
+
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
-            let html = `<div id="cal-scroll-container" style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; position: relative;">
-                    <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(30, 31, 32, 0.95); backdrop-filter: blur(5px); position: sticky; top: 0; z-index: 100;">
-                        <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline);"></div>`;
+           let html = `<div id="cal-scroll-container" style="display: flex; flex-direction: column; flex: 1; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; position: relative;">
+            <div style="display: flex; border-bottom: 1px solid var(--outline); background: rgba(30, 31, 32, 0.95); backdrop-filter: blur(5px); position: sticky; top: 0; z-index: 100;">
+                <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline);"></div>`;
+    
             days.forEach(day => {
                 const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
-                html += `<div style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--text-muted);">${day.substring(0,3).toUpperCase()} <br> <span style="font-size: 24px; color: var(--accent);">${targetDate.getDate()}</span></div>`;
+        
+                // --- NEW: Calculate hours just for this specific day ---
+                const dayEvents = filteredEvents.filter(e => e.day === day);
+                const daySummary = generateHoursSummary(dayEvents);
+                // -------------------------------------------------------
+
+                // Notice the added title="${daySummary}" and cursor: help; in the div below
+                html += `<div title="${daySummary}" style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--text-muted); cursor: help;">${day.substring(0,3).toUpperCase()} <br> <span style="font-size: 24px; color: var(--accent);">${targetDate.getDate()}</span></div>`;
             });
+
+            // ... (The rest of your renderSchedule function remains exactly the same starting from here)
             html += `</div><div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * 60 * timeScale}px;">
                         <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;">`;
             for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span></div>`; }
