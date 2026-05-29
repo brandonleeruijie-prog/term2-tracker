@@ -333,15 +333,35 @@
 
             <div id="view-dashboard">
                 <h2 id="dash-welcome-title" style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Loading Database...</h2>
-                <p style="color: var(--text-muted); margin-bottom: 25px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this plan.</p>
+                <p style="color: var(--text-muted); margin-bottom: 15px;">Use the <b>⚙️ Builder</b> tab to construct your schedule for this plan.</p>
+    
+                <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
+        
+                    <div style="flex: 2; min-width: 400px; display: flex; flex-direction: column;">
+            
+                        <div id="dash-date-nav" style="display: flex; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid var(--outline); margin-bottom: 15px; align-items: center; justify-content: center;">
+                            </div>
+            
+                        <div class="builder-section" style="background: rgba(255, 255, 255, 0.02); border-color: var(--outline); padding: 20px;">
+                            <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid var(--outline); padding-bottom: 10px;">
+                                📅 <span id="dash-schedule-title">Today's Schedule</span>
+                            </h3>
                 
-                <div class="builder-section" style="background: rgba(255, 255, 255, 0.02); border-color: var(--outline); padding: 25px;">
-                    <h3 style="margin-top:0; margin-bottom: 20px; color: var(--accent); font-size: 22px; border-bottom: 1px solid var(--outline); padding-bottom: 10px;">
-                        📡 Today's Radar <span id="radar-day" style="color: var(--text-muted); font-size: 18px; margin-left: 10px; font-family:'Share Tech Mono';"></span>
-                    </h3>
-                    <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
-                        <div style="flex: 2; min-width: 350px;" id="dashboard-today-agenda"></div>
-                        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 20px; border: 1px solid var(--outline);">
+                            <div id="dash-timeline-container" style="position: relative; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; height: 500px; display: flex;">
+                                <div id="dash-time-labels" style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;"></div>
+                                <div id="dash-event-track" style="flex: 1; position: relative; background: url('data:image/svg+xml;utf8,<svg width=\"100%\" height=\"60\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"0\" y1=\"60\" x2=\"100%\" y2=\"60\" stroke=\"rgba(255,255,255,0.05)\" stroke-width=\"1\"/></svg>');"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 20px;">
+            
+                        <div class="builder-section" style="background: rgba(255, 255, 255, 0.02); border-color: var(--outline); padding: 20px; margin-bottom: 0;">
+                            <h3 style="margin-top:0; color: var(--accent); font-size: 16px; border-bottom: 1px solid var(--outline); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">🚨 Key Dates This Week</h3>
+                            <div id="dash-key-dates-container"></div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 20px; border: 1px solid var(--outline);">
                             <h4 style="margin: 0 0 15px 0; color: var(--accent); text-transform: uppercase; font-size: 16px; letter-spacing: 1px;">Daily Allocation</h4>
                             <div class="chart-container"><canvas id="todayTimeChart"></canvas></div>
                             <p id="empty-chart-msg" style="display: none; color: var(--text-muted); font-size: 14px; text-align: center; margin-top: 20px;">No active hours today.</p>
@@ -1381,7 +1401,196 @@
                 lastNotifiedTime = 0;
             }
         }
-
+        let dashViewingDate = new Date();
+        
+        function updateDashboardView() {
+            renderDashDateNav();
+            
+            const isToday = dashViewingDate.toDateString() === new Date().toDateString();
+            document.getElementById('dash-schedule-title').innerText = isToday ? "Today's Schedule" : `${new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'short' }).format(dashViewingDate)} Schedule`;
+            
+            renderDashTimeline();
+            renderDashKeyDates();
+        }
+        
+        function renderDashDateNav() {
+            const nav = document.getElementById('dash-date-nav');
+            if(!nav) return;
+            nav.innerHTML = '';
+            
+            // Previous Button
+            const prevBtn = document.createElement('button');
+            prevBtn.innerHTML = '❮'; prevBtn.className = 'tab-btn';
+            prevBtn.onclick = () => { dashViewingDate.setDate(dashViewingDate.getDate() - 1); updateDashboardView(); };
+            nav.appendChild(prevBtn);
+        
+            // Render 5 Days
+            for(let i = -2; i <= 2; i++) {
+                const d = new Date(dashViewingDate);
+                d.setDate(d.getDate() + i);
+                
+                const isToday = d.toDateString() === new Date().toDateString();
+                const isSelected = i === 0;
+                const dayName = new Intl.DateTimeFormat('en-AU', { weekday: 'short' }).format(d);
+                const dayNum = d.getDate();
+                
+                const dayBtn = document.createElement('div');
+                dayBtn.style.cssText = `display: flex; flex-direction: column; align-items: center; padding: 6px 16px; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; user-select: none; ${isSelected ? 'background: var(--accent); color: var(--bg-dark);' : 'color: var(--text-muted);'} ${isToday && !isSelected ? 'border-color: var(--accent); color: var(--accent);' : ''}`;
+                dayBtn.innerHTML = `<span style="font-size: 13px; text-transform: uppercase; font-weight: 600;">${dayName}</span><span style="font-size: 22px; font-family: 'Share Tech Mono'; font-weight: bold;">${dayNum}</span>`;
+                dayBtn.onclick = () => { dashViewingDate = new Date(d); updateDashboardView(); };
+                
+                nav.appendChild(dayBtn);
+            }
+        
+            // Next Button
+            const nextBtn = document.createElement('button');
+            nextBtn.innerHTML = '❯'; nextBtn.className = 'tab-btn';
+            nextBtn.onclick = () => { dashViewingDate.setDate(dashViewingDate.getDate() + 1); updateDashboardView(); };
+            nav.appendChild(nextBtn);
+        }
+        
+        function renderDashTimeline() {
+            const timeLabels = document.getElementById('dash-time-labels');
+            const eventTrack = document.getElementById('dash-event-track');
+            if(!timeLabels || !eventTrack) return;
+            
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+        
+            const [y, m, d] = currentTerm.startDate.split('-').map(Number); 
+            const termStart = new Date(y, m - 1, d);
+            const viewWeek = Math.floor(getDaysDiff(termStart, dashViewingDate) / 7) + 1;
+            const viewDayName = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(dashViewingDate);
+            
+            // Draw 24-hour grid scale (1 pixel = 1 minute)
+            let htmlLabels = '';
+            for(let i=0; i<24; i++) { 
+                htmlLabels += `<div style="height: 60px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span></div>`; 
+            }
+            timeLabels.innerHTML = htmlLabels;
+            eventTrack.innerHTML = '';
+            
+            // Red Current Time Line (Only if looking at today)
+            const now = new Date();
+            if (dashViewingDate.toDateString() === now.toDateString()) {
+                const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+                const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+                const currentMins = parseInt(parts.find(p => p.type === 'hour').value) * 60 + parseInt(parts.find(p => p.type === 'minute').value);
+                
+                const timeLine = document.createElement('div');
+                timeLine.id = "dash-current-time-line";
+                timeLine.style.cssText = `position: absolute; left: 0; right: 0; top: ${currentMins}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;`;
+                timeLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                eventTrack.appendChild(timeLine);
+            }
+        
+            let dayEvents = events.filter(e => e.termId === currentTermId && e.day === viewDayName && (e.weeks === "All" || parseInt(e.weeks) === viewWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(viewWeek.toString())));
+            
+            let conflictIds = new Set();
+            for (let i = 0; i < dayEvents.length; i++) { for (let j = i + 1; j < dayEvents.length; j++) { if (checkOverlap(dayEvents[i], dayEvents[j])) { conflictIds.add(dayEvents[i].id); conflictIds.add(dayEvents[j].id); } } }
+        
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            
+            dayEvents.forEach(ev => {
+                const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
+                const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
+                
+                const isPast = (dashViewingDate < new Date(now.toDateString())) || (dashViewingDate.toDateString() === now.toDateString() && timeToMinutes(now.toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'})) > (ev.isReminder ? startMins : endMins));
+                const greyOutStyle = isPast ? 'opacity: 0.5; filter: grayscale(80%);' : '';
+                
+                if (ev.isReminder) {
+                     const rem = document.createElement('div');
+                     rem.style.cssText = `position: absolute; top: ${startMins - 12}px; height: 24px; left: 10px; right: 10px; background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 13px; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 40; ${greyOutStyle}`;
+                     rem.onclick = () => openInstanceModal(ev.id, viewWeek);
+                     rem.innerHTML = `🔔 ${ev.title} (${format12Hour(ev.start)})`;
+                     eventTrack.appendChild(rem); return;
+                }
+        
+                const duration = endMins - startMins;
+                const isConflicted = conflictIds.has(ev.id);
+                let bgStyle = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid transparent;`;
+                if(isConflicted) bgStyle = `background: var(--hazard); border: 2px dashed #ff5252;`;
+                if(ev.isReward && !isConflicted) bgStyle = `background: rgba(255, 215, 0, 0.15); border: 1px solid #ffd700;`;
+        
+                const block = document.createElement('div');
+                block.style.cssText = `position: absolute; top: ${startMins}px; height: ${duration}px; left: 10px; right: 10px; border-left: 4px solid ${isPast ? '#555' : cColor}; ${bgStyle} border-radius: 6px; padding: 8px; color: var(--text-main); cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: ${isConflicted ? 15 : 10}; overflow: hidden; transition: 0.2s; ${greyOutStyle}`;
+                block.onmouseenter = () => { if(!isPast) block.style.filter = 'brightness(1.3)'; }; block.onmouseleave = () => { block.style.filter = isPast ? 'grayscale(80%)' : 'none'; };
+                block.onclick = () => openInstanceModal(ev.id, viewWeek);
+                
+                block.innerHTML = `
+                    <div style="font-weight: bold; font-size: 14px; margin-bottom: 2px; color: ${isPast ? '#999' : cColor};">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId + ' | ' : ''}<span style="color: white;">${ev.title}</span></div>
+                    <div style="font-family: 'Share Tech Mono'; font-size: 11px; color: var(--text-muted); margin-bottom: auto;">${format12Hour(ev.start)} - ${format12Hour(ev.end)}</div>
+                    ${ev.location && duration >= 45 ? `<div style="font-size: 11px; margin-top: 4px; opacity: 0.8;">📍 ${ev.location}</div>` : ''}
+                `;
+                eventTrack.appendChild(block);
+            });
+            
+            setTimeout(() => { document.getElementById('dash-timeline-container').scrollTop = 8 * 60 - 20; }, 10);
+            renderTimeGraph(dayEvents);
+        }
+        
+        function renderDashKeyDates() {
+            const container = document.getElementById('dash-key-dates-container');
+            if(!container) return;
+            container.innerHTML = '';
+            
+            const currentTerm = terms.find(t => t.id === currentTermId);
+            if(!currentTerm) return;
+        
+            const [y, m, d] = currentTerm.startDate.split('-').map(Number); 
+            const termStart = new Date(y, m - 1, d);
+            const viewWeek = Math.floor(getDaysDiff(termStart, dashViewingDate) / 7) + 1;
+            
+            let weekKeyDates = [];
+            const termEvents = events.filter(e => e.termId === currentTermId && e.isCritical && !e.isReward);
+            
+            termEvents.forEach(ev => {
+                if(ev.weeks === "All" || parseInt(ev.weeks) === viewWeek) {
+                    if(!(ev.skippedWeeks && ev.skippedWeeks.includes(viewWeek.toString()))) {
+                        const targetDate = getSpecificDate(currentTerm.startDate, viewWeek, ev.day);
+                        weekKeyDates.push({ ev, targetDate });
+                    }
+                }
+            });
+        
+            weekKeyDates.sort((a,b) => a.targetDate - b.targetDate);
+            
+            if(weekKeyDates.length === 0) {
+                container.innerHTML = `<p style="color:var(--text-muted); font-size: 14px; font-style: italic;">No key dates scheduled for Week ${viewWeek}.</p>`;
+                return;
+            }
+        
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+        
+            weekKeyDates.forEach(kd => {
+                const cColor = kd.ev.courseId ? (termCourses.find(c => c.id === kd.ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+                
+                const today = new Date(); today.setHours(0,0,0,0);
+                const kdDate = new Date(kd.targetDate); kdDate.setHours(0,0,0,0);
+                const dayDiff = Math.floor((kdDate - today) / (1000 * 60 * 60 * 24));
+                
+                let timeStr = "";
+                if(dayDiff === 0) timeStr = "Today";
+                else if(dayDiff === 1) timeStr = "Tomorrow";
+                else if(dayDiff < 0) timeStr = `${Math.abs(dayDiff)}d ago`;
+                else timeStr = `In ${dayDiff}d`;
+        
+                const item = document.createElement('div');
+                item.style.cssText = `border-left: 4px solid ${cColor}; background: rgba(0,0,0,0.3); padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);`;
+                
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <strong style="color: ${cColor}; font-size: 15px; line-height: 1.2;">${kd.ev.courseId ? kd.ev.courseId + ' | ' : ''}<span style="color: var(--text-main);">${kd.ev.title}</span></strong>
+                        <span style="font-family: 'Share Tech Mono'; font-size: 13px; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'})}</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 4px;">
+                        <span>${kd.ev.day} • ${format12Hour(kd.ev.start)}</span>
+                        <span style="font-weight: bold; color: ${dayDiff === 0 ? '#ff5252' : (dayDiff < 0 ? '#555' : 'var(--text-muted)')};">${timeStr}</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
         // --- FIREBASE LISTENERS ---
         function checkLoaders() {
             if(loaders.terms && loaders.courses && loaders.events && loaders.userStats) {
@@ -1457,7 +1666,12 @@
                 
                 updateMissionsBadge(); 
 
-                if (currentView === "dashboard" && loaders.events) renderTodayAgenda(false); 
+                if (currentView === "dashboard" && dashViewingDate.toDateString() === new Date().toDateString()) {
+                    const parts = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+                    const currentMins = parseInt(parts.find(p => p.type === 'hour').value) * 60 + parseInt(parts.find(p => p.type === 'minute').value);
+                    const dashTimeLine = document.getElementById('dash-current-time-line');
+                    if(dashTimeLine) dashTimeLine.style.top = `${currentMins}px`;
+                } 
                 if (currentView === "missions" && loaders.events) renderMissions(); 
                 if (!isNaN(currentView) && currentView == getCurrentCalendarWeek()) {
                     const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -1519,7 +1733,7 @@
             document.getElementById('view-settings').style.display = 'none';
             currentView = view;
 
-            if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; renderTodayAgenda(false); } 
+            if(view === "dashboard") { document.getElementById('view-dashboard').style.display = 'block'; dashViewingDate = new Date(); updateDashboardView(); }
             else if (view === "missions") { document.getElementById('view-missions').style.display = 'flex'; renderMissions(); }
             else if (view === "builder") { document.getElementById('view-builder').style.display = 'block'; } 
             else if (view === "settings") { document.getElementById('view-settings').style.display = 'flex'; } 
@@ -2225,7 +2439,7 @@
                 if(eventList) eventList.appendChild(li);
             });
 
-            updateKeyDates(); updateMissionsBadge(); if (currentView === "dashboard") renderTodayAgenda(false); if (currentView === "missions") renderMissions();
+            updateKeyDates(); updateMissionsBadge(); if (currentView === "dashboard") updateDashboardView(); if (currentView === "missions") renderMissions();
         }
 
         function updateKeyDates() {
