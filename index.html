@@ -697,25 +697,37 @@
         }
 
         // --- EMAILJS HELPER ---
-        function sendAccountabilityEmail(type, params) {
-            if (!accountabilityEmail) return;
+       function sendAccountabilityEmail(type, params) {
+    if (!accountabilityEmail) return;
 
-            const serviceID = 'service_mfycgli';
-            let templateID = '';
-            const publicKey = 'DAhJlNrUs2aFVFxUZ';
+    const serviceID = 'service_mfycgli';
+    const publicKey = 'DAhJlNrUs2aFVFxUZ';
+    
+    // We route everything through your existing strike template to respect the 2-template limit
+    const templateID = 'template_ptlw8ff'; 
 
-            if (type === 'strike') templateID = 'template_ptlw8ff';
-            if (type === 'report') templateID = 'template_0z19spp';
+    let emailSubject = '';
+    let emailMessage = '';
 
-            const templateParams = {
-                to_email: accountabilityEmail,
-                ...params
-            };
+    if (type === 'strike') {
+        emailSubject = `Focus Strike Alert!`;
+        emailMessage = `Brandon failed Focus Mode on ${params.course} | ${params.title}.`;
+    } 
+    else if (type === 'skip') {
+        emailSubject = `Task Skipped Alert`;
+        emailMessage = `Brandon skipped ${params.title} | ${params.course}`;
+    }
 
-            emailjs.send(serviceID, templateID, templateParams, publicKey)
-                .then((response) => console.log('Accountability Email Sent!', response.status, response.text))
-                .catch((error) => console.error('Failed to send Accountability Email...', error));
-        }
+    const templateParams = {
+        to_email: accountabilityEmail,
+        email_subject: emailSubject,    // Maps to {{email_subject}} in EmailJS
+        email_message: emailMessage     // Maps to {{email_message}} in EmailJS
+    };
+
+    emailjs.send(serviceID, templateID, templateParams, publicKey)
+        .then((response) => console.log('Accountability Email Sent!', response.status, response.text))
+        .catch((error) => console.error('Failed to send Accountability Email...', error));
+}
 
         function saveSettings() {
             const rawEmails = document.getElementById('inp-partner-email').value;
@@ -2040,7 +2052,7 @@
         };
 
 
-        function resolveMission(eventId, weekNum, action) {
+      function resolveMission(eventId, weekNum, action) {
             const ev = events.find(e => e.id === eventId); if(!ev) return;
             
             let newResolved = [...(ev.resolvedWeeks || [])];
@@ -2075,6 +2087,16 @@
                     finalChange -= focusPenalty;
                     updateXP(finalChange);
                 }
+
+                // ─── ADD YOUR NEW EMAIL TRIGGER HERE ───
+                if (action === 'skip') {
+                    sendAccountabilityEmail('skip', {
+                        course: ev.courseId || "General",
+                        title: ev.title
+                    });
+                }
+                // ────────────────────────────────────────
+
                 updateMissionsBadge();
                 if (currentView === "missions") renderMissions();
             });
