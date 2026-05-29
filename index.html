@@ -321,47 +321,48 @@
         <div class="content" id="main-content">
             
             <!-- START OF XP CONTAINER -->
-            <div class="xp-container" style="width: fit-content; min-width: 500px; max-width: 100%; margin-bottom: 25px;">
-                <div class="global-task-progress" id="global-task-progress"></div>
-                <div class="xp-content-wrapper">
-                    <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
-                            <strong style="color: var(--text-main); font-size: 36px; line-height: 1; letter-spacing: 1px;">Brandon Lee</strong>
-                        </div>
-                        
-                        <div id="global-active-task-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 10px; font-family: 'Share Tech Mono', monospace; color: var(--accent);">
-                            <span id="global-task-title" style="font-size: 18px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;"></span>
-                            <span id="global-task-timer" style="font-size: 18px; font-weight: bold; color: #ffb4b4;"></span>
-                        </div>
-            
-                        <!-- GITHUB GRID CONTAINER -->
-                        <div style="display: flex; gap: 20px; align-items: flex-end; width: 100%;">
-                            <div id="github-activity-grid" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; justify-content: start; flex-shrink: 0;">
-                                </div>
-                            
-                            <div style="flex: 1; height: 110px; min-width: 0; position: relative;">
-                                <canvas id="academic-barchart"></canvas>
+            <div style="display: flex; gap: 25px; margin-bottom: 25px; align-items: stretch; width: 100%;">
+                
+                <div class="xp-container" style="width: fit-content; min-width: 500px; margin-bottom: 0; flex-shrink: 0;">
+                    <div class="global-task-progress" id="global-task-progress"></div>
+                    <div class="xp-content-wrapper">
+                        <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
+                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+                                <strong style="color: var(--text-main); font-size: 36px; line-height: 1; letter-spacing: 1px;">Brandon Lee</strong>
                             </div>
-                        </div>
-            
-                        <!-- 7-DAY HOURS TRACKER & LEGEND -->
-                        <div style="margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 20px;">
-                            <span style="color: var(--accent); white-space: nowrap;">Hours Focus Studied (Past 7 Days): <strong id="past-7-days-hours" style="color: #4caf50; font-size: 16px;">0h 0m</strong></span>
                             
-                            <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap;">
-                                <span>Less</span>
-                                <div style="width: 12px; height: 12px; background: #1e1e2e; border-radius: 2px; border: 1px solid rgba(255,255,255,0.05);"></div>
-                                <div style="width: 12px; height: 12px; background: #0e4429; border-radius: 2px;"></div>
-                                <div style="width: 12px; height: 12px; background: #006d32; border-radius: 2px;"></div>
-                                <div style="width: 12px; height: 12px; background: #26a641; border-radius: 2px;"></div>
-                                <div style="width: 12px; height: 12px; background: #39d353; border-radius: 2px;"></div>
-                                <span>More</span>
+                            <div id="global-active-task-container" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 10px; font-family: 'Share Tech Mono', monospace; color: var(--accent);">
+                                <span id="global-task-title" style="font-size: 18px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;"></span>
+                                <span id="global-task-timer" style="font-size: 18px; font-weight: bold; color: #ffb4b4;"></span>
+                            </div>
+                
+                            <div id="github-activity-grid" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; justify-content: start;">
+                                </div>
+                
+                            <div style="margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                                <span style="color: var(--accent); white-space: nowrap;">Hours Focus Studied (Past 7 Days): <strong id="past-7-days-hours" style="color: #4caf50; font-size: 16px;">0h 0m</strong></span>
+                                
+                                <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+                                    <span>Less</span>
+                                    <div style="width: 12px; height: 12px; background: #1e1e2e; border-radius: 2px; border: 1px solid rgba(255,255,255,0.05);"></div>
+                                    <div style="width: 12px; height: 12px; background: #0e4429; border-radius: 2px;"></div>
+                                    <div style="width: 12px; height: 12px; background: #006d32; border-radius: 2px;"></div>
+                                    <div style="width: 12px; height: 12px; background: #26a641; border-radius: 2px;"></div>
+                                    <div style="width: 12px; height: 12px; background: #39d353; border-radius: 2px;"></div>
+                                    <span>More</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div> <!-- END xp-content-wrapper -->
-            </div> <!-- END xp-container -->
+                </div> <div class="xp-container" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column; min-width: 0; padding: 20px;">
+                    <h3 style="margin-top: 0; color: var(--accent); font-size: 16px; border-bottom: 1px solid var(--outline); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">📊 Academic Hours (Past 7 Days)</h3>
+                    <div style="flex: 1; position: relative; min-height: 120px;">
+                        <canvas id="academic-barchart"></canvas>
+                    </div>
+                </div>
+
+            </div>
     
             <!-- WE ARE ADDING THIS MISSING DIV WRAPPER BACK IN -->
             <div id="view-settings" style="display: none; flex-direction: column; height: 100%;">
@@ -755,6 +756,8 @@
     <script>
         let academicChartInstance = null;
         
+        let academicChartInstance = null;
+        
         function renderAcademicBarChart() {
             const ctx = document.getElementById('academic-barchart');
             if (!ctx) return;
@@ -762,15 +765,9 @@
             const currentTerm = terms.find(t => t.id === currentTermId);
             if (!currentTerm) return;
         
-            // Filter courses for Academic only
             const termCourses = courses.filter(c => c.termId === currentTermId);
             const academicCourses = termCourses.filter(c => c.isAcademic);
         
-            if (academicCourses.length === 0) {
-                if (academicChartInstance) academicChartInstance.destroy();
-                ctx.style.display = 'none';
-                return;
-            }
             ctx.style.display = 'block';
         
             // Generate the last 7 days (X-Axis)
@@ -784,6 +781,42 @@
                 d.setDate(d.getDate() - i);
                 last7Days.push(d);
                 labels.push(new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric' }).format(d));
+            }
+
+            // Universal chart options injecting the accent color
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { 
+                        stacked: true, 
+                        grid: { color: 'rgba(168, 199, 250, 0.1)' }, 
+                        ticks: { color: '#a8c7fa', font: { family: 'Share Tech Mono', size: 11 } },
+                        border: { color: '#a8c7fa' }
+                    },
+                    y: { 
+                        stacked: true, 
+                        grid: { color: 'rgba(168, 199, 250, 0.1)' }, 
+                        ticks: { color: '#a8c7fa', font: { family: 'Share Tech Mono', size: 11 } }, 
+                        beginAtZero: true,
+                        border: { color: '#a8c7fa' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            };
+        
+            // Handle Empty State Visually
+            if (academicCourses.length === 0) {
+                if (academicChartInstance) academicChartInstance.destroy();
+                academicChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [] },
+                    options: chartOptions
+                });
+                return;
             }
         
             // Build the Datasets (Y-Axis Hours)
@@ -808,7 +841,6 @@
                             );
         
                             dayEvents.forEach(ev => {
-                                // Only count time that was actually resolved/completed
                                 if (ev.resolvedWeeks && ev.resolvedWeeks.includes(weekNum.toString())) {
                                     totalMins += (timeToMinutes(ev.end) - timeToMinutes(ev.start));
                                 }
@@ -824,20 +856,9 @@
             academicChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: labels, datasets: datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'var(--text-muted)', font: { family: 'Share Tech Mono', size: 10 } } },
-                        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'var(--text-muted)', font: { family: 'Share Tech Mono', size: 10 } }, beginAtZero: true }
-                    },
-                    plugins: {
-                        legend: { display: false }, // Hidden to save vertical space
-                        tooltip: { mode: 'index', intersect: false }
-                    }
-                }
+                options: chartOptions
             });
-        }     
+        }
         // --- EXTENSION BRIDGE CONFIG ---
         const EXTENSION_ID = "hnefcnjfgkefmecikelfmpeapclhjboa";
 
