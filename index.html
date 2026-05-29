@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Master Planner</title>
+    <title>Study Tracker</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -291,7 +291,7 @@
 <body>
 
     <div class="topbar">
-        <div class="logo">🎯 <span>The Master Planner</span></div>
+        <div class="logo">🎯 <span>Study Tracker</span></div>
         <div class="term-controls">
             <select id="inp-term-selector" class="term-select" onchange="switchTerm(this.value)"></select>
             <button class="tab-btn" style="padding: 4px 12px; font-size: 16px; background: rgba(168, 199, 250, 0.1); border-color: var(--accent); color: var(--accent);" onclick="openTermModal()" title="Manage Terms">⚙️ Create/Edit Plan</button>
@@ -1384,7 +1384,7 @@
                             try {
                                 playBeep(); 
                                 new Notification("⚠️ FOCUS MODE REQUIRED", {
-                                    body: `You are losing time on ${activeEv.title}!\nReturn to the Master Planner and activate Focus Mode immediately to prevent XP penalties.`,
+                                    body: `You are losing time on ${activeEv.title}!\nReturn to tracker and activate Focus Mode immediately to prevent XP penalties.`,
                                     icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚠️</text></svg>',
                                     requireInteraction: true
                                 });
