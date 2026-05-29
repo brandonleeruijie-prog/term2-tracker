@@ -320,7 +320,8 @@
 
         <div class="content" id="main-content">
             
-            <div class="xp-container">
+            <!-- START OF XP CONTAINER -->
+            <div class="xp-container" style="width: fit-content; min-width: 500px; max-width: 100%; margin-bottom: 25px;">
                 <div class="global-task-progress" id="global-task-progress"></div>
                 <div class="xp-content-wrapper">
                     <img src="avatar.gif" alt="Brandon Lee" class="avatar-img">
@@ -333,14 +334,17 @@
                             <span id="global-task-title" style="font-size: 18px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75%;"></span>
                             <span id="global-task-timer" style="font-size: 18px; font-weight: bold; color: #ffb4b4;"></span>
                         </div>
-                    
-                        <div id="github-activity-grid" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; min-height: 100px;">
-                            </div>
-                    
-                        <div style="margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: var(--accent);">Hours Focus Studied (Past 7 Days): <strong id="past-7-days-hours" style="color: #4caf50; font-size: 16px;">0h 0m</strong></span>
+            
+                        <!-- GITHUB GRID CONTAINER -->
+                        <div id="github-activity-grid" style="display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: thin; justify-content: start;">
+                            <!-- JS will populate the squares -->
+                        </div>
+            
+                        <!-- 7-DAY HOURS TRACKER & LEGEND -->
+                        <div style="margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                            <span style="color: var(--accent); white-space: nowrap;">Hours Focus Studied (Past 7 Days): <strong id="past-7-days-hours" style="color: #4caf50; font-size: 16px;">0h 0m</strong></span>
                             
-                            <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted);">
+                            <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap;">
                                 <span>Less</span>
                                 <div style="width: 12px; height: 12px; background: #1e1e2e; border-radius: 2px; border: 1px solid rgba(255,255,255,0.05);"></div>
                                 <div style="width: 12px; height: 12px; background: #0e4429; border-radius: 2px;"></div>
@@ -351,11 +355,8 @@
                             </div>
                         </div>
                     </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-settings" style="display: none; flex-direction: column; height: 100%;">
+                </div> <!-- END xp-content-wrapper -->
+            </div> <!-- END xp-container -->
                 <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚙️ System Settings</h2>
                 <div class="builder-section" style="background: rgba(255, 255, 255, 0.02);">
                     <h3 style="margin-top:0; color: #ff5252;">Accountability Partners</h3>
@@ -2461,6 +2462,7 @@
             const currentTerm = terms.find(t => t.id === currentTermId);
             if (!currentTerm) return;
         
+            // This now strictly follows your plan length, pulling the columns tightly together.
             const totalWeeks = currentTerm.totalWeeks || 10;
             const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
@@ -2472,20 +2474,10 @@
             let maxScore = 0;
             let dayScores = [];
         
-            // ENFORCED MINIMUM COLUMNS: Pad out to 20 weeks if the term is short
-            const displayWeeks = Math.max(totalWeeks, 20); 
-        
             // Calculate grid scores block by block
-            for (let w = 1; w <= displayWeeks; w++) {
+            for (let w = 1; w <= totalWeeks; w++) {
                 for (let d = 0; d < 7; d++) {
                     const dayName = daysOfWeek[d];
-                    
-                    // If we are in the padding zone (beyond the actual term length)
-                    if (w > totalWeeks) {
-                        dayScores.push({ date: null, score: 0, isFuture: true, isPadding: true });
-                        continue;
-                    }
-        
                     const targetDate = getSpecificDate(currentTerm.startDate, w, dayName);
                     let score = 0;
         
@@ -2517,7 +2509,7 @@
                     });
         
                     if (score > maxScore) maxScore = score;
-                    dayScores.push({ date: targetDate, score: score, isFuture: targetDate > now, isPadding: false });
+                    dayScores.push({ date: targetDate, score: score, isFuture: targetDate > now });
                 }
             }
         
@@ -2529,23 +2521,18 @@
                 cell.style.borderRadius = '3px';
                 cell.style.backgroundColor = '#1e1e2e'; 
                 cell.style.border = '1px solid rgba(255,255,255,0.05)';
-        
-                if (ds.isPadding) {
-                    // Make dummy padding squares barely visible
-                    cell.style.opacity = '0.05'; 
-                } else {
-                    cell.title = `${ds.date.toLocaleDateString('en-GB')}: Score ${ds.score.toFixed(1)}`;
-                    
-                    if (ds.score > 0) {
-                        let intensity = ds.score / (maxScore || 1); 
-                        if (intensity <= 0.25) cell.style.backgroundColor = '#0e4429';
-                        else if (intensity <= 0.5) cell.style.backgroundColor = '#006d32';
-                        else if (intensity <= 0.75) cell.style.backgroundColor = '#26a641';
-                        else cell.style.backgroundColor = '#39d353';
-                    }
-        
-                    if (ds.isFuture && ds.score === 0) cell.style.opacity = '0.3';
+                
+                cell.title = `${ds.date.toLocaleDateString('en-GB')}: Score ${ds.score.toFixed(1)}`;
+                
+                if (ds.score > 0) {
+                    let intensity = ds.score / (maxScore || 1); 
+                    if (intensity <= 0.25) cell.style.backgroundColor = '#0e4429';
+                    else if (intensity <= 0.5) cell.style.backgroundColor = '#006d32';
+                    else if (intensity <= 0.75) cell.style.backgroundColor = '#26a641';
+                    else cell.style.backgroundColor = '#39d353';
                 }
+        
+                if (ds.isFuture && ds.score === 0) cell.style.opacity = '0.3';
                 
                 gridContainer.appendChild(cell);
             });
