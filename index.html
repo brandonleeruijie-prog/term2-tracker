@@ -127,6 +127,22 @@
         .sidebar {
             width: 250px; background-color: var(--bg-panel); padding: 20px;
             border-right: 1px solid var(--outline); display: flex; flex-direction: column; gap: 15px; overflow-y: auto; flex-shrink: 0;
+            transition: width 0.3s ease, padding 0.3s ease;
+            overflow-x: hidden;
+        }
+        .sidebar > * {
+            min-width: 210px; /* Prevents text from squishing while collapsing */
+            transition: opacity 0.2s ease;
+        }
+        .sidebar.collapsed {
+            width: 0;
+            padding-left: 0;
+            padding-right: 0;
+            border-right-color: transparent;
+        }
+        .sidebar.collapsed > * {
+            opacity: 0;
+            pointer-events: none;
         }
         .sidebar h3 { margin-top: 0; color: var(--accent); font-size: 18px; text-transform: uppercase; border-bottom: 1px solid var(--outline); padding-bottom: 5px; letter-spacing: 2px;}
         .course-filter-btn {
@@ -301,6 +317,7 @@
     </div>
 
     <div class="subbar">
+        <button class="tab-btn" onclick="toggleSidebar()" style="padding: 6px 12px; margin-right: 5px; font-size: 18px;" title="Toggle Sidebar">☰</button>
         <button class="tab-btn action-btn active" data-view="dashboard">🏠 Weekly Overview</button>
         <button class="tab-btn action-btn" data-view="missions">⚔️ Missions <span id="missions-badge" class="notification-badge hidden">0</span></button>
         <button class="tab-btn action-btn" data-view="builder">⚙️ Builder</button>
@@ -756,7 +773,12 @@
     <script>
         let academicChartInstance = null;
         
-        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('collapsed');
+            }
+        }
         function renderAcademicBarChart() {
             const ctx = document.getElementById('academic-barchart');
             if (!ctx) return;
