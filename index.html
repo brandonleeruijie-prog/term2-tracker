@@ -18,6 +18,31 @@
 
     <style>
         :root {
+            /* --- CUSTOM SCROLLBARS --- */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark); 
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--outline); 
+            border-radius: 5px;
+            border: 2px solid var(--bg-dark); /* Adds a little padding around the thumb */
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a5d5c; /* Slightly lighter on hover */
+        }
+
+        /* Firefox Support */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--outline) var(--bg-dark);
+        }
             --bg-dark: #131314;       
             --bg-panel: #1e1f20;      
             --accent: #a8c7fa;        
