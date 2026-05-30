@@ -761,11 +761,15 @@
     ];
 
     // Helper function to broadcast messages to all known machines
+    // Helper function to broadcast messages to all known machines
     function notifyEnforcer(messagePayload) {
-        try {
-                notifyEnforcer({ action: "unblock" });
-            } catch (e) {
-                console.log("Extension unblock error", e);
+        if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
+            ENFORCER_IDS.forEach(id => {
+                chrome.runtime.sendMessage(id, messagePayload, (response) => {
+                    if (chrome.runtime.lastError) {
+                        return; 
+                    }
+                });
             });
         }
     }
@@ -882,9 +886,10 @@
 
         function broadcastFocusState(isActive) {
             try {
-                notifyEnforcer({ action: "block" });
+                // If isActive is true, send 'block', otherwise send 'unblock'
+                notifyEnforcer({ action: isActive ? "block" : "unblock" });
             } catch (e) {
-                console.log("Extension block error", e);
+                console.log("Extension broadcast error", e);
             }
         }
 
