@@ -2703,13 +2703,51 @@
             const totalWeeks = currentTerm?.totalWeeks || 10;
             const termSelect = document.getElementById('inp-term-selector'); termSelect.innerHTML = '';
             terms.forEach(t => { const opt = document.createElement('option'); opt.value = t.id; opt.innerText = t.name; if(t.id === currentTermId) opt.selected = true; termSelect.appendChild(opt); });
-            document.getElementById('dash-welcome-title').innerText = `Welcome to ${currentTerm?.name || "Current Plan"}`;
+            // --- 1. CALCULATE CURRENT TIME PROGRESS ---
+            const currentWeek = getCurrentCalendarWeek();
+            const now = new Date();
+            let dayOfWeek = now.getDay() - 1; // Convert to 0 = Mon, 6 = Sun
+            if (dayOfWeek === -1) dayOfWeek = 6; 
+            
+            // Factor in hours to make the loading bar fill smoothly throughout the day
+            const hourOfDay = now.getHours();
+            const progressPct = (((dayOfWeek * 24) + hourOfDay) / (7 * 24)) * 100;
+
+            // --- 2. UPDATE DYNAMIC WELCOME TITLE ---
+            let welcomeMsg = `Welcome to ${currentTerm?.name || "Current Plan"}`;
+            if (currentWeek > 0 && currentWeek <= totalWeeks) welcomeMsg += ` - Week ${currentWeek}`;
+            document.getElementById('dash-welcome-title').innerText = welcomeMsg;
 
             if (!isNaN(currentView) && parseInt(currentView) > totalWeeks) { currentView = "dashboard"; document.getElementById('view-schedule').style.display = 'none'; document.getElementById('view-dashboard').style.display = 'block'; }
 
+            // --- 3. BUILD PROGRESS WEEK TABS ---
             const weekTabsContainer = document.getElementById('week-tabs-container'); weekTabsContainer.innerHTML = '';
-            for(let i=1; i<=totalWeeks; i++) { const btn = document.createElement('button'); btn.className = `tab-btn action-btn ${currentView == i ? 'active' : ''}`; btn.innerText = `W${i}`; btn.dataset.view = i; btn.onclick = () => switchView(i, btn); weekTabsContainer.appendChild(btn); }
-
+            for(let i=1; i<=totalWeeks; i++) { 
+                const btn = document.createElement('button'); 
+                btn.className = `tab-btn action-btn ${currentView == i ? 'active' : ''}`; 
+                btn.innerText = `W${i}`; 
+                btn.dataset.view = i; 
+                btn.onclick = () => switchView(i, btn); 
+                
+                // Apply Dynamic Progress Styling
+                if (i < currentWeek) {
+                    // Past Weeks: Completely filled / Greyed out
+                    btn.style.background = 'rgba(255, 255, 255, 0.1)';
+                    btn.style.color = '#777';
+                    btn.style.borderColor = 'transparent';
+                } else if (i === currentWeek) {
+                    // Current Week: Loading Bar & Outlined
+                    const baseColor = currentView == i ? 'var(--accent)' : 'rgba(255, 255, 255, 0.2)';
+                    const emptyColor = currentView == i ? 'rgba(168, 199, 250, 0.15)' : 'transparent';
+                    
+                    btn.style.background = `linear-gradient(90deg, ${baseColor} ${progressPct}%, ${emptyColor} ${progressPct}%)`;
+                    btn.style.border = '1px solid var(--accent)';
+                    if (currentView != i) btn.style.color = 'var(--text-main)';
+                }
+                // Future weeks keep the default CSS styling
+                
+                weekTabsContainer.appendChild(btn); 
+            }
             const termCourses = courses.filter(c => c.termId === currentTermId);
             const selectEl = document.getElementById('inp-ev-course'); const modSelectEl = document.getElementById('mod-ev-course');
             const filterContainer = document.getElementById('dynamic-filters'); const builderCourseList = document.getElementById('builder-course-list');
