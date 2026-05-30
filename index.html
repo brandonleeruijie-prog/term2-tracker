@@ -893,6 +893,17 @@
             }
         }
 
+        // --- NEW: AUTO-SYNC AND FAILSAFE ---
+        // 1. Always unlock YouTube when you first open the tracker
+        window.addEventListener('load', () => {
+            broadcastFocusState(false);
+        });
+
+        // 2. Always unlock YouTube if you accidentally close the tracker tab
+        window.addEventListener('beforeunload', () => {
+            broadcastFocusState(false);
+        });
+
         // --- EMAILJS HELPER ---
        function sendAccountabilityEmail(type, params) {
     if (!accountabilityEmail) return;
