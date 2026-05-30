@@ -754,7 +754,21 @@
 
     <script>
         let academicChartInstance = null;
-        
+        // The known IDs for your YouTube Enforcer extension
+    const ENFORCER_IDS = [
+        "hnefcnjfgkefmecikelfmpeapclhjboa",      // Replace this with your actual PC ID
+        "edefllfcnnjnldcdghfofnmgdnbifgma" // Your MacBook ID
+    ];
+
+    // Helper function to broadcast messages to all known machines
+    function notifyEnforcer(messagePayload) {
+        try {
+                notifyEnforcer({ action: "unblock" });
+            } catch (e) {
+                console.log("Extension unblock error", e);
+            });
+        }
+    }
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             if (sidebar) {
@@ -867,14 +881,10 @@
         const EXTENSION_ID = "hnefcnjfgkefmecikelfmpeapclhjboa";
 
         function broadcastFocusState(isActive) {
-            if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
-                chrome.runtime.sendMessage(EXTENSION_ID, { isFocusModeActive: isActive }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.log("Extension bridge not connected (is the extension loaded and matching your URL?).");
-                    } else {
-                        console.log(`Successfully broadcasted Focus Mode: ${isActive}`);
-                    }
-                });
+            try {
+                notifyEnforcer({ action: "block" });
+            } catch (e) {
+                console.log("Extension block error", e);
             }
         }
 
