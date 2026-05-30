@@ -437,34 +437,16 @@
             </div>
 
             <div id="view-missions" style="display: none; flex-direction: column; height: 100%;">
-                <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚔️ Unresolved Missions & Rewards</h2>
+                <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚔️ Unresolved Missions</h2>
                 
                 <div style="display: flex; gap: 30px; flex: 1; overflow: hidden; margin-top: 15px;">
-                    <div style="flex: 3; display: flex; flex-direction: column; min-width: 300px;">
+                    <div style="flex: 1; display: flex; flex-direction: column; min-width: 300px;">
                         <p style="color: var(--text-muted); font-size: 15px; margin-top: 0;">
                             These blocks have passed in real-time but remain unaccounted for.<br>
                             <span style="color: #4caf50;">✔️ Mark Complete</span> | 
                             <span style="color: #ff5252;">✖️ Reschedule / Skip</span>
                         </p>
                         <div id="missions-list" style="flex: 1; overflow-y: auto; padding-right: 10px;"></div>
-                    </div>
-                    
-                    <div style="width: 320px; flex-shrink: 0; background: rgba(255, 215, 0, 0.05); border: 1px solid #ffd700; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; height: fit-content;">
-                        <h3 style="color: #ffd700; margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px dashed #ffd700; padding-bottom: 8px;">🏆 Reward Store</h3>
-                        <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 15px 0; line-height: 1.2;">Bank free time using your XP to spend later in the Schedule Builder.</p>
-
-                        <div id="reward-store-dashboard" style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; border: 1px solid #ffd700; text-align: center;">
-                            <h3 style="margin: 0; color: #e3e3e3; font-size: 16px;">Banked Balance: <br><span id="banked-time-display" style="color: #ffd700; font-size: 24px; font-family: 'Share Tech Mono', monospace; display: block; margin-top: 5px;">0h 0m</span></h3>
-                            
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px;">
-                                <button type="button" class="btn-reward-pkg" data-mins="5" data-cost="25" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">5 Mins<br><span style="color:#00e5ff; font-size:11px;">25 XP</span></button>
-                                <button type="button" class="btn-reward-pkg" data-mins="15" data-cost="75" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">15 Mins<br><span style="color:#00e5ff; font-size:11px;">75 XP</span></button>
-                                <button type="button" class="btn-reward-pkg" data-mins="30" data-cost="150" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">30 Mins<br><span style="color:#00e5ff; font-size:11px;">150 XP</span></button>
-                                <button type="button" class="btn-reward-pkg" data-mins="60" data-cost="300" onclick="selectRewardPkg(this)" style="background: #333; color: white; border: 1px solid var(--outline); padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px;">1 Hour<br><span style="color:#00e5ff; font-size:11px;">300 XP</span></button>
-                            </div>
-                            
-                            <button type="button" class="btn-submit" style="background: #ffd700; color: #131314; margin-top: 15px; width: 100%; padding: 8px; font-size: 15px;" onclick="cashInReward()">+ Cash In</button>
-                        </div>
                     </div>
                 </div>
             </div>
