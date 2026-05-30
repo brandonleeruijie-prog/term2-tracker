@@ -886,8 +886,8 @@
 
         function broadcastFocusState(isActive) {
             try {
-                // If isActive is true, send 'block', otherwise send 'unblock'
-                notifyEnforcer({ action: isActive ? "block" : "unblock" });
+                // Send the exact variable name that background.js is listening for
+                notifyEnforcer({ isFocusModeActive: isActive });
             } catch (e) {
                 console.log("Extension broadcast error", e);
             }
