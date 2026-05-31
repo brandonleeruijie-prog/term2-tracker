@@ -1613,7 +1613,7 @@
             let activeEv = null;
 
             if (currentWeek > 0 && currentWeek <= (currentTerm.totalWeeks || 10)) {
-                let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek));
+                let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && e.courseId !== "FREE FOCUS");
                 
                 for (let ev of todayEvents) {
                     if (ev.isReminder) continue;
@@ -1813,7 +1813,7 @@
             
             // Strict bounds checking
             if (viewWeek >= 1 && viewWeek <= (currentTerm.totalWeeks || 10)) {
-                dayEvents = events.filter(e => e.termId === currentTermId && e.day === viewDayName && (e.weeks === "All" || parseInt(e.weeks) === viewWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(viewWeek.toString())));
+                dayEvents = events.filter(e => e.termId === currentTermId && e.day === viewDayName && (e.weeks === "All" || parseInt(e.weeks) === viewWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(viewWeek.toString())) && e.courseId !== "FREE FOCUS");
             } else {
                 isOutOfBounds = true;
             }
@@ -2918,7 +2918,7 @@
             }
 
             const eventList = document.getElementById('builder-event-list'); if(eventList) eventList.innerHTML = '';
-            const termEvents = events.filter(e => e.termId === currentTermId).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
+            const termEvents = events.filter(e => e.termId === currentTermId && e.courseId !== "FREE FOCUS").sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
             termEvents.forEach(e => {
                 const cColor = e.isReward ? "#ffd700" : (e.courseId ? (termCourses.find(c => c.id === e.courseId)?.color || "var(--accent)") : "var(--accent)");
@@ -3008,7 +3008,7 @@
 
             dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
             
-            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())));
+            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())) && e.courseId !== "FREE FOCUS");
             
             if (!isTickUpdate) renderTimeGraph(todayEvents);
             if (todayEvents.length === 0) { container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`; return; }
@@ -3197,7 +3197,7 @@
             const container = document.getElementById('weekly-schedule-content'); container.innerHTML = '';
             const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
 
-           let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())));
+           let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())) && e.courseId !== "FREE FOCUS");
     
             // --- NEW: Update the main Week title tooltip ---
             const weeklyTitleEl = document.getElementById('weekly-title');
