@@ -322,7 +322,7 @@
         <button class="tab-btn action-btn" data-view="missions">⚔️ Missions <span id="missions-badge" class="notification-badge hidden">0</span></button>
         <button class="tab-btn action-btn" data-view="builder">⚙️ Builder</button>
         <div class="segmented-control" id="week-tabs-container"></div>
-        <button id="btn-free-focus" class="tab-btn btn-focus" onclick="openFreeFocusMode()" style="border-color: #00e5ff; color: #00e5ff; background: rgba(0, 229, 255, 0.1);">🌊 Free Focus</button>
+        <button id="btn-free-focus" class="tab-btn btn-focus" onclick="promptFreeFocusCourse()" style="border-color: #00e5ff; color: #00e5ff; background: rgba(0, 229, 255, 0.1);">🌊 Free Focus</button>
         <button id="btn-focus-mode" class="tab-btn btn-focus" onclick="openFocusMode()" style="margin-left: 0;" disabled>🔥 Focus Mode</button>
         <button class="tab-btn action-btn" data-view="settings" style="margin-left: 15px;">⚙️ Settings</button>
     </div>
@@ -753,6 +753,17 @@
     <div id="term-mgmt-modal" class="modal-overlay"><div class="modal-content" style="max-width: 500px;"><button class="close-modal" onclick="closeTermModal()">✖</button><h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Plan Management</h2><div style="margin-bottom: 25px;"><h3 style="color: var(--text-main); margin-bottom: 10px; font-size: 18px; text-transform: uppercase;">Edit Current Plan</h3><div class="form-group"><label>Plan Name</label><input type="text" id="edit-term-name"></div><div class="form-group"><label>Start Date (Select a Monday)</label><input type="date" id="edit-term-date"></div><div class="form-group"><label>Duration (Weeks)</label><input type="number" id="edit-term-weeks" min="1" max="52" required></div><div style="display: flex; gap: 10px; margin-top: 10px;"><button class="btn-submit" style="flex: 1;" onclick="saveCurrentTerm()">Save Changes</button><button class="btn-delete" style="padding: 10px 20px;" onclick="deleteActiveTerm()">🗑️ Delete Plan</button></div></div><div style="border-top: 1px dashed var(--outline); padding-top: 20px;"><h3 style="color: var(--text-main); margin-bottom: 10px; font-size: 18px; text-transform: uppercase;">Create New Plan</h3><div class="form-group"><label>New Plan Name</label><input type="text" id="new-term-name"></div><div class="form-group"><label>Start Date (Select a Monday)</label><input type="date" id="new-term-date"></div><div class="form-group"><label>Duration (Weeks)</label><input type="number" id="new-term-weeks" min="1" max="52" value="10" required></div><button class="btn-submit" style="width: 100%; background: var(--accent); color: var(--bg-dark);" onclick="createNewTerm()">+ Initialize New Plan</button></div></div></div>
     <div id="ics-import-modal" class="modal-overlay"><div class="modal-content" style="max-width: 600px;"><button class="close-modal" onclick="closeICSModal()">✖</button><h2 style="margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px;">Verify Detected Courses</h2><div id="ics-course-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; max-height: 400px; overflow-y: auto; padding-right: 10px;"></div><button class="btn-submit" style="width: 100%;" onclick="executeICSInjection()">Confirm & Inject Schedule</button></div></div>
 
+    <div id="ff-course-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <button class="close-modal" onclick="document.getElementById('ff-course-modal').style.display='none'">✖</button>
+            <h2 style="margin-top: 0; color: #00e5ff; border-bottom: 1px solid var(--outline); padding-bottom: 10px;">🌊 Select Course</h2>
+            <p style="color: var(--text-muted); font-size: 15px;">Which course are you focusing on right now?</p>
+            <div class="form-group" style="text-align: left;">
+                <select id="ff-course-select" style="width: 100%; border-color: #00e5ff; background: rgba(0,0,0,0.5); color: white; padding: 10px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 16px;"></select>
+            </div>
+            <button class="btn-submit" style="background: #00e5ff; color: #131314; width: 100%; margin-top: 15px;" onclick="executeFreeFocus()">Start Free Focus</button>
+        </div>
+    </div>
     <script>
         let academicChartInstance = null;
         // The known IDs for your YouTube Enforcer extension
@@ -1242,34 +1253,50 @@
             focusInterval = setInterval(focusLoopTick, 1000);
             focusLoopTick(); 
         }
-        async function openFreeFocusMode() {
-            initializeNotifications(); 
+        function promptFreeFocusCourse() {
+            const selectEl = document.getElementById('ff-course-select');
+            selectEl.innerHTML = '';
             
-            // 1. Instantly create the "FREE FOCUS" academic course if it doesn't exist yet
-            const courseId = "FREE FOCUS";
-            if (!courses.find(c => c.termId === currentTermId && c.id === courseId)) {
-                db.collection('courses').doc(currentTermId + "_" + courseId).set({
-                    id: courseId, termId: currentTermId, color: "#00e5ff", isAcademic: true
-                });
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            if (termCourses.length === 0) {
+                alert("Please create at least one course in the Builder tab first.");
+                return;
             }
 
-            // 2. Silently create a dummy event for TODAY so the Bar Chart has a place to pull minutes from
+            termCourses.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = c.id;
+                selectEl.appendChild(opt);
+            });
+
+            document.getElementById('ff-course-modal').style.display = 'flex';
+        }
+
+        async function executeFreeFocus() {
+            document.getElementById('ff-course-modal').style.display = 'none';
+            const selectedCourseId = document.getElementById('ff-course-select').value;
+            if (!selectedCourseId) return;
+
+            initializeNotifications(); 
+            
+            // Silently create a dummy event for TODAY to hold the minutes
             const dayName = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(new Date());
-            const ffEventId = currentTermId + "_FF_" + dayName;
+            const ffEventId = currentTermId + "_FF_" + selectedCourseId.replace(/\s+/g, '_') + "_" + dayName;
             
             if (!events.find(e => e.id === ffEventId)) {
                 db.collection('events').doc(ffEventId).set({
-                    id: ffEventId, termId: currentTermId, courseId: courseId,
+                    id: ffEventId, termId: currentTermId, courseId: selectedCourseId,
                     title: "Ad-hoc Session", day: dayName, weeks: "All",
                     start: "00:00", end: "23:59", requiresFocus: true, isReward: false,
-                    resolvedWeeks: ["All"] // This forces the Bar Chart to count the minutes!
+                    resolvedWeeks: ["All"], isAdHoc: true // <-- Use a strict flag instead of relying on the course name
                 });
             }
 
-            currentFocusEventId = ffEventId; // Hijack the exact tracker engine
+            currentFocusEventId = ffEventId; 
             isFreeFocusMode = true;
 
-            broadcastFocusState(true); // Lock YouTube
+            broadcastFocusState(true); 
             
             isFocusModeActive = true;
             focusFailedThisSession = false;
@@ -1308,7 +1335,7 @@
                     pipWindow.document.body.innerHTML = `
                         <h2 id="phase-title">🌊 Free Focus</h2>
                         <div id="timer">50:00</div>
-                        <p id="status-text" style="color: #c4c7c5; font-family: sans-serif;">Unscheduled deep work.</p>
+                        <p id="status-text" style="color: #c4c7c5; font-family: sans-serif;">Tracking time for: ${selectedCourseId}</p>
                     `;
 
                     pipWindow.addEventListener("pagehide", () => {
@@ -1318,11 +1345,11 @@
                     });
                 } catch (error) {
                     launchFallbackUI();
-                    updateUIStyles("🌊 Free Focus", "Unscheduled deep work.", "work-phase", "#00e5ff");
+                    updateUIStyles("🌊 Free Focus", `Tracking time for: ${selectedCourseId}`, "work-phase", "#00e5ff");
                 }
             } else {
                 launchFallbackUI(); 
-                updateUIStyles("🌊 Free Focus", "Unscheduled deep work.", "work-phase", "#00e5ff");
+                updateUIStyles("🌊 Free Focus", `Tracking time for: ${selectedCourseId}`, "work-phase", "#00e5ff");
             }
 
             if (focusInterval) clearInterval(focusInterval);
@@ -1613,7 +1640,7 @@
             let activeEv = null;
 
             if (currentWeek > 0 && currentWeek <= (currentTerm.totalWeeks || 10)) {
-                let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && e.courseId !== "FREE FOCUS");
+                let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !e.isAdHoc);
                 
                 for (let ev of todayEvents) {
                     if (ev.isReminder) continue;
@@ -1813,7 +1840,7 @@
             
             // Strict bounds checking
             if (viewWeek >= 1 && viewWeek <= (currentTerm.totalWeeks || 10)) {
-                dayEvents = events.filter(e => e.termId === currentTermId && e.day === viewDayName && (e.weeks === "All" || parseInt(e.weeks) === viewWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(viewWeek.toString())) && e.courseId !== "FREE FOCUS");
+                dayEvents = events.filter(e => e.termId === currentTermId && e.day === viewDayName && (e.weeks === "All" || parseInt(e.weeks) === viewWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(viewWeek.toString())) && !e.isAdHoc);
             } else {
                 isOutOfBounds = true;
             }
@@ -2918,7 +2945,7 @@
             }
 
             const eventList = document.getElementById('builder-event-list'); if(eventList) eventList.innerHTML = '';
-            const termEvents = events.filter(e => e.termId === currentTermId && e.courseId !== "FREE FOCUS").sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
+            const termEvents = events.filter(e => e.termId === currentTermId && !e.isAdHoc).sort((a,b) => timeToMinutes(a.start) - timeToMinutes(b.start)); 
             
             termEvents.forEach(e => {
                 const cColor = e.isReward ? "#ffd700" : (e.courseId ? (termCourses.find(c => c.id === e.courseId)?.color || "var(--accent)") : "var(--accent)");
@@ -3008,7 +3035,7 @@
 
             dayLabel.innerText = `(Week ${currentWeek} - ${fullDateString})`;
             
-            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())) && e.courseId !== "FREE FOCUS");
+            let todayEvents = events.filter(e => e.termId === currentTermId && e.day === currentDay && (e.weeks === "All" || parseInt(e.weeks) === currentWeek) && !(e.skippedWeeks && e.skippedWeeks.includes(currentWeek.toString())) && !e.isAdHoc);
             
             if (!isTickUpdate) renderTimeGraph(todayEvents);
             if (todayEvents.length === 0) { container.innerHTML = `<p style="color:var(--text-muted); text-align: center; margin: 40px 0; font-size: 20px;">No components scheduled today. Protect your deep work time.</p>`; return; }
@@ -3197,7 +3224,7 @@
             const container = document.getElementById('weekly-schedule-content'); container.innerHTML = '';
             const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
 
-           let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())) && e.courseId !== "FREE FOCUS");
+           let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())) && !e.isAdHoc);
     
             // --- NEW: Update the main Week title tooltip ---
             const weeklyTitleEl = document.getElementById('weekly-title');
