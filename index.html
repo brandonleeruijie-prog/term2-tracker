@@ -1056,10 +1056,11 @@
                 accountabilityEmail = doc.data().accountabilityEmail || "";
                 lastReportWeek = doc.data().lastReportWeek || 0;
                 bankedFreeTimeMins = doc.data().bankedFreeTimeMins || 0;
+                globalFocusActive = doc.data().isFocusingGlobally || false; 
                 document.getElementById('inp-partner-email').value = accountabilityEmail;
             } else {
                 let localXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
-                db.collection("userStats").doc("player").set({ xp: localXP, accountabilityEmail: "", lastReportWeek: 0, bankedFreeTimeMins: 0 });
+                db.collection("userStats").doc("player").set({ xp: localXP, accountabilityEmail: "", lastReportWeek: 0, bankedFreeTimeMins: 0, isFocusingGlobally: false });
                 userXP = localXP;
                 bankedFreeTimeMins = 0;
             }
