@@ -2043,7 +2043,7 @@
                     xpDifficulty: e.xpDifficulty || 10,
                     requiresFocus: e.requiresFocus || false,
                     isReward: e.isReward || false,
-                    notes: e.notes ||
+                    notes: e.notes || ""
                 };
             });
             loaders.events = true; checkLoaders();
@@ -2621,6 +2621,7 @@
         }
 
         // Instance Form Submit
+        // Instance Form Submit
         document.getElementById('form-instance-edit').onsubmit = (e) => {
             e.preventDefault();
             const isMulti = document.getElementById('mod-ev-multiday-toggle').checked;
@@ -2663,6 +2664,8 @@
                 endTimeStr = startTimeStr;
             }
 
+            const notesContent = document.getElementById('instance-notes-editor') ? document.getElementById('instance-notes-editor').innerHTML : "";
+
             const baseData = {
                 termId: currentTermId, courseId: isFreeTime ? "Free Time" : document.getElementById('mod-ev-course').value, title: document.getElementById('mod-ev-title').value,
                 weeks: modalInstanceWeek, location: document.getElementById('mod-ev-location').value, start: startTimeStr,
@@ -2670,7 +2673,7 @@
                 isCritical: isCrit, isReminder: isReminder, weight: isCrit && weightVal ? parseInt(weightVal) : null, resolvedWeeks: isFreeTime ? [modalInstanceWeek] : [],
                 missionSkippedWeeks: [], focusFailedWeeks: [],
                 xpEnabled: isXpEnabled, xpDifficulty: isXpEnabled ? parseInt(xpDiff) : null, requiresFocus: reqFocus, isReward: isFreeTime,
-                notes: document.getElementById('instance-notes-editor').innerHTML
+                notes: notesContent
             };
 
             const batch = db.batch();
