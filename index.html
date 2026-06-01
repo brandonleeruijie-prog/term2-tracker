@@ -945,9 +945,13 @@
             broadcastFocusState(false);
         });
 
+        
         // 2. Always unlock YouTube if you accidentally close the tracker tab
         window.addEventListener('beforeunload', () => {
             broadcastFocusState(false);
+            if (isFocusModeActive) {
+                db.collection("userStats").doc("player").set({ isFocusingGlobally: false }, { merge: true });
+            }
         });
 
         // --- EMAILJS HELPER ---
@@ -1049,6 +1053,7 @@
         let accountabilityEmail = "";
         let lastReportWeek = 0;
         let bankedFreeTimeMins = 0; 
+        let globalFocusActive = false;
 
         db.collection("userStats").doc("player").onSnapshot(doc => {
             if(doc.exists) {
@@ -1233,6 +1238,7 @@
             broadcastFocusState(true);
             
             isFocusModeActive = true;
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: true }, { merge: true });
             focusFailedThisSession = false;
             focusStrikeCount = 0; 
             isWorkPhase = true;
@@ -1334,6 +1340,7 @@
             broadcastFocusState(true); 
             
             isFocusModeActive = true;
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: true }, { merge: true });
             focusFailedThisSession = false;
             focusStrikeCount = 0; 
             isWorkPhase = true;
@@ -1515,6 +1522,7 @@
             }
             
             isFreeFocusMode = false;
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: false }, { merge: true });
         }
 
         function failFocusMode() {
@@ -1549,6 +1557,7 @@
                 }
             }
             isFreeFocusMode = false;
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: false }, { merge: true });
         }
         
         function updateFocusButtonState(activeEv) {
@@ -1725,7 +1734,7 @@
                     lastNotifiedEventId = activeEv.id; 
                     lastNotifiedTime = nowMs;
 
-                } else if (activeEv.requiresFocus && !isFocusModeActive) {
+                } else if (activeEv.requiresFocus && !isFocusModeActive && !globalFocusActive) {
                     if (secondsRemaining > 5 && (nowMs - lastNotifiedTime >= 300000)) {
                         focusStrikeCount++;
                         if (focusStrikeCount === 3) {
