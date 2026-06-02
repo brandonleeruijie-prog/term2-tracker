@@ -1209,6 +1209,8 @@
 
         // --- NEW FOCUS MODE STATE & ENGINE (PiP / Fallback) ---
         let focusInterval = null;
+        let checkInInterval = null;     // NEW
+        let checkInFailTimeout = null;  // NEW
         let targetEndTime = 0;
         let isWorkPhase = true;
         let pipWindow = null;
@@ -1231,7 +1233,44 @@
                 console.log("Audio failed to play", e);
             }
         }
+        function triggerCheckIn() {
+            if (!isFocusModeActive || !isWorkPhase) return; // Only check in during deep work!
+            
+            if (typeof playBeep === 'function') {
+                playBeep();
+                setTimeout(playBeep, 400); // Double-beep for urgency
+            }
+            
+            // Show the UI
+            if (pipWindow && !pipWindow.closed) {
+                const ui = pipWindow.document.getElementById('checkin-ui');
+                if (ui) ui.style.display = 'block';
+            } else if (fallbackTimerUI) {
+                const ui = document.getElementById('fb-checkin-ui');
+                if (ui) ui.style.display = 'block';
+            }
 
+            // Start the 3-minute fail countdown
+            if (checkInFailTimeout) clearTimeout(checkInFailTimeout);
+            checkInFailTimeout = setTimeout(() => {
+                failFocusMode();
+                showToast("Focus Mode Failed: Missed the 3-minute check-in.", "#ff5252");
+            }, 3 * 60 * 1000); 
+        }
+
+        window.confirmCheckIn = function() {
+            if (checkInFailTimeout) clearTimeout(checkInFailTimeout); // Stop the countdown
+            
+            // Hide the UI
+            if (pipWindow && !pipWindow.closed) {
+                const ui = pipWindow.document.getElementById('checkin-ui');
+                if (ui) ui.style.display = 'none';
+            }
+            if (fallbackTimerUI) {
+                const ui = document.getElementById('fb-checkin-ui');
+                if (ui) ui.style.display = 'none';
+            }
+        };
         async function openFocusMode() {
             initializeNotifications(); 
             
@@ -1269,14 +1308,19 @@
                         .break-phase h2 { color: #4caf50; }
                         .break-phase #timer { color: #4caf50; }
                     `;
-                    pipWindow.document.head.appendChild(style);
-
-                    pipWindow.document.body.className = 'work-phase';
                     pipWindow.document.body.innerHTML = `
                         <h2 id="phase-title">🔥 Deep Work</h2>
                         <div id="timer">50:00</div>
                         <p id="status-text" style="color: #c4c7c5; font-family: sans-serif;">Lock in. Stay on target.</p>
+
+                        <div id="checkin-ui" style="display: none; margin-top: 15px; background: rgba(255,82,82,0.1); border: 1px solid #ff5252; padding: 10px; border-radius: 8px;">
+                            <div style="color: #ffb4b4; font-weight: bold; margin-bottom: 8px; font-family: sans-serif;">Still focused?</div>
+                            <button id="btn-pip-checkin" style="background: #ff5252; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Yes, I'm studying</button>
+                        </div>
                     `;
+
+                    // Attach the button click listener
+                    pipWindow.document.getElementById('btn-pip-checkin').addEventListener("click", () => window.confirmCheckIn());
 
                     pipWindow.addEventListener("pagehide", () => {
                         if (isFocusModeActive) {
@@ -1294,6 +1338,9 @@
 
             if (focusInterval) clearInterval(focusInterval);
             focusInterval = setInterval(focusLoopTick, 1000);
+            if (checkInInterval) clearInterval(checkInInterval);
+            checkInInterval = setInterval(triggerCheckIn, 10 * 60 * 1000);
+            
             focusLoopTick(); 
         }
         function promptFreeFocusCourse() {
@@ -1380,7 +1427,15 @@
                         <h2 id="phase-title">🌊 Free Focus</h2>
                         <div id="timer">50:00</div>
                         <p id="status-text" style="color: #c4c7c5; font-family: sans-serif;">Tracking time for: ${selectedCourseId}</p>
+
+                        <div id="checkin-ui" style="display: none; margin-top: 15px; background: rgba(255,82,82,0.1); border: 1px solid #ff5252; padding: 10px; border-radius: 8px;">
+                            <div style="color: #ffb4b4; font-weight: bold; margin-bottom: 8px; font-family: sans-serif;">Still focused?</div>
+                            <button id="btn-pip-checkin" style="background: #ff5252; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Yes, I'm studying</button>
+                        </div>
                     `;
+
+                    // Attach the button click listener
+                    pipWindow.document.getElementById('btn-pip-checkin').addEventListener("click", () => window.confirmCheckIn());
 
                     pipWindow.addEventListener("pagehide", () => {
                         if (isFocusModeActive) {
@@ -1398,6 +1453,8 @@
 
             if (focusInterval) clearInterval(focusInterval);
             focusInterval = setInterval(focusLoopTick, 1000);
+            if (checkInInterval) clearInterval(checkInInterval);
+            checkInInterval = setInterval(triggerCheckIn, 10 * 60 * 1000);
             focusLoopTick(); 
         }
         function focusLoopTick() {
@@ -1483,6 +1540,14 @@
                 </div>
                 <div id="fb-timer" style="font-family: 'Share Tech Mono', monospace; font-size: 48px; font-weight: bold; color: #ff9800;">50:00</div>
                 <p id="fb-status-text" style="margin: 5px 0 0 0; font-size: 14px; color: #c4c7c5;">Lock in. Stay on target.</p>
+                <div id="fb-timer" style="font-family: 'Share Tech Mono', monospace; font-size: 48px; font-weight: bold; color: #ff9800;">50:00</div>
+                <p id="fb-status-text" style="margin: 5px 0 0 0; font-size: 14px; color: #c4c7c5;">Lock in. Stay on target.</p>
+                
+                <div id="fb-checkin-ui" style="display: none; margin-top: 15px; background: rgba(255,82,82,0.1); border: 1px solid #ff5252; padding: 10px; border-radius: 8px;">
+                    <div style="color: #ffb4b4; font-weight: bold; margin-bottom: 8px; font-family: sans-serif;">Still focused?</div>
+                    <button onclick="confirmCheckIn()" style="background: #ff5252; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Yes, I'm studying</button>
+                </div>
+           
             `;
             document.body.appendChild(fallbackTimerUI);
         }
@@ -1493,6 +1558,8 @@
 
         function cleanupFocusEngine() {
             clearInterval(focusInterval);
+            if (checkInInterval) clearInterval(checkInInterval);        // NEW
+            if (checkInFailTimeout) clearTimeout(checkInFailTimeout);   // NEW
             isFocusModeActive = false;
 
             if (pipWindow && !pipWindow.closed) {
