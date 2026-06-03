@@ -1298,17 +1298,19 @@
                         height: 250
                     });
 
-                    const style = pipWindow.document.createElement('style');
-                    style.textContent = `
-                        body { background: #131314; color: #e3e3e3; font-family: 'Share Tech Mono', monospace, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
-                        h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-                        #timer { font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
-                        .work-phase h2 { color: #ff9800; }
-                        .work-phase #timer { color: #ff9800; }
-                        .break-phase h2 { color: #4caf50; }
-                        .break-phase #timer { color: #4caf50; }
-                    `;
+                    // Removed the buggy document.head style injection
+
+                    pipWindow.document.body.className = 'work-phase';
                     pipWindow.document.body.innerHTML = `
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap');
+                            body { background: #131314; color: #e3e3e3; font-family: 'Share Tech Mono', monospace, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
+                            h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+                            #timer { font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
+                            .work-phase h2, .work-phase #timer { color: #ff9800; }
+                            .break-phase h2, .break-phase #timer { color: #4caf50; }
+                        </style>
+                        
                         <h2 id="phase-title">🔥 Deep Work</h2>
                         <div id="timer">50:00</div>
                         <p id="status-text" style="color: #c4c7c5; font-family: sans-serif;">Lock in. Stay on target.</p>
@@ -1410,20 +1412,19 @@
                 try {
                     pipWindow = await documentPictureInPicture.requestWindow({ width: 400, height: 250 });
 
-                    const style = pipWindow.document.createElement('style');
-                    style.textContent = `
-                        body { background: #131314; color: #e3e3e3; font-family: 'Share Tech Mono', monospace, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
-                        h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-                        #timer { font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
-                        .work-phase h2 { color: #00e5ff; }
-                        .work-phase #timer { color: #00e5ff; }
-                        .break-phase h2 { color: #4caf50; }
-                        .break-phase #timer { color: #4caf50; }
-                    `;
-                    pipWindow.document.head.appendChild(style);
+                    // Removed the buggy document.head style injection
 
                     pipWindow.document.body.className = 'work-phase';
                     pipWindow.document.body.innerHTML = `
+                        <style>
+                            @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap');
+                            body { background: #131314; color: #e3e3e3; font-family: 'Share Tech Mono', monospace, sans-serif; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; transition: background 0.3s; }
+                            h2 { font-family: 'Rajdhani', sans-serif; font-size: 32px; margin-top: 0; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+                            #timer { font-size: 72px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 10px currentColor; }
+                            .work-phase h2, .work-phase #timer { color: #00e5ff; }
+                            .break-phase h2, .break-phase #timer { color: #4caf50; }
+                        </style>
+                        
                         <h2 id="phase-title">🌊 Free Focus</h2>
                         <div id="timer">50:00</div>
                         <p id="status-text" style="color: #c4c7c5; font-family: sans-serif;">Tracking time for: ${selectedCourseId}</p>
@@ -1433,7 +1434,6 @@
                             <button id="btn-pip-checkin" style="background: #ff5252; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Yes, I'm studying</button>
                         </div>
                     `;
-
                     // Attach the button click listener
                     pipWindow.document.getElementById('btn-pip-checkin').addEventListener("click", () => window.confirmCheckIn());
 
