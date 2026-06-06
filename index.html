@@ -966,7 +966,7 @@
         window.addEventListener('beforeunload', () => {
             broadcastFocusState(false);
             if (isFocusModeActive) {
-                db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });, { merge: true });
+                db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });
             }
         });
 
@@ -1430,7 +1430,7 @@
             broadcastFocusState(true); 
             
             isFocusModeActive = true;
-            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: true, globalFocusState: "free" }, { merge: true });, { merge: true });
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: true, globalFocusState: "free" }, { merge: true });
             focusFailedThisSession = false;
             focusStrikeCount = 0; 
             isWorkPhase = true;
@@ -1630,7 +1630,7 @@
             }
             
             isFreeFocusMode = false;
-            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });, { merge: true });
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });
         }
 
         function failFocusMode() {
@@ -1665,7 +1665,7 @@
                 }
             }
             isFreeFocusMode = false;
-            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });, { merge: true });
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });
         }
         
         function updateFocusButtonState(activeEv) {
