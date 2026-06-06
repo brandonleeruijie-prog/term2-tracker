@@ -3409,13 +3409,11 @@
 
            let filteredEvents = events.filter(e => e.termId === currentTermId && (currentFilter === "All" || e.courseId === currentFilter) && (e.weeks === "All" || e.weeks == weekNum) && !(e.skippedWeeks && e.skippedWeeks.includes(weekNum.toString())) && !e.isAdHoc);
     
-            // --- NEW: Update the main Week title tooltip ---
             const weeklyTitleEl = document.getElementById('weekly-title');
             if (weeklyTitleEl) {
                 weeklyTitleEl.title = generateHoursSummary(filteredEvents);
-                weeklyTitleEl.style.cursor = "help"; // Adds a question mark cursor on hover
+                weeklyTitleEl.style.cursor = "help"; 
             }
-            // ----------------------------------------------
 
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
@@ -3425,17 +3423,12 @@
     
             days.forEach(day => {
                 const targetDate = getSpecificDate(currentTerm.startDate, weekNum, day);
-        
-                // --- NEW: Calculate hours just for this specific day ---
                 const dayEvents = filteredEvents.filter(e => e.day === day);
                 const daySummary = generateHoursSummary(dayEvents);
-                // -------------------------------------------------------
-
-                // Notice the added title="${daySummary}" and cursor: help; in the div below
+                
                 html += `<div title="${daySummary}" style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--text-muted); cursor: help;">${day.substring(0,3).toUpperCase()} <br> <span style="font-size: 24px; color: var(--accent);">${targetDate.getDate()}</span></div>`;
             });
 
-            // ... (The rest of your renderSchedule function remains exactly the same starting from here)
             html += `</div><div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * 60 * timeScale}px;">
                         <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;">`;
             for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span></div>`; }
@@ -3476,4 +3469,284 @@
                 let isPast = false; if (diffDays < 0) { isPast = true; } else if (diffDays === 0) { isPast = ev.isReminder ? (currentTotalMinutes > startMins) : (currentTotalMinutes > endMins); }
                 
                 const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
-                const greyOutStyle = isPast ? 'opacity: 0.4; filter
+                const greyOutStyle = isPast ? 'opacity: 0.4; filter: grayscale(100%);' : '';
+
+                if (ev.isReminder) {
+                     const rem = document.createElement('div');
+                     rem.style.cssText = `position: absolute; top: ${(startMins * timeScale) - 12}px; height: 24px; left: 4px; right: 4px; background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 12px; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index: 40; ${greyOutStyle}`;
+                     rem.onclick = () => openInstanceModal(ev.id, weekNum);
+                     rem.innerHTML = `🔔 ${ev.title} (${format12Hour(ev.start)})`;
+                     col.appendChild(rem); return;
+                }
+
+                const duration = endMins - startMins; const isConflicted = conflictIds.has(ev.id);
+                let bgStyle = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid transparent;`;
+                if(isConflicted) bgStyle = `background: var(--hazard); border: 2px dashed #ff5252;`;
+                if(ev.isReward && !isConflicted) bgStyle = `background: rgba(255, 215, 0, 0.15); border: 1px solid #ffd700;`;
+
+                const block = document.createElement('div');
+                block.style.cssText = `position: absolute; top: ${startMins * timeScale}px; height: ${duration * timeScale}px; left: 4px; right: 4px; border-left: 4px solid ${isPast ? '#555' : cColor}; ${bgStyle} border-radius: 6px; padding: 6px; color: var(--text-main); cursor: pointer; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: ${isConflicted ? 15 : 10}; transition: 0.2s; box-sizing: border-box; ${greyOutStyle}`;
+                block.onmouseenter = () => { if(!isPast) block.style.filter = 'brightness(1.3)'; }; block.onmouseleave = () => { block.style.filter = isPast ? 'grayscale(100%)' : 'none'; };
+                block.onclick = () => openInstanceModal(ev.id, weekNum);
+                
+                block.innerHTML = `
+                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px; color: ${isPast ? '#999' : cColor}; line-height: 1.1;">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId + '<br>' : ''}<span style="color: white;">${ev.title}</span></div>
+                    <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted);">${format12Hour(ev.start)} - ${format12Hour(ev.end)}</div>
+                `;
+                col.appendChild(block);
+            });
+
+            setTimeout(() => { 
+                const scrollContainer = document.getElementById('cal-scroll-container');
+                if(scrollContainer) {
+                    let scrollTarget = (8 * 60 * timeScale) - 20; 
+                    if (weekNum == getCurrentCalendarWeek()) { scrollTarget = Math.max(0, (currentTotalMinutes * timeScale) - (scrollContainer.clientHeight / 2)); }
+                    scrollContainer.scrollTop = scrollTarget;
+                }
+            }, 10);
+
+            document.querySelectorAll('.day-column').forEach(col => {
+                col.onmousedown = (e) => {
+                    if(e.target !== col) return;
+                    isDragging = true; currentDragWeek = weekNum; dragCurrentDay = col.dataset.day;
+                    const rect = col.getBoundingClientRect(); let rawMins = (e.clientY - rect.top) / timeScale; dragStartMins = Math.floor(rawMins / 15) * 15;
+                    ghostEl = document.createElement('div'); ghostEl.className = 'ghost-event'; ghostEl.style.top = `${dragStartMins * timeScale}px`; ghostEl.style.height = `${15 * timeScale}px`; ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
+                    col.appendChild(ghostEl);
+                    window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd); document.body.style.userSelect = 'none';
+                };
+            });
+        }
+
+        // --- DATA MGMT ---
+        function exportData() {
+            const data = { terms, courses, events };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `tracker_backup_${Date.now()}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.terms || !data.courses || !data.events) throw new Error("Invalid format");
+                    if (confirm("This will WIPE all current data and replace it. Continue?")) {
+                        const batch = db.batch();
+                        terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
+                        courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                        events.forEach(ev => batch.delete(db.collection('events').doc(ev.id)));
+                        data.terms.forEach(t => batch.set(db.collection('terms').doc(t.id), t));
+                        data.courses.forEach(c => batch.set(db.collection('courses').doc(c.termId + "_" + c.id), c));
+                        data.events.forEach(ev => batch.set(db.collection('events').doc(ev.id), ev));
+                        await batch.commit(); alert("Import successful!"); location.reload();
+                    }
+                } catch (err) { alert("Error parsing JSON file."); }
+                event.target.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        // --- ICS IMPORT LOGIC ---
+        let pendingICSData = [];
+
+        function handleICSImport(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const jcalData = ICAL.parse(e.target.result);
+                    const comp = new ICAL.Component(jcalData);
+                    const vevents = comp.getAllSubcomponents('vevent');
+                    pendingICSData = [];
+
+                    vevents.forEach(vevent => {
+                        const event = new ICAL.Event(vevent);
+                        const summary = event.summary; 
+                        const location = event.location || "";
+                        const startDate = event.startDate.toJSDate();
+                        const endDate = event.endDate.toJSDate();
+
+                        // UNSW Format Example: "MMAN2700_T1 / Lecture"
+                        let courseId = summary.split(' ')[0].replace(/_.*/, ''); 
+                        if(courseId.length > 8) courseId = courseId.substring(0,8);
+                        
+                        let title = summary;
+                        if(summary.includes(' / ')) title = summary.split(' / ')[1];
+
+                        const dayName = new Intl.DateTimeFormat('en-AU', { weekday: 'long' }).format(startDate);
+                        const startStr = new Intl.DateTimeFormat('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }).format(startDate);
+                        const endStr = new Intl.DateTimeFormat('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }).format(endDate);
+
+                        const isDup = pendingICSData.some(p => p.courseId === courseId && p.title === title && p.day === dayName && p.start === startStr);
+                        if(!isDup) {
+                            pendingICSData.push({ courseId, title, day: dayName, start: startStr, end: endStr, location });
+                        }
+                    });
+
+                    renderICSPreview();
+                    document.getElementById('ics-import-modal').style.display = 'flex';
+                } catch (err) { alert("Failed to parse ICS file. Ensure it is a valid calendar export."); }
+                event.target.value = "";
+            };
+            reader.readAsText(file);
+        }
+
+        function renderICSPreview() {
+            const container = document.getElementById('ics-course-list');
+            container.innerHTML = '';
+            
+            if(pendingICSData.length === 0) {
+                container.innerHTML = `<p style="color:var(--text-muted);">No valid events found in the file.</p>`; return;
+            }
+
+            pendingICSData.forEach((ev, index) => {
+                const item = document.createElement('div');
+                item.style.cssText = `background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid var(--outline); display: flex; align-items: center; justify-content: space-between;`;
+                item.innerHTML = `
+                    <div>
+                        <strong style="color: var(--accent);">${ev.courseId}</strong> | ${ev.title}<br>
+                        <small style="color: var(--text-muted);">${ev.day} • ${ev.start} - ${ev.end}</small>
+                    </div>
+                    <button class="btn-delete" onclick="removeICSItem(${index})" style="padding: 5px; min-width: 30px;">✖</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        window.removeICSItem = function(index) {
+            pendingICSData.splice(index, 1);
+            renderICSPreview();
+        };
+
+        function closeICSModal() { document.getElementById('ics-import-modal').style.display = 'none'; pendingICSData = []; }
+
+        function executeICSInjection() {
+            if(pendingICSData.length === 0) return;
+            
+            const batch = db.batch();
+            const existingCourseIds = courses.filter(c => c.termId === currentTermId).map(c => c.id);
+            const newCourses = new Set(pendingICSData.map(ev => ev.courseId));
+
+            newCourses.forEach(cId => {
+                if(!existingCourseIds.includes(cId)) {
+                    batch.set(db.collection('courses').doc(currentTermId + "_" + cId), { id: cId, termId: currentTermId, color: "#" + Math.floor(Math.random()*16777215).toString(16) });
+                }
+            });
+
+            pendingICSData.forEach((ev, i) => {
+                const docId = `ICS_${Date.now()}_${i}`;
+                batch.set(db.collection('events').doc(docId), {
+                    id: docId, termId: currentTermId, courseId: ev.courseId, title: ev.title, day: ev.day,
+                    start: ev.start, end: ev.end, location: ev.location, weeks: "All",
+                    isCritical: false, isReminder: false, weight: null, resolvedWeeks: [],
+                    skippedWeeks: [], missionSkippedWeeks: [], focusFailedWeeks: [],
+                    xpEnabled: false, xpDifficulty: 10, requiresFocus: false, isReward: false, notes: ""
+                });
+            });
+
+            batch.commit().then(() => {
+                alert(`Successfully injected ${pendingICSData.length} events into Master Schedule!`);
+                closeICSModal();
+            });
+        }
+
+        // --- TIME PICKER LOGIC ---
+        function setupTimePickers() {
+            document.querySelectorAll('.tp-wrapper').forEach(wrapper => {
+                const input = wrapper.querySelector('.tp-text');
+                const hiddenInput = wrapper.querySelector('input[type="hidden"]');
+                const dropdown = wrapper.querySelector('.tp-dropdown');
+                let activeIndex = -1;
+
+                function populateDropdown() {
+                    dropdown.innerHTML = '';
+                    for (let h = 0; h < 24; h++) {
+                        for (let m = 0; m < 60; m += 15) {
+                            const val24 = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                            const val12 = format12Hour(val24);
+                            const div = document.createElement('div');
+                            div.className = 'tp-item';
+                            div.innerText = val12;
+                            div.dataset.val = val24;
+                            div.onmousedown = (e) => { 
+                                e.preventDefault(); 
+                                selectTime(val24, val12); 
+                            };
+                            dropdown.appendChild(div);
+                        }
+                    }
+                }
+
+                function selectTime(val24, val12) {
+                    hiddenInput.value = val24;
+                    input.value = val12;
+                    dropdown.classList.remove('open');
+                }
+
+                populateDropdown();
+
+                input.addEventListener('focus', () => {
+                    dropdown.classList.add('open');
+                    const currentVal = hiddenInput.value;
+                    if (currentVal) {
+                        const items = Array.from(dropdown.children);
+                        const match = items.find(i => i.dataset.val === currentVal);
+                        if (match) {
+                            items.forEach(i => i.classList.remove('active'));
+                            match.classList.add('active');
+                            match.scrollIntoView({ block: 'nearest' });
+                        }
+                    }
+                });
+
+                input.addEventListener('blur', () => {
+                    setTimeout(() => dropdown.classList.remove('open'), 150); 
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    if (!dropdown.classList.contains('open')) return;
+                    const items = Array.from(dropdown.children);
+                    
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        activeIndex = (activeIndex + 1) % items.length;
+                        items.forEach(i => i.classList.remove('active'));
+                        items[activeIndex].classList.add('active');
+                        items[activeIndex].scrollIntoView({ block: 'nearest' });
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        activeIndex = (activeIndex - 1 + items.length) % items.length;
+                        items.forEach(i => i.classList.remove('active'));
+                        items[activeIndex].classList.add('active');
+                        items[activeIndex].scrollIntoView({ block: 'nearest' });
+                    } else if (e.key === 'Enter' && activeIndex >= 0) {
+                        e.preventDefault();
+                        selectTime(items[activeIndex].dataset.val, items[activeIndex].innerText);
+                    }
+                });
+                
+                const observer = new MutationObserver(() => {
+                    if (hiddenInput.value) {
+                        input.value = format12Hour(hiddenInput.value);
+                    } else {
+                        input.value = "";
+                    }
+                });
+                observer.observe(hiddenInput, { attributes: true, attributeFilter: ['value'] });
+                
+                Object.defineProperty(hiddenInput, 'value', {
+                    get() { return this.getAttribute('value') || ''; },
+                    set(val) { 
+                        this.setAttribute('value', val); 
+                        input.value = val ? format12Hour(val) : '';
+                    }
+                });
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', setupTimePickers);
+
+    </script>
+</body>
+</html>
