@@ -1070,7 +1070,17 @@
                 accountabilityEmail = doc.data().accountabilityEmail || "";
                 lastReportWeek = doc.data().lastReportWeek || 0;
                 bankedFreeTimeMins = doc.data().bankedFreeTimeMins || 0;
-                globalFocusActive = doc.data().isFocusingGlobally || false; 
+                
+                // --- THE EXTENSION BRIDGE FIX ---
+                let incomingFocusState = doc.data().isFocusingGlobally || false;
+                
+                // If the phone changed the state, tell the Chrome extension!
+                if (globalFocusActive !== incomingFocusState) {
+                    globalFocusActive = incomingFocusState;
+                    broadcastFocusState(globalFocusActive); 
+                }
+                // --------------------------------
+                
                 document.getElementById('inp-partner-email').value = accountabilityEmail;
             } else {
                 let localXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
