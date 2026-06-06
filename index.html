@@ -378,6 +378,13 @@
                     <div style="flex: 1; position: relative; min-height: 120px;">
                         <canvas id="academic-barchart"></canvas>
                     </div>
+                    <div style="flex: 1; position: relative; min-height: 120px;">
+                        <canvas id="academic-barchart"></canvas>
+                    </div>
+                    <div id="global-status-banner" style="margin-top: 15px; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 16px; background: rgba(255,255,255,0.05); border: 1px solid var(--outline); color: var(--text-muted); transition: 0.3s;">
+                        💤 Not Studying
+                    </div>
+                </div>
                 </div>
 
             </div>
@@ -959,7 +966,7 @@
         window.addEventListener('beforeunload', () => {
             broadcastFocusState(false);
             if (isFocusModeActive) {
-                db.collection("userStats").doc("player").set({ isFocusingGlobally: false }, { merge: true });
+                db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });, { merge: true });
             }
         });
 
@@ -1071,15 +1078,37 @@
                 lastReportWeek = doc.data().lastReportWeek || 0;
                 bankedFreeTimeMins = doc.data().bankedFreeTimeMins || 0;
                 
-                // --- THE EXTENSION BRIDGE FIX ---
+                // --- THE EXTENSION BRIDGE & BANNER FIX ---
                 let incomingFocusState = doc.data().isFocusingGlobally || false;
+                let globalStateStr = doc.data().globalFocusState || "none";
                 
-                // If the phone changed the state, tell the Chrome extension!
+                // Update Extension
                 if (globalFocusActive !== incomingFocusState) {
                     globalFocusActive = incomingFocusState;
                     broadcastFocusState(globalFocusActive); 
                 }
-                // --------------------------------
+                
+                // Update Banner UI
+                const banner = document.getElementById('global-status-banner');
+                if (banner) {
+                    if (globalStateStr === "routine") {
+                        banner.innerHTML = "🔥 In Focus Mode";
+                        banner.style.background = "rgba(255, 152, 0, 0.1)";
+                        banner.style.borderColor = "#ff9800";
+                        banner.style.color = "#ff9800";
+                    } else if (globalStateStr === "free") {
+                        banner.innerHTML = "🌊 In Free Focus Mode";
+                        banner.style.background = "rgba(0, 229, 255, 0.1)";
+                        banner.style.borderColor = "#00e5ff";
+                        banner.style.color = "#00e5ff";
+                    } else {
+                        banner.innerHTML = "💤 Not Studying";
+                        banner.style.background = "rgba(255, 255, 255, 0.05)";
+                        banner.style.borderColor = "var(--outline)";
+                        banner.style.color = "var(--text-muted)";
+                    }
+                }
+                // -----------------------------------------
                 
                 document.getElementById('inp-partner-email').value = accountabilityEmail;
             } else {
@@ -1289,7 +1318,7 @@
             broadcastFocusState(true);
             
             isFocusModeActive = true;
-            db.collection("userStats").doc("player").set({ isFocusingGlobally: true }, { merge: true });
+            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: true, globalFocusState: "routine" }, { merge: true });, { merge: true });
             focusFailedThisSession = false;
             focusStrikeCount = 0; 
             isWorkPhase = true;
@@ -1401,7 +1430,7 @@
             broadcastFocusState(true); 
             
             isFocusModeActive = true;
-            db.collection("userStats").doc("player").set({ isFocusingGlobally: true }, { merge: true });
+            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: true, globalFocusState: "free" }, { merge: true });, { merge: true });
             focusFailedThisSession = false;
             focusStrikeCount = 0; 
             isWorkPhase = true;
@@ -1601,7 +1630,7 @@
             }
             
             isFreeFocusMode = false;
-            db.collection("userStats").doc("player").set({ isFocusingGlobally: false }, { merge: true });
+            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });, { merge: true });
         }
 
         function failFocusMode() {
@@ -1636,7 +1665,7 @@
                 }
             }
             isFreeFocusMode = false;
-            db.collection("userStats").doc("player").set({ isFocusingGlobally: false }, { merge: true });
+            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: false, globalFocusState: "none" }, { merge: true });, { merge: true });
         }
         
         function updateFocusButtonState(activeEv) {
