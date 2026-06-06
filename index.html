@@ -338,7 +338,6 @@
 
         <div class="content" id="main-content">
             
-            <!-- START OF XP CONTAINER -->
             <div style="display: flex; gap: 25px; margin-bottom: 25px; align-items: stretch; width: 100%;">
                 
                 <div class="xp-container" style="width: fit-content; min-width: 500px; margin-bottom: 0; flex-shrink: 0;">
@@ -373,11 +372,10 @@
                             </div>
                         </div>
                     </div>
-                </div> <div class="xp-container" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column; min-width: 0; padding: 20px;">
+                </div> 
+                
+                <div class="xp-container" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column; min-width: 0; padding: 20px;">
                     <h3 style="margin-top: 0; color: var(--accent); font-size: 16px; border-bottom: 1px solid var(--outline); padding-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">📊 Academic Hours (Past 7 Days)</h3>
-                    <div style="flex: 1; position: relative; min-height: 120px;">
-                        <canvas id="academic-barchart"></canvas>
-                    </div>
                     <div style="flex: 1; position: relative; min-height: 120px;">
                         <canvas id="academic-barchart"></canvas>
                     </div>
@@ -385,11 +383,9 @@
                         💤 Not Studying
                     </div>
                 </div>
-                </div>
 
             </div>
     
-            <!-- WE ARE ADDING THIS MISSING DIV WRAPPER BACK IN -->
             <div id="view-settings" style="display: none; flex-direction: column; height: 100%;">
                 
                 <h2 style="color: var(--accent); border-bottom: 1px solid var(--outline); padding-bottom: 10px; margin-top: 0;">⚙️ System Settings</h2>
@@ -799,7 +795,6 @@
     ];
 
     // Helper function to broadcast messages to all known machines
-    // Helper function to broadcast messages to all known machines
     function notifyEnforcer(messagePayload) {
         if (window.chrome && chrome.runtime && chrome.runtime.sendMessage) {
             ENFORCER_IDS.forEach(id => {
@@ -943,6 +938,7 @@
                 options: chartOptions
             });
         }
+
         // --- EXTENSION BRIDGE CONFIG ---
         const EXTENSION_ID = "hnefcnjfgkefmecikelfmpeapclhjboa";
 
@@ -1113,7 +1109,7 @@
                 document.getElementById('inp-partner-email').value = accountabilityEmail;
             } else {
                 let localXP = parseInt(localStorage.getItem('tp_user_xp')) || 0;
-                db.collection("userStats").doc("player").set({ xp: localXP, accountabilityEmail: "", lastReportWeek: 0, bankedFreeTimeMins: 0, isFocusingGlobally: false });
+                db.collection("userStats").doc("player").set({ xp: localXP, accountabilityEmail: "", lastReportWeek: 0, bankedFreeTimeMins: 0, isFocusingGlobally: false, globalFocusState: "none" });
                 userXP = localXP;
                 bankedFreeTimeMins = 0;
             }
@@ -1318,7 +1314,7 @@
             broadcastFocusState(true);
             
             isFocusModeActive = true;
-            db.collection("userStats").doc("player")db.collection("userStats").doc("player").set({ isFocusingGlobally: true, globalFocusState: "routine" }, { merge: true });, { merge: true });
+            db.collection("userStats").doc("player").set({ isFocusingGlobally: true, globalFocusState: "routine" }, { merge: true });
             focusFailedThisSession = false;
             focusStrikeCount = 0; 
             isWorkPhase = true;
@@ -1577,8 +1573,6 @@
                     <h3 id="fb-phase-title" style="margin: 0; color: #ff9800; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;">🔥 Deep Work</h3>
                     <button onclick="handleFallbackClose()" style="background: transparent; border: none; color: #c4c7c5; font-size: 20px; cursor: pointer;">✖</button>
                 </div>
-                <div id="fb-timer" style="font-family: 'Share Tech Mono', monospace; font-size: 48px; font-weight: bold; color: #ff9800;">50:00</div>
-                <p id="fb-status-text" style="margin: 5px 0 0 0; font-size: 14px; color: #c4c7c5;">Lock in. Stay on target.</p>
                 <div id="fb-timer" style="font-family: 'Share Tech Mono', monospace; font-size: 48px; font-weight: bold; color: #ff9800;">50:00</div>
                 <p id="fb-status-text" style="margin: 5px 0 0 0; font-size: 14px; color: #c4c7c5;">Lock in. Stay on target.</p>
                 
@@ -3482,173 +3476,4 @@
                 let isPast = false; if (diffDays < 0) { isPast = true; } else if (diffDays === 0) { isPast = ev.isReminder ? (currentTotalMinutes > startMins) : (currentTotalMinutes > endMins); }
                 
                 const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
-                const greyOutStyle = isPast ? 'opacity: 0.4; filter: grayscale(100%);' : '';
-
-                if (ev.isReminder) {
-                    const topPos = (startMins * timeScale) - 10; const reminderCard = document.createElement('div');
-                    reminderCard.title = `${ev.courseId ? ev.courseId + ' | ' : ''}${ev.title}\n${format12Hour(ev.start)}`;
-                    reminderCard.style.cssText = `position: absolute; top: ${topPos}px; height: 22px; left: 2px; right: 2px; background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 12px; border-radius: 4px; overflow: hidden; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5); display: flex; align-items: center; padding: 0 6px; z-index: 40; transition: 0.1s; white-space: nowrap; text-overflow: ellipsis; ${greyOutStyle}`;
-                    reminderCard.onmouseenter = () => { if(!isPast) reminderCard.style.filter = 'brightness(1.2)'; }; reminderCard.onmouseleave = () => { reminderCard.style.filter = isPast ? 'grayscale(100%)' : 'none'; }; reminderCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
-                    reminderCard.innerHTML = `<span style="margin-right:5px;">🔔</span> <span style="text-overflow:ellipsis; overflow:hidden;">${ev.isReward ? '🏆 ' : ''}${ev.courseId && !ev.isReward ? ev.courseId + ' ' : ''}${ev.title}</span>`;
-                    col.appendChild(reminderCard); return; 
-                }
-
-                const duration = endMins - startMins; const isConflicted = conflictIds.has(ev.id);
-                let criticalBg = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid var(--bg-dark);`;
-                if(isConflicted) { criticalBg = `background: var(--hazard); border: 2px dashed #ff5252;`; }
-                if(ev.isReward && !isConflicted) { criticalBg = `background: rgba(255, 215, 0, 0.15); border: 1px solid #ffd700;`; }
-
-                const showDetails = duration > 60; const topPos = (startMins * timeScale) + 1; const blockHeight = (duration * timeScale) - 2;
-                const eventCard = document.createElement('div'); eventCard.className = 'event-card-grid'; eventCard.title = `${ev.courseId} | ${ev.title}\n${format12Hour(ev.start)} - ${format12Hour(ev.end)}`; 
-                eventCard.style.cssText = `position: absolute; top: ${topPos}px; height: ${blockHeight}px; left: 2px; right: 2px; border-left: 4px solid ${isPast ? '#555' : cColor}; ${criticalBg} color: var(--text-main); padding: 4px 6px; border-radius: 4px; font-size: 13px; overflow: hidden; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; flex-direction: column; transition: 0.1s; box-sizing: border-box; z-index: ${isConflicted ? 15 : 10}; ${greyOutStyle}`;
-                eventCard.onmouseenter = () => { if(!isPast) eventCard.style.filter = 'brightness(1.3)'; eventCard.style.zIndex = 20; }; eventCard.onmouseleave = () => { eventCard.style.filter = isPast ? 'grayscale(100%)' : 'none'; eventCard.style.zIndex = isConflicted ? 15 : 10; }; eventCard.onmousedown = (e) => { e.stopPropagation(); }; eventCard.onclick = (e) => { e.stopPropagation(); openInstanceModal(ev.id, weekNum); };
-
-                eventCard.innerHTML = `
-                    <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
-                        <div style="display: flex; flex-direction: column; overflow: hidden;">
-                            <div style="font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: ${isPast ? '#999' : cColor}; margin-bottom: 2px; flex-shrink: 0; font-size: 12px; line-height: 1.1;">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId + ' ' : ''}<span style="font-weight: 600; color: var(--text-main);">${!ev.isReward && ev.courseId ? '| ' : ''}${ev.title}</span> ${isConflicted ? '<span style="color:#ffb4b4;">⚠️ CLASH</span>' : ''}</div>
-                            ${(ev.location && showDetails) ? `<div style="font-size: 11px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; margin-bottom: 2px; opacity: 0.9; flex-shrink: 0; line-height: 1.1;">📍 ${ev.location}</div>` : ''}
-                            ${(ev.desc && showDetails) ? `<div style="font-size: 11px; white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; opacity: 0.8; margin-bottom: 2px; flex-shrink: 1; line-height: 1.1;">📝 ${ev.desc}</div>` : ''}
-                        </div>
-                        <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: auto; flex-shrink: 0; line-height: 1.1;">${format12Hour(ev.start)} - ${format12Hour(ev.end)}</div>
-                    </div>`;
-                col.appendChild(eventCard);
-            });
-
-            document.querySelectorAll('.day-column').forEach(col => {
-                col.addEventListener('mousedown', function(e) {
-                    if(e.button !== 0) return; 
-                    isDragging = true; dragCurrentDay = this.dataset.day; currentDragWeek = weekNum; document.body.style.userSelect = 'none';
-                    const rect = this.getBoundingClientRect(); let rawMins = (e.clientY - rect.top) / timeScale; dragStartMins = Math.floor(rawMins / 15) * 15;
-                    ghostEl = document.createElement('div'); ghostEl.className = 'ghost-event'; ghostEl.style.top = `${dragStartMins * timeScale}px`; ghostEl.style.height = `${15 * timeScale}px`; ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
-                    this.appendChild(ghostEl); window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd);
-                });
-            });
-            setTimeout(() => { const calBody = document.getElementById('cal-scroll-container'); if(calBody) calBody.scrollTop = (8 * 60 * timeScale) - 20; }, 10);
-        }
-    // ── Time Picker Engine ──────────────────────────────────────
-        function parseTimeInput(str) {
-            str = str.trim().toLowerCase().replace(/\s+/g, '');
-            let match;
-            // 12:30pm  or  12:30am
-            match = str.match(/^(\d{1,2}):(\d{2})(am|pm)$/);
-            if (match) {
-                let h = parseInt(match[1]), m = parseInt(match[2]);
-                if (match[3] === 'pm' && h !== 12) h += 12;
-                if (match[3] === 'am' && h === 12) h = 0;
-                if (h < 24 && m < 60) return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-            }
-            // 1230pm
-            match = str.match(/^(\d{3,4})(am|pm)$/);
-            if (match) {
-                const num = match[1].padStart(4,'0');
-                let h = parseInt(num.slice(0,2)), m = parseInt(num.slice(2));
-                if (match[2] === 'pm' && h !== 12) h += 12;
-                if (match[2] === 'am' && h === 12) h = 0;
-                if (h < 24 && m < 60) return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-            }
-            // 9am
-            match = str.match(/^(\d{1,2})(am|pm)$/);
-            if (match) {
-                let h = parseInt(match[1]);
-                if (match[2] === 'pm' && h !== 12) h += 12;
-                if (match[2] === 'am' && h === 12) h = 0;
-                if (h < 24) return `${h.toString().padStart(2,'0')}:00`;
-            }
-            // 12:30 (24hr fallback)
-            match = str.match(/^(\d{1,2}):(\d{2})$/);
-            if (match) {
-                const h = parseInt(match[1]), m = parseInt(match[2]);
-                if (h < 24 && m < 60) return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-            }
-            return null;
-        }
-
-        function tpSetValue(wrapper, val24) {
-            const hidden = wrapper.querySelector('input[type="hidden"]');
-            const text   = wrapper.querySelector('.tp-text');
-            const drop   = wrapper.querySelector('.tp-dropdown');
-            hidden._tpVal = val24;
-            text.value = val24 ? format12Hour(val24) : '';
-            drop.querySelectorAll('.tp-item').forEach(item => {
-                item.classList.toggle('active', item.dataset.value === val24);
-            });
-            const active = drop.querySelector('.tp-item.active');
-            if (active) active.scrollIntoView({ block: 'nearest' });
-        }
-
-        function initTimePickers() {
-            document.querySelectorAll('.tp-wrapper').forEach(wrapper => {
-                const hidden = wrapper.querySelector('input[type="hidden"]');
-                const text   = wrapper.querySelector('.tp-text');
-                const drop   = wrapper.querySelector('.tp-dropdown');
-
-                // Build 15-min interval list
-                for (let h = 0; h < 24; h++) {
-                    for (let m = 0; m < 60; m += 15) {
-                        const val = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-                        const item = document.createElement('div');
-                        item.className = 'tp-item';
-                        item.textContent = format12Hour(val);
-                        item.dataset.value = val;
-                        item.addEventListener('mousedown', e => {
-                            e.preventDefault();
-                            tpSetValue(wrapper, val);
-                            drop.classList.remove('open');
-                            text.blur();
-                        });
-                        drop.appendChild(item);
-                    }
-                }
-
-                // Intercept .value reads/writes on the hidden input
-                Object.defineProperty(hidden, 'value', {
-                    get() { return hidden._tpVal || ''; },
-                    set(v) { tpSetValue(wrapper, v); }
-                });
-                hidden._tpVal = '';
-
-                // Typing handler — parse as you type, scroll dropdown
-                text.addEventListener('input', () => {
-                    const parsed = parseTimeInput(text.value);
-                    if (parsed) {
-                        hidden._tpVal = parsed;
-                        const target = drop.querySelector(`[data-value="${parsed}"]`);
-                        if (target) {
-                            drop.querySelectorAll('.tp-item').forEach(i => i.classList.remove('active'));
-                            target.classList.add('active');
-                            target.scrollIntoView({ block: 'nearest' });
-                        }
-                    }
-                });
-
-                // On blur — snap display to parsed value
-                text.addEventListener('blur', () => {
-                    const parsed = parseTimeInput(text.value);
-                    if (parsed) {
-                        tpSetValue(wrapper, parsed);
-                    } else if (hidden._tpVal) {
-                        text.value = format12Hour(hidden._tpVal);
-                    }
-                    setTimeout(() => drop.classList.remove('open'), 200);
-                });
-
-                // Open dropdown on focus, scroll to current
-                text.addEventListener('focus', () => {
-                    drop.classList.add('open');
-                    const active = drop.querySelector('.tp-item.active');
-                    if (active) setTimeout(() => active.scrollIntoView({ block: 'center' }), 10);
-                });
-
-                // Close if clicking outside
-                document.addEventListener('mousedown', e => {
-                    if (!wrapper.contains(e.target)) drop.classList.remove('open');
-                }, true);
-            });
-        }
-
-        initTimePickers();
-        // ── End Time Picker Engine ───────────────────────────────────    
-    </script>
-</body>
-</html>
+                const greyOutStyle = isPast ? 'opacity: 0.4; filter
