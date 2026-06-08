@@ -441,7 +441,7 @@
                 
                             <div id="dash-timeline-container" style="position: relative; border: 1px solid var(--outline); border-radius: 8px; background: rgba(0,0,0,0.2); overflow-y: auto; height: 500px; display: flex;">
                                 <div id="dash-time-labels" style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;"></div>
-                                <div id="dash-event-track" style="flex: 1; position: relative; background: url('data:image/svg+xml;utf8,<svg width=\"100%\" height=\"60\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"0\" y1=\"60\" x2=\"100%\" y2=\"60\" stroke=\"rgba(255,255,255,0.05)\" stroke-width=\"1\"/></svg>');"></div>
+                                <div id="dash-event-track" style="flex: 1; position: relative; background-image: repeating-linear-gradient(to bottom, transparent, transparent 59px, rgba(255,255,255,0.05) 59px, rgba(255,255,255,0.05) 60px);"></div>
                             </div>
                         </div>
                     </div>
@@ -3517,109 +3517,96 @@
                 html += `<div title="${daySummary}" style="flex: 1; text-align: center; padding: 10px 0; border-right: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--text-muted); cursor: help;">${day.substring(0,3).toUpperCase()} <br> <span style="font-size: 24px; color: var(--accent);">${targetDate.getDate()}</span></div>`;
             });
 
-            html += `</div><div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * 60 * timeScale}px;">
+            // Creates the horizontal hour lines using pure CSS that perfectly maps to the zoom slider!
+            const rowHeight = 60 * timeScale;
+            const gridBg = `repeating-linear-gradient(to bottom, transparent, transparent ${rowHeight - 1}px, rgba(255,255,255,0.05) ${rowHeight - 1}px, rgba(255,255,255,0.05) ${rowHeight}px)`;
+
+            html += `</div><div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * rowHeight}px; background-image: ${gridBg};">
                         <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;">`;
-                        
-            for(let i=0; i<24; i++) { 
-                html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span></div>`; 
-            }
-            html += `</div><div style="flex: 1; position: relative; background: url('data:image/svg+xml;utf8,<svg width=\\"100%\\" height=\\"${60 * timeScale}\\" xmlns=\\"http://www.w3.org/2000/svg\\"><line x1=\\"0\\" y1=\\"${60 * timeScale}\\" x2=\\"100%\\" y2=\\"${60 * timeScale}\\" stroke=\\"rgba(255,255,255,0.05)\\" stroke-width=\\"1\\"/></svg>');">`;
-
-            if (weekNum == getCurrentCalendarWeek()) {
-                const now = new Date();
-                const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
-                const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
-                let currentH = parseInt(parts.find(p => p.type === 'hour').value);
-                let currentM = parseInt(parts.find(p => p.type === 'minute').value);
-                if (currentH === 24) currentH = 0;
-                html += `<div id="current-time-line" style="top: ${(currentH * 60 + currentM) * timeScale}px;"></div>`;
-            }
-
-            const termCourses = courses.filter(c => c.termId === currentTermId);
-
-            filteredEvents.forEach(ev => {
-                const dayIdx = days.indexOf(ev.day);
-                if(dayIdx === -1) return;
-                
-                const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
-                const startMins = timeToMinutes(ev.start);
-                const endMins = timeToMinutes(ev.end);
-                const isPast = (weekNum < getCurrentCalendarWeek()) || (weekNum == getCurrentCalendarWeek() && (dayIdx < (new Date().getDay() || 7) - 1 || (dayIdx === (new Date().getDay() || 7) - 1 && timeToMinutes(new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'})) > (ev.isReminder ? startMins : endMins))));
-
-                if (ev.isReminder) {
-                    html += `<div style="position: absolute; top: ${(startMins * timeScale) - 12}px; height: 24px; left: ${(dayIdx * (100/7)) + 0.5}%; width: ${(100/7) - 1}%; background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 11px; border-radius: 4px; display: flex; align-items: center; padding: 0 5px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 40; white-space: nowrap; overflow: hidden; ${isPast ? 'opacity: 0.5; filter: grayscale(80%);' : ''}" onclick="openInstanceModal('${ev.id}', '${weekNum}')" title="${ev.title}">🔔 ${ev.title}</div>`;
-                    return;
-                }
-
-                const duration = endMins - startMins;
-                let bgStyle = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid transparent;`;
-                if(ev.isReward) bgStyle = `background: rgba(255, 215, 0, 0.15); border: 1px solid #ffd700;`;
-                
-                const isResolved = ev.resolvedWeeks && ev.resolvedWeeks.includes(weekNum.toString());
-                const isMissionSkipped = ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(weekNum.toString());
-
-                let extraStyles = "";
-                let statusText = "";
-                
-                if (isMissionSkipped) { extraStyles = `opacity: 0.5; filter: grayscale(80%); border-left-color: #ff5252; background: rgba(255, 82, 82, 0.05);`; statusText = `<div style="color: #ff5252; font-size: 10px; font-weight: bold;">🚫 SKIPPED</div>`; }
-                else if (isResolved) { extraStyles = `opacity: 0.6; filter: grayscale(50%); border-left-color: #4caf50; background: rgba(76, 175, 80, 0.05);`; statusText = `<div style="color: #4caf50; font-size: 10px; font-weight: bold;">✔️ RESOLVED</div>`; }
-                else if (isPast) { extraStyles = `opacity: 0.4; filter: grayscale(100%); border-left-color: #555;`; }
-
-                html += `<div style="position: absolute; top: ${startMins * timeScale}px; height: ${duration * timeScale}px; left: ${(dayIdx * (100/7)) + 0.5}%; width: ${(100/7) - 1}%; border-left: 3px solid ${isPast ? '#555' : cColor}; ${bgStyle} border-radius: 4px; padding: 4px; color: var(--text-main); cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.2); z-index: 10; overflow: hidden; box-sizing: border-box; transition: 0.2s; ${extraStyles}" onmouseenter="if(!${isPast}) this.style.filter='brightness(1.3)'" onmouseleave="this.style.filter='${isPast ? 'grayscale(80%)' : 'none'}'" onclick="openInstanceModal('${ev.id}', '${weekNum}')">
-                    <div style="font-weight: bold; font-size: 11px; margin-bottom: 2px; color: ${isPast ? '#999' : cColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId : ev.title}</div>
-                    <div style="font-size: 10px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.courseId && !ev.isReward ? ev.title : ''}</div>
-                    ${statusText}
-                </div>`;
-            });
-
+            for(let i=0; i<24; i++) { html += `<div style="height: ${rowHeight}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span></div>`; }
+            
+            // Restores the vertical Day Columns!
+            html += `</div><div style="display: flex; flex: 1; position: relative; height: ${24 * rowHeight}px; margin-left: 0;">`;
+            days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(255,255,255,0.1); z-index: 2; cursor: crosshair;"></div>`; });
             html += `</div></div></div>`;
+            
             container.innerHTML = html;
 
-            const scrollContainer = document.getElementById('cal-scroll-container');
-            if (scrollContainer) {
-                setTimeout(() => {
-                    let targetMins = 8 * 60; 
-                    if (weekNum == getCurrentCalendarWeek()) {
-                        const now = new Date();
-                        targetMins = now.getHours() * 60 + now.getMinutes();
-                    }
-                    scrollContainer.scrollTop = (targetMins * timeScale) - (scrollContainer.clientHeight / 2);
-                }, 10);
+            const now = new Date(); const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+            const [sM, sD, sY] = sydneyDateString.split('/'); const sydneyToday = new Date(sY, sM - 1, sD);
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+            const currentTotalMinutes = parseInt(parts.find(p => p.type === 'hour').value) * 60 + parseInt(parts.find(p => p.type === 'minute').value);
+
+            if (weekNum == getCurrentCalendarWeek()) {
+                const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
+                const col = document.getElementById(`day-col-${currentDay}`);
+                if(col) {
+                    const timeLine = document.createElement('div'); timeLine.id = 'current-time-line';
+                    timeLine.style.cssText = `position: absolute; left: 0; right: 0; top: ${currentTotalMinutes * timeScale}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;`;
+                    timeLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
+                    col.appendChild(timeLine);
+                }
             }
 
-            const calBody = document.getElementById('cal-body');
-            if (calBody) {
-                calBody.addEventListener('mousedown', (e) => {
-                    if (e.target !== calBody && !e.target.style.backgroundImage) return; 
-                    const rect = calBody.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    const dayWidth = rect.width / 7;
-                    const dayIdx = Math.floor(x / dayWidth);
-                    dragCurrentDay = days[dayIdx];
-                    currentDragWeek = weekNum;
-                    
-                    let rawMins = y / timeScale;
-                    dragStartMins = Math.floor(rawMins / 15) * 15;
-                    
-                    isDragging = true;
-                    document.body.style.userSelect = 'none';
-                    
-                    ghostEl = document.createElement('div');
-                    ghostEl.className = 'ghost-event';
-                    ghostEl.style.top = `${dragStartMins * timeScale}px`;
-                    ghostEl.style.height = `${15 * timeScale}px`;
-                    ghostEl.style.left = `${(dayIdx * (100/7))}%`;
-                    ghostEl.style.width = `${(100/7)}%`;
-                    ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
-                    
-                    calBody.appendChild(ghostEl);
-                    
-                    window.addEventListener('mousemove', onDragMove);
-                    window.addEventListener('mouseup', onDragEnd);
-                });
-            }
+            let conflictIds = new Set();
+            for (let i = 0; i < filteredEvents.length; i++) { for (let j = i + 1; j < filteredEvents.length; j++) { if (checkOverlap(filteredEvents[i], filteredEvents[j])) { conflictIds.add(filteredEvents[i].id); conflictIds.add(filteredEvents[j].id); } } }
+
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+            
+            filteredEvents.forEach(ev => {
+                const col = document.getElementById(`day-col-${ev.day}`); if(!col) return;
+                const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
+                const evTargetDate = getSpecificDate(currentTerm.startDate, weekNum, ev.day); const diffDays = getDaysDiff(sydneyToday, evTargetDate);
+                let isPast = false; if (diffDays < 0) { isPast = true; } else if (diffDays === 0) { isPast = ev.isReminder ? (currentTotalMinutes > startMins) : (currentTotalMinutes > endMins); }
+                
+                const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
+                const greyOutStyle = isPast ? 'opacity: 0.4; filter: grayscale(100%);' : '';
+
+                if (ev.isReminder) {
+                     const rem = document.createElement('div');
+                     rem.style.cssText = `position: absolute; top: ${(startMins * timeScale) - 12}px; height: 24px; left: 4px; right: 4px; background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 12px; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index: 40; ${greyOutStyle}`;
+                     rem.onclick = () => openInstanceModal(ev.id, weekNum);
+                     rem.innerHTML = `🔔 ${ev.title} (${format12Hour(ev.start)})`;
+                     col.appendChild(rem); return;
+                }
+
+                const duration = endMins - startMins; const isConflicted = conflictIds.has(ev.id);
+                let bgStyle = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid transparent;`;
+                if(isConflicted) bgStyle = `background: var(--hazard); border: 2px dashed #ff5252;`;
+                if(ev.isReward && !isConflicted) bgStyle = `background: rgba(255, 215, 0, 0.15); border: 1px solid #ffd700;`;
+
+                const block = document.createElement('div');
+                block.style.cssText = `position: absolute; top: ${startMins * timeScale}px; height: ${duration * timeScale}px; left: 4px; right: 4px; border-left: 4px solid ${isPast ? '#555' : cColor}; ${bgStyle} border-radius: 6px; padding: 6px; color: var(--text-main); cursor: pointer; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: ${isConflicted ? 15 : 10}; transition: 0.2s; box-sizing: border-box; ${greyOutStyle}`;
+                block.onmouseenter = () => { if(!isPast) block.style.filter = 'brightness(1.3)'; }; block.onmouseleave = () => { block.style.filter = isPast ? 'grayscale(100%)' : 'none'; };
+                block.onclick = () => openInstanceModal(ev.id, weekNum);
+                
+                block.innerHTML = `
+                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px; color: ${isPast ? '#999' : cColor}; line-height: 1.1;">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId + '<br>' : ''}<span style="color: white;">${ev.title}</span></div>
+                    <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted);">${format12Hour(ev.start)} - ${format12Hour(ev.end)}</div>
+                `;
+                col.appendChild(block);
+            });
+
+            setTimeout(() => { 
+                const scrollContainer = document.getElementById('cal-scroll-container');
+                if(scrollContainer) {
+                    let scrollTarget = (8 * 60 * timeScale) - 20; 
+                    if (weekNum == getCurrentCalendarWeek()) { scrollTarget = Math.max(0, (currentTotalMinutes * timeScale) - (scrollContainer.clientHeight / 2)); }
+                    scrollContainer.scrollTop = scrollTarget;
+                }
+            }, 10);
+
+            document.querySelectorAll('.day-column').forEach(col => {
+                col.onmousedown = (e) => {
+                    if(e.target !== col) return;
+                    isDragging = true; currentDragWeek = weekNum; dragCurrentDay = col.dataset.day;
+                    const rect = col.getBoundingClientRect(); let rawMins = (e.clientY - rect.top) / timeScale; dragStartMins = Math.floor(rawMins / 15) * 15;
+                    ghostEl = document.createElement('div'); ghostEl.className = 'ghost-event'; ghostEl.style.top = `${dragStartMins * timeScale}px`; ghostEl.style.height = `${15 * timeScale}px`; ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
+                    col.appendChild(ghostEl);
+                    window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd); document.body.style.userSelect = 'none';
+                };
+            });
         }
     
         // --- iOS / macOS STYLE TIME PICKER LOGIC ---
