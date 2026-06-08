@@ -2418,19 +2418,6 @@
             else { container.style.display = 'none'; icon.innerText = '▶'; }
         }
 
-        function skipEventOccurrence(eventId, weekNum) {
-            const ev = events.find(e => e.id === eventId);
-            if(ev) {
-                if(ev.weeks === "All") {
-                    let newSkipped = [...ev.skippedWeeks];
-                    if(!newSkipped.includes(weekNum.toString())) {
-                        newSkipped.push(weekNum.toString());
-                        db.collection('events').doc(eventId).update({ skippedWeeks: newSkipped });
-                    }
-                } else { db.collection('events').doc(eventId).delete(); }
-            }
-        }
-
         // --- PLAN / TERM MANAGEMENT ---
         function switchTerm(newTermId) { 
             currentTermId = newTermId; localStorage.setItem('tp_active_term', currentTermId);
@@ -2476,7 +2463,7 @@
             if(terms.length <= 1) { alert("You cannot delete your only plan."); return; }
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(confirm(`Are you sure you want to delete '${currentTerm.name}'?`)) {
-                createCloudBackup();
+                if (typeof createCloudBackup === 'function') createCloudBackup();
                 const batch = db.batch();
                 batch.delete(db.collection('terms').doc(currentTermId));
                 courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
@@ -2508,7 +2495,7 @@
 
         window.deleteCourse = function(courseId) {
             if(confirm(`Delete ${courseId} and ALL its scheduled blocks?`)) {
-                createCloudBackup();
+                if (typeof createCloudBackup === 'function') createCloudBackup();
                 db.collection('courses').doc(currentTermId + "_" + courseId).delete();
                 events.filter(e => e.termId === currentTermId && e.courseId === courseId).forEach(e => db.collection('events').doc(e.id).delete());
             }
@@ -2565,11 +2552,24 @@
                 endTimeStr = startTimeStr;
             }
 
+            // --- ONWARDS LOGIC INJECTION ---
+            let occVal = document.getElementById('inp-ev-occurrence').value;
+            let finalWeeks = occVal;
+            let initialSkipped = [];
+            
+            if (occVal.startsWith("Onwards_")) {
+                finalWeeks = "All";
+                let startWk = parseInt(occVal.split('_')[1]);
+                for (let i = 1; i < startWk; i++) {
+                    initialSkipped.push(i.toString());
+                }
+            }
+
             const baseData = {
                 termId: currentTermId,
                 courseId: isFreeTime ? "Free Time" : document.getElementById('inp-ev-course').value,
                 title: document.getElementById('inp-ev-title').value,
-                weeks: document.getElementById('inp-ev-occurrence').value,
+                weeks: finalWeeks,
                 location: document.getElementById('inp-ev-location').value,
                 start: startTimeStr,
                 end: endTimeStr,
@@ -2595,13 +2595,16 @@
                     let docId = Date.now().toString() + index;
                     let skipped = []; let resolved = isFreeTime ? ["All"] : []; let mSkipped = []; let fFailed = [];
                     if (originalEv && day === originalEv.day) { docId = originalEv.id; skipped = originalEv.skippedWeeks || []; resolved = originalEv.resolvedWeeks || resolved; mSkipped = originalEv.missionSkippedWeeks || []; fFailed = originalEv.focusFailedWeeks || []; keptOriginal = true; }
-                    batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: skipped, resolvedWeeks: resolved, missionSkippedWeeks: mSkipped, focusFailedWeeks: fFailed });
+                    
+                    let mergedSkipped = [...new Set([...skipped, ...initialSkipped])];
+                    
+                    batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: mergedSkipped, resolvedWeeks: resolved, missionSkippedWeeks: mSkipped, focusFailedWeeks: fFailed });
                 });
                 if (originalEv && !keptOriginal) batch.delete(db.collection('events').doc(originalEv.id));
             } else {
                 checkedDays.forEach((day, index) => {
                     let docId = Date.now().toString() + index;
-                    batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: [] });
+                    batch.set(db.collection('events').doc(docId), { ...baseData, id: docId, day: day, skippedWeeks: [...initialSkipped] });
                 });
             }
 
@@ -2626,6 +2629,7 @@
             if(!ev) return;
             
             if(confirm(`Delete ${ev.title}?`)) {
+                if (typeof createCloudBackup === 'function') createCloudBackup();
                 if (ev.isReward) {
                     const refundMins = timeToMinutes(ev.end) - timeToMinutes(ev.start);
                     bankedFreeTimeMins += refundMins;
@@ -2635,6 +2639,60 @@
                 db.collection('events').doc(eventId).delete();
             }
         };
+
+        // --- NEW DELETE MODAL SERIES LOGIC ---
+        window.deleteEvent = function(id, currentWeekStr) {
+            // Only used as a fallback if button was called directly, but we map it through deleteModalEvent now.
+            // Using the UI radio buttons is much safer.
+        };
+
+        function deleteModalEvent() {
+            if(modalInstanceId && modalInstanceWeek) { 
+                const ev = events.find(e => e.id === modalInstanceId);
+                if (!ev) return;
+                
+                if (ev.isReward) {
+                    const refundMins = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+                    bankedFreeTimeMins += refundMins;
+                    db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true });
+                    showToast(`Refunded ${refundMins} mins to Bank!`, "#ffd700");
+                }
+                
+                const applyTo = document.querySelector('input[name="mod-apply-to"]:checked')?.value || 'instance';
+                
+                if (ev.weeks === "All") {
+                    if (applyTo === 'instance') {
+                        // Delete just this week
+                        if (typeof createCloudBackup === 'function') createCloudBackup();
+                        let newSkipped = [...(ev.skippedWeeks || [])];
+                        if(!newSkipped.includes(modalInstanceWeek)) {
+                            newSkipped.push(modalInstanceWeek);
+                            db.collection('events').doc(modalInstanceId).update({ skippedWeeks: newSkipped });
+                            showToast("Skipped this week!");
+                        }
+                    } else {
+                        // Delete from here onwards (Series)
+                        if (typeof createCloudBackup === 'function') createCloudBackup();
+                        let newSkipped = [...(ev.skippedWeeks || [])];
+                        const currentTerm = terms.find(t => t.id === currentTermId);
+                        let totalWks = currentTerm ? (currentTerm.totalWeeks || 10) : 15;
+                        for (let i = parseInt(modalInstanceWeek); i <= totalWks; i++) {
+                            if (!newSkipped.includes(i.toString())) newSkipped.push(i.toString());
+                        }
+                        db.collection('events').doc(modalInstanceId).update({ skippedWeeks: newSkipped });
+                        showToast(`Series ended at Week ${modalInstanceWeek}`);
+                    }
+                } else {
+                    // Standalone component
+                    if (confirm("Permanently delete this component entirely?")) {
+                        if (typeof createCloudBackup === 'function') createCloudBackup();
+                        db.collection('events').doc(modalInstanceId).delete();
+                    }
+                }
+                
+                closeInstanceModal(); 
+            }
+        }
 
         function editMasterEvent(id) {
             const ev = events.find(e => e.id === id);
@@ -2763,21 +2821,6 @@
 
         function closeInstanceModal() { document.getElementById('instance-edit-modal').style.display = 'none'; modalInstanceId = null; modalInstanceWeek = null; }
 
-        function deleteModalEvent() {
-            if(modalInstanceId && modalInstanceWeek) { 
-                const ev = events.find(e => e.id === modalInstanceId);
-                if (ev && ev.isReward) {
-                    const refundMins = timeToMinutes(ev.end) - timeToMinutes(ev.start);
-                    bankedFreeTimeMins += refundMins;
-                    db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true });
-                    showToast(`Refunded ${refundMins} mins to Bank!`, "#ffd700");
-                }
-                skipEventOccurrence(modalInstanceId, modalInstanceWeek); 
-                closeInstanceModal(); 
-            }
-        }
-
-        // Instance Form Submit
         // Instance Form Submit
         document.getElementById('form-instance-edit').onsubmit = (e) => {
             e.preventDefault();
@@ -3159,8 +3202,12 @@
             const occSelect = document.getElementById('inp-ev-occurrence');
             if (occSelect) {
                 const prevVal = occSelect.value; let occHtml = `<option value="All">Repeat: All Weeks</option>`;
+                if (totalWeeks > 1) {
+                    for(let i=2; i<=totalWeeks; i++) { occHtml += `<option value="Onwards_${i}">Repeat: Week ${i} Onwards</option>`; }
+                }
                 for(let i=1; i<=totalWeeks; i++) { occHtml += `<option value="${i}">Standalone: Week ${i}</option>`; }
-                occSelect.innerHTML = occHtml; occSelect.value = (prevVal === "All" || (parseInt(prevVal) >= 1 && parseInt(prevVal) <= totalWeeks)) ? prevVal : "All";
+                occSelect.innerHTML = occHtml; 
+                occSelect.value = (prevVal === "All" || (prevVal && prevVal.startsWith("Onwards_")) || (parseInt(prevVal) >= 1 && parseInt(prevVal) <= totalWeeks)) ? prevVal : "All";
             }
 
             const eventList = document.getElementById('builder-event-list'); if(eventList) eventList.innerHTML = '';
@@ -3467,384 +3514,4 @@
 
             html += `</div><div id="cal-body" style="display: flex; flex: 1; position: relative; min-height: ${24 * 60 * timeScale}px;">
                         <div style="width: 60px; flex-shrink: 0; border-right: 1px solid var(--outline); background: var(--bg-panel); position: relative; z-index: 50;">`;
-            for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i % 12 || 12} ${i >= 12 ? 'PM' : 'AM'}`}</span></div>`; }
-            html += `</div><div style="position: absolute; top: 0; left: 60px; right: 0; height: ${24 * 60 * timeScale}px; pointer-events: none; z-index: 1;">`;
-            for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid rgba(255,255,255,0.05); box-sizing: border-box;"></div>`; }
-            html += `</div><div style="display: flex; flex: 1; position: relative; height: ${24 * 60 * timeScale}px; margin-left: 0;">`;
-            days.forEach(day => { html += `<div class="day-column" data-day="${day}" id="day-col-${day}" style="flex: 1; position: relative; border-right: 1px solid rgba(255,255,255,0.1); z-index: 2; cursor: crosshair;"></div>`; });
-            html += `</div></div></div>`;
-            
-            container.innerHTML += html;
-
-            const now = new Date(); const sydneyDateString = new Intl.DateTimeFormat('en-US', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-            const [sM, sD, sY] = sydneyDateString.split('/'); const sydneyToday = new Date(sY, sM - 1, sD);
-            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
-            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
-            const currentTotalMinutes = parseInt(parts.find(p => p.type === 'hour').value) * 60 + parseInt(parts.find(p => p.type === 'minute').value);
-
-            if (weekNum == getCurrentCalendarWeek()) {
-                const currentDay = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now);
-                const col = document.getElementById(`day-col-${currentDay}`);
-                if(col) {
-                    const timeLine = document.createElement('div'); timeLine.id = 'current-time-line';
-                    timeLine.style.cssText = `position: absolute; left: 0; right: 0; top: ${currentTotalMinutes * timeScale}px; height: 2px; background-color: #ff5252; z-index: 50; box-shadow: 0 0 8px rgba(255,82,82,0.8); pointer-events: none;`;
-                    timeLine.innerHTML = `<div style="width: 10px; height: 10px; background: #ff5252; border-radius: 50%; position: absolute; left: -5px; top: -4px;"></div>`;
-                    col.appendChild(timeLine);
-                }
-            }
-
-            let conflictIds = new Set();
-            for (let i = 0; i < filteredEvents.length; i++) { for (let j = i + 1; j < filteredEvents.length; j++) { if (checkOverlap(filteredEvents[i], filteredEvents[j])) { conflictIds.add(filteredEvents[i].id); conflictIds.add(filteredEvents[j].id); } } }
-
-            const termCourses = courses.filter(c => c.termId === currentTermId);
-            
-            filteredEvents.forEach(ev => {
-                const col = document.getElementById(`day-col-${ev.day}`); if(!col) return;
-                const startMins = timeToMinutes(ev.start); const endMins = timeToMinutes(ev.end);
-                const evTargetDate = getSpecificDate(currentTerm.startDate, weekNum, ev.day); const diffDays = getDaysDiff(sydneyToday, evTargetDate);
-                let isPast = false; if (diffDays < 0) { isPast = true; } else if (diffDays === 0) { isPast = ev.isReminder ? (currentTotalMinutes > startMins) : (currentTotalMinutes > endMins); }
-                
-                const cColor = ev.isReward ? "#ffd700" : (ev.courseId ? (termCourses.find(c => c.id === ev.courseId)?.color || "var(--accent)") : "var(--accent)");
-                const greyOutStyle = isPast ? 'opacity: 0.4; filter: grayscale(100%);' : '';
-
-                if (ev.isReminder) {
-                     const rem = document.createElement('div');
-                     rem.style.cssText = `position: absolute; top: ${(startMins * timeScale) - 12}px; height: 24px; left: 4px; right: 4px; background: ${isPast ? '#333' : cColor}; color: ${isPast ? '#999' : '#000'}; font-weight: bold; font-size: 12px; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index: 40; ${greyOutStyle}`;
-                     rem.onclick = () => openInstanceModal(ev.id, weekNum);
-                     rem.innerHTML = `🔔 ${ev.title} (${format12Hour(ev.start)})`;
-                     col.appendChild(rem); return;
-                }
-
-                const duration = endMins - startMins; const isConflicted = conflictIds.has(ev.id);
-                let bgStyle = ev.isCritical ? `background-color: ${cColor}44; border: 1px solid ${cColor};` : `background-color: ${cColor}22; border: 1px solid transparent;`;
-                if(isConflicted) bgStyle = `background: var(--hazard); border: 2px dashed #ff5252;`;
-                if(ev.isReward && !isConflicted) bgStyle = `background: rgba(255, 215, 0, 0.15); border: 1px solid #ffd700;`;
-
-                const block = document.createElement('div');
-                block.style.cssText = `position: absolute; top: ${startMins * timeScale}px; height: ${duration * timeScale}px; left: 4px; right: 4px; border-left: 4px solid ${isPast ? '#555' : cColor}; ${bgStyle} border-radius: 6px; padding: 6px; color: var(--text-main); cursor: pointer; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: ${isConflicted ? 15 : 10}; transition: 0.2s; box-sizing: border-box; ${greyOutStyle}`;
-                block.onmouseenter = () => { if(!isPast) block.style.filter = 'brightness(1.3)'; }; block.onmouseleave = () => { block.style.filter = isPast ? 'grayscale(100%)' : 'none'; };
-                block.onclick = () => openInstanceModal(ev.id, weekNum);
-                
-                block.innerHTML = `
-                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 2px; color: ${isPast ? '#999' : cColor}; line-height: 1.1;">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId + '<br>' : ''}<span style="color: white;">${ev.title}</span></div>
-                    <div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted);">${format12Hour(ev.start)} - ${format12Hour(ev.end)}</div>
-                `;
-                col.appendChild(block);
-            });
-
-            setTimeout(() => { 
-                const scrollContainer = document.getElementById('cal-scroll-container');
-                if(scrollContainer) {
-                    let scrollTarget = (8 * 60 * timeScale) - 20; 
-                    if (weekNum == getCurrentCalendarWeek()) { scrollTarget = Math.max(0, (currentTotalMinutes * timeScale) - (scrollContainer.clientHeight / 2)); }
-                    scrollContainer.scrollTop = scrollTarget;
-                }
-            }, 10);
-
-            document.querySelectorAll('.day-column').forEach(col => {
-                col.onmousedown = (e) => {
-                    if(e.target !== col) return;
-                    isDragging = true; currentDragWeek = weekNum; dragCurrentDay = col.dataset.day;
-                    const rect = col.getBoundingClientRect(); let rawMins = (e.clientY - rect.top) / timeScale; dragStartMins = Math.floor(rawMins / 15) * 15;
-                    ghostEl = document.createElement('div'); ghostEl.className = 'ghost-event'; ghostEl.style.top = `${dragStartMins * timeScale}px`; ghostEl.style.height = `${15 * timeScale}px`; ghostEl.innerText = `${minsToTimeStr(dragStartMins)} - ${minsToTimeStr(dragStartMins + 15)}`;
-                    col.appendChild(ghostEl);
-                    window.addEventListener('mousemove', onDragMove); window.addEventListener('mouseup', onDragEnd); document.body.style.userSelect = 'none';
-                };
-            });
-        }
-
-        // --- DATA MGMT ---
-        function createCloudBackup() {
-            const payload = JSON.stringify({ timestamp: Date.now(), plans: terms, courses: courses, events: events });
-            db.collection("userStats").doc("backup").set({ payload: payload });
-            showToast("Cloud Backup Snapshot Saved!", "#00e5ff");
-        }
-
-        function restoreCloudBackup() {
-            if(!confirm("Are you sure? This will WIPE your current database and revert to your last cloud backup!")) return;
-            
-            db.collection("userStats").doc("backup").get().then(doc => {
-                if(doc.exists && doc.data().payload) {
-                    const data = JSON.parse(doc.data().payload);
-                    const batch = db.batch();
-                    
-                    terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
-                    courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
-                    events.forEach(ev => batch.delete(db.collection('events').doc(ev.id)));
-                    
-                    data.plans.forEach(t => batch.set(db.collection('terms').doc(t.id), t));
-                    data.courses.forEach(c => batch.set(db.collection('courses').doc(c.termId + "_" + c.id), c));
-                    data.events.forEach(ev => batch.set(db.collection('events').doc(ev.id), ev));
-                    
-                    batch.commit().then(() => { alert("Backup Restored Successfully!"); location.reload(); });
-                } else {
-                    alert("No cloud backup found!");
-                }
-            });
-        }
-        function exportData() {
-            const data = { terms, courses, events };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `tracker_backup_${Date.now()}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        }
-
-        function importData(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (!data.terms || !data.courses || !data.events) throw new Error("Invalid format");
-                    if (confirm("This will WIPE all current data and replace it. Continue?")) {
-                        createCloudBackup();
-                        const batch = db.batch();
-                        terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
-                        courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
-                        events.forEach(ev => batch.delete(db.collection('events').doc(ev.id)));
-                        data.terms.forEach(t => batch.set(db.collection('terms').doc(t.id), t));
-                        data.courses.forEach(c => batch.set(db.collection('courses').doc(c.termId + "_" + c.id), c));
-                        data.events.forEach(ev => batch.set(db.collection('events').doc(ev.id), ev));
-                        await batch.commit(); alert("Import successful!"); location.reload();
-                    }
-                } catch (err) { alert("Error parsing JSON file."); }
-                event.target.value = "";
-            };
-            reader.readAsText(file);
-        }
-
-        // --- ICS IMPORT LOGIC ---
-        let pendingICSData = [];
-
-        function handleICSImport(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const jcalData = ICAL.parse(e.target.result);
-                    const comp = new ICAL.Component(jcalData);
-                    const vevents = comp.getAllSubcomponents('vevent');
-                    pendingICSData = [];
-
-                    vevents.forEach(vevent => {
-                        const event = new ICAL.Event(vevent);
-                        const summary = event.summary; 
-                        const location = event.location || "";
-                        const startDate = event.startDate.toJSDate();
-                        const endDate = event.endDate.toJSDate();
-
-                        // UNSW Format Example: "MMAN2700_T1 / Lecture"
-                        let courseId = summary.split(' ')[0].replace(/_.*/, ''); 
-                        if(courseId.length > 8) courseId = courseId.substring(0,8);
-                        
-                        let title = summary;
-                        if(summary.includes(' / ')) title = summary.split(' / ')[1];
-
-                        const dayName = new Intl.DateTimeFormat('en-AU', { weekday: 'long' }).format(startDate);
-                        const startStr = new Intl.DateTimeFormat('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }).format(startDate);
-                        const endStr = new Intl.DateTimeFormat('en-AU', { hour: '2-digit', minute: '2-digit', hour12: false }).format(endDate);
-
-                        const isDup = pendingICSData.some(p => p.courseId === courseId && p.title === title && p.day === dayName && p.start === startStr);
-                        if(!isDup) {
-                            pendingICSData.push({ courseId, title, day: dayName, start: startStr, end: endStr, location });
-                        }
-                    });
-
-                    renderICSPreview();
-                    document.getElementById('ics-import-modal').style.display = 'flex';
-                } catch (err) { alert("Failed to parse ICS file. Ensure it is a valid calendar export."); }
-                event.target.value = "";
-            };
-            reader.readAsText(file);
-        }
-
-        function renderICSPreview() {
-            const container = document.getElementById('ics-course-list');
-            container.innerHTML = '';
-            
-            if(pendingICSData.length === 0) {
-                container.innerHTML = `<p style="color:var(--text-muted);">No valid events found in the file.</p>`; return;
-            }
-
-            pendingICSData.forEach((ev, index) => {
-                const item = document.createElement('div');
-                item.style.cssText = `background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid var(--outline); display: flex; align-items: center; justify-content: space-between;`;
-                item.innerHTML = `
-                    <div>
-                        <strong style="color: var(--accent);">${ev.courseId}</strong> | ${ev.title}<br>
-                        <small style="color: var(--text-muted);">${ev.day} • ${ev.start} - ${ev.end}</small>
-                    </div>
-                    <button class="btn-delete" onclick="removeICSItem(${index})" style="padding: 5px; min-width: 30px;">✖</button>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        window.removeICSItem = function(index) {
-            pendingICSData.splice(index, 1);
-            renderICSPreview();
-        };
-
-        function closeICSModal() { document.getElementById('ics-import-modal').style.display = 'none'; pendingICSData = []; }
-
-        function executeICSInjection() {
-            if(pendingICSData.length === 0) return;
-            
-            const batch = db.batch();
-            const existingCourseIds = courses.filter(c => c.termId === currentTermId).map(c => c.id);
-            const newCourses = new Set(pendingICSData.map(ev => ev.courseId));
-
-            newCourses.forEach(cId => {
-                if(!existingCourseIds.includes(cId)) {
-                    batch.set(db.collection('courses').doc(currentTermId + "_" + cId), { id: cId, termId: currentTermId, color: "#" + Math.floor(Math.random()*16777215).toString(16) });
-                }
-            });
-
-            pendingICSData.forEach((ev, i) => {
-                const docId = `ICS_${Date.now()}_${i}`;
-                batch.set(db.collection('events').doc(docId), {
-                    id: docId, termId: currentTermId, courseId: ev.courseId, title: ev.title, day: ev.day,
-                    start: ev.start, end: ev.end, location: ev.location, weeks: "All",
-                    isCritical: false, isReminder: false, weight: null, resolvedWeeks: [],
-                    skippedWeeks: [], missionSkippedWeeks: [], focusFailedWeeks: [],
-                    xpEnabled: false, xpDifficulty: 10, requiresFocus: false, isReward: false, notes: ""
-                });
-            });
-
-            batch.commit().then(() => {
-                alert(`Successfully injected ${pendingICSData.length} events into Master Schedule!`);
-                closeICSModal();
-            });
-        }
-
-        // --- TIME PICKER LOGIC ---
-        // --- iOS STYLE TIME PICKER LOGIC ---
-        // --- iOS / macOS STYLE TIME PICKER LOGIC ---
-        function setupTimePickers() {
-            document.querySelectorAll('.tp-wrapper').forEach(wrapper => {
-                const input = wrapper.querySelector('.tp-text');
-                const hiddenInput = wrapper.querySelector('input[type="hidden"]');
-                const dropdown = wrapper.querySelector('.tp-dropdown');
-                
-                // 1. Build the UI inside the dropdown container
-                dropdown.className = 'ios-time-picker-dropdown';
-                dropdown.innerHTML = `
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 15px; font-size: 42px; font-weight: 300; font-family: -apple-system, sans-serif; padding-bottom: 5px;">
-                        <input type="number" class="ios-time-input ip-hour" min="1" max="12" placeholder="12">
-                        <span style="padding-bottom: 6px; color: var(--text-muted);">:</span>
-                        <input type="number" class="ios-time-input ip-minute" min="0" max="59" placeholder="00">
-                    </div>
-                    <div class="ios-ampm-wrapper">
-                        <button type="button" class="ios-ampm-btn am-btn">am</button>
-                        <button type="button" class="ios-ampm-btn pm-btn">pm</button>
-                    </div>
-                    <button type="button" class="btn-submit btn-done" style="width: 100%; padding: 10px; font-size: 16px;">Confirm Time</button>
-                `;
-
-                const hrInput = dropdown.querySelector('.ip-hour');
-                const minInput = dropdown.querySelector('.ip-minute');
-                const amBtn = dropdown.querySelector('.am-btn');
-                const pmBtn = dropdown.querySelector('.pm-btn');
-                const doneBtn = dropdown.querySelector('.btn-done');
-                let isPM = false;
-
-                // 2. Logic to update the segmented button highlights
-                function updateToggleUI() {
-                    if (isPM) { pmBtn.classList.add('active'); amBtn.classList.remove('active'); } 
-                    else { amBtn.classList.add('active'); pmBtn.classList.remove('active'); }
-                }
-
-                // 3. Load the current time into the picker when opened
-                function loadFromHidden() {
-                    let val = hiddenInput.value || "09:00"; 
-                    let [h, m] = val.split(':').map(Number);
-                    isPM = h >= 12;
-                    hrInput.value = h % 12 || 12;
-                    minInput.value = m.toString().padStart(2, '0');
-                    updateToggleUI();
-                }
-
-                // 4. Save and calculate back to 24-hour format when closed
-                function saveToHidden() {
-                    let h = parseInt(hrInput.value) || 12;
-                    let m = parseInt(minInput.value) || 0;
-                    
-                    if (h < 1) h = 12; if (h > 12) h = 1; // Wrap bounds
-                    if (m < 0) m = 59; if (m > 59) m = 0;
-                    
-                    hrInput.value = h;
-                    minInput.value = m.toString().padStart(2, '0');
-
-                    let val24h = h;
-                    if (isPM && h !== 12) val24h += 12;
-                    if (!isPM && h === 12) val24h = 0;
-
-                    hiddenInput.value = `${val24h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                    input.value = `${h}:${m.toString().padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`;
-                }
-
-                // 5. Wire up the buttons and scroll wheels
-                amBtn.onclick = (e) => { e.stopPropagation(); isPM = false; updateToggleUI(); saveToHidden(); };
-                pmBtn.onclick = (e) => { e.stopPropagation(); isPM = true; updateToggleUI(); saveToHidden(); };
-                dropdown.onmousedown = (e) => e.stopPropagation(); // Keep open when clicking inside
-                
-                doneBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    saveToHidden();
-                    dropdown.classList.remove('open');
-                };
-
-                // --- NEW: MAC OS AUTO-SELECT FEATURE ---
-                // Selects the text instantly on click/focus so you can type immediately replacing the number
-                hrInput.onfocus = () => hrInput.select();
-                hrInput.onclick = () => hrInput.select();
-                minInput.onfocus = () => minInput.select();
-                minInput.onclick = () => minInput.select();
-                // ----------------------------------------
-
-                // Scroll wheel support keeps the text highlighted while spinning!
-                hrInput.onwheel = (e) => { e.preventDefault(); hrInput.value = (parseInt(hrInput.value) || 12) + (e.deltaY > 0 ? -1 : 1); saveToHidden(); hrInput.select(); };
-                minInput.onwheel = (e) => { e.preventDefault(); minInput.value = (parseInt(minInput.value) || 0) + (e.deltaY > 0 ? -1 : 1); saveToHidden(); minInput.select(); };
-                
-                hrInput.onchange = saveToHidden;
-                minInput.onchange = () => { minInput.value = minInput.value.padStart(2, '0'); saveToHidden(); };
-
-                // 6. Open / Close Logic
-                input.addEventListener('mousedown', (e) => {
-                    e.preventDefault(); 
-                    document.querySelectorAll('.ios-time-picker-dropdown').forEach(d => { if (d !== dropdown) d.classList.remove('open'); }); // Close others
-                    
-                    if (dropdown.classList.contains('open')) {
-                        dropdown.classList.remove('open');
-                    } else {
-                        loadFromHidden();
-                        dropdown.classList.add('open');
-                        
-                        // NEW: Automatically focus the hour box the second the menu opens!
-                        setTimeout(() => hrInput.focus(), 10);
-                    }
-                });
-
-                document.addEventListener('mousedown', (e) => {
-                    if (!wrapper.contains(e.target) && dropdown.classList.contains('open')) {
-                        saveToHidden();
-                        dropdown.classList.remove('open');
-                    }
-                });
-
-                // 7. Keep sync with Firebase loads
-                const observer = new MutationObserver(() => {
-                    if (hiddenInput.value) input.value = format12Hour(hiddenInput.value); else input.value = "";
-                });
-                observer.observe(hiddenInput, { attributes: true, attributeFilter: ['value'] });
-                
-                Object.defineProperty(hiddenInput, 'value', {
-                    get() { return this.getAttribute('value') || ''; },
-                    set(val) { this.setAttribute('value', val); input.value = val ? format12Hour(val) : ''; }
-                });
-            });
-        }
-        window.addEventListener('DOMContentLoaded', setupTimePickers);
-
-    </script>
-</body>
-</html>
+            for(let i=0; i<24; i++) { html += `<div style="height: ${60 * timeScale}px; border-bottom: 1px solid transparent; box-sizing: border-box; position: relative;"><span style="position: absolute; top: -10px; right: 10px; color: var(--text-muted); font-size: 12px; font-family: 'Share Tech Mono';">${i === 0 ? '' : `${i
