@@ -3718,13 +3718,14 @@
 
         // --- TIME PICKER LOGIC ---
         // --- iOS STYLE TIME PICKER LOGIC ---
+        // --- iOS / macOS STYLE TIME PICKER LOGIC ---
         function setupTimePickers() {
             document.querySelectorAll('.tp-wrapper').forEach(wrapper => {
                 const input = wrapper.querySelector('.tp-text');
                 const hiddenInput = wrapper.querySelector('input[type="hidden"]');
                 const dropdown = wrapper.querySelector('.tp-dropdown');
                 
-                // 1. Build the iOS UI inside the dropdown container
+                // 1. Build the UI inside the dropdown container
                 dropdown.className = 'ios-time-picker-dropdown';
                 dropdown.innerHTML = `
                     <div style="display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 15px; font-size: 42px; font-weight: 300; font-family: -apple-system, sans-serif; padding-bottom: 5px;">
@@ -3792,9 +3793,17 @@
                     dropdown.classList.remove('open');
                 };
 
-                // Add scroll wheel support for quick editing!
-                hrInput.onwheel = (e) => { e.preventDefault(); hrInput.value = (parseInt(hrInput.value) || 12) + (e.deltaY > 0 ? -1 : 1); saveToHidden(); };
-                minInput.onwheel = (e) => { e.preventDefault(); minInput.value = (parseInt(minInput.value) || 0) + (e.deltaY > 0 ? -1 : 1); saveToHidden(); };
+                // --- NEW: MAC OS AUTO-SELECT FEATURE ---
+                // Selects the text instantly on click/focus so you can type immediately replacing the number
+                hrInput.onfocus = () => hrInput.select();
+                hrInput.onclick = () => hrInput.select();
+                minInput.onfocus = () => minInput.select();
+                minInput.onclick = () => minInput.select();
+                // ----------------------------------------
+
+                // Scroll wheel support keeps the text highlighted while spinning!
+                hrInput.onwheel = (e) => { e.preventDefault(); hrInput.value = (parseInt(hrInput.value) || 12) + (e.deltaY > 0 ? -1 : 1); saveToHidden(); hrInput.select(); };
+                minInput.onwheel = (e) => { e.preventDefault(); minInput.value = (parseInt(minInput.value) || 0) + (e.deltaY > 0 ? -1 : 1); saveToHidden(); minInput.select(); };
                 
                 hrInput.onchange = saveToHidden;
                 minInput.onchange = () => { minInput.value = minInput.value.padStart(2, '0'); saveToHidden(); };
@@ -3809,6 +3818,9 @@
                     } else {
                         loadFromHidden();
                         dropdown.classList.add('open');
+                        
+                        // NEW: Automatically focus the hour box the second the menu opens!
+                        setTimeout(() => hrInput.focus(), 10);
                     }
                 });
 
@@ -3831,7 +3843,6 @@
                 });
             });
         }
-
         window.addEventListener('DOMContentLoaded', setupTimePickers);
 
     </script>
