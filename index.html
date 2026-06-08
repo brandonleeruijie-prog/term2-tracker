@@ -467,7 +467,11 @@
 
             <div id="view-builder" style="display: none;">
                 <div class="builder-section" style="background: rgba(255, 255, 255, 0.02);">
-                    <h2 style="font-size: 18px;">💾 Data Management (Cloud Synced)</h2>
+                    <h2 style="font-size: 18px;">💾 Data Management & Cloud Backups</h2>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button class="btn-submit" style="background: #ff9800; font-size: 14px; flex: 1;" onclick="restoreCloudBackup()">⏪ Undo / Restore Backup</button>
+                        <button class="btn-submit" style="background: transparent; border: 1px solid #ff9800; color: #ff9800; font-size: 14px; flex: 1;" onclick="createCloudBackup()">💾 Force Save Backup</button>
+                    </div>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-submit" style="background: #4caf50; font-size: 14px;" onclick="exportData()">⬇️ Export JSON</button>
                         <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importData(event)">
@@ -2455,6 +2459,7 @@
             if(terms.length <= 1) { alert("You cannot delete your only plan."); return; }
             const currentTerm = terms.find(t => t.id === currentTermId);
             if(confirm(`Are you sure you want to delete '${currentTerm.name}'?`)) {
+                createCloudBackup();
                 const batch = db.batch();
                 batch.delete(db.collection('terms').doc(currentTermId));
                 courses.filter(c => c.termId === currentTermId).forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
@@ -2486,6 +2491,7 @@
 
         window.deleteCourse = function(courseId) {
             if(confirm(`Delete ${courseId} and ALL its scheduled blocks?`)) {
+                createCloudBackup();
                 db.collection('courses').doc(currentTermId + "_" + courseId).delete();
                 events.filter(e => e.termId === currentTermId && e.courseId === courseId).forEach(e => db.collection('events').doc(e.id).delete());
             }
@@ -3531,6 +3537,34 @@
         }
 
         // --- DATA MGMT ---
+        function createCloudBackup() {
+            const payload = JSON.stringify({ timestamp: Date.now(), plans: terms, courses: courses, events: events });
+            db.collection("userStats").doc("backup").set({ payload: payload });
+            showToast("Cloud Backup Snapshot Saved!", "#00e5ff");
+        }
+
+        function restoreCloudBackup() {
+            if(!confirm("Are you sure? This will WIPE your current database and revert to your last cloud backup!")) return;
+            
+            db.collection("userStats").doc("backup").get().then(doc => {
+                if(doc.exists && doc.data().payload) {
+                    const data = JSON.parse(doc.data().payload);
+                    const batch = db.batch();
+                    
+                    terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
+                    courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
+                    events.forEach(ev => batch.delete(db.collection('events').doc(ev.id)));
+                    
+                    data.plans.forEach(t => batch.set(db.collection('terms').doc(t.id), t));
+                    data.courses.forEach(c => batch.set(db.collection('courses').doc(c.termId + "_" + c.id), c));
+                    data.events.forEach(ev => batch.set(db.collection('events').doc(ev.id), ev));
+                    
+                    batch.commit().then(() => { alert("Backup Restored Successfully!"); location.reload(); });
+                } else {
+                    alert("No cloud backup found!");
+                }
+            });
+        }
         function exportData() {
             const data = { terms, courses, events };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -3545,6 +3579,7 @@
                     const data = JSON.parse(e.target.result);
                     if (!data.terms || !data.courses || !data.events) throw new Error("Invalid format");
                     if (confirm("This will WIPE all current data and replace it. Continue?")) {
+                        createCloudBackup();
                         const batch = db.batch();
                         terms.forEach(t => batch.delete(db.collection('terms').doc(t.id)));
                         courses.forEach(c => batch.delete(db.collection('courses').doc(c.termId + "_" + c.id)));
