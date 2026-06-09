@@ -1103,7 +1103,26 @@
                 // --- THE CROSS-DEVICE CLOCK SYNC ---
                 let incomingFocusState = doc.data().globalFocusState || "none";
                 let incomingEndTime = doc.data().focusTargetEndTime || 0;
-                let incomingIsWork = doc.data().isWorkPhase ?? true;
+                // --- THE CHECK-IN SYNC FIX ---
+                let incomingAck = doc.data().lastCheckInAck || 0;
+                
+                // Safely initialize the tracker to whatever the database currently says
+                if (typeof window.globalLastAck === 'undefined') { 
+                    window.globalLastAck = incomingAck; 
+                }
+                
+                // If the phone pushes a NEW check-in time, clear the website's timeout!
+                if (incomingAck > window.globalLastAck) {
+                    window.globalLastAck = incomingAck;
+                    if (isFocusModeActive && typeof window.confirmCheckInLocalOnly === 'function') {
+                        window.confirmCheckInLocalOnly(); 
+                    }
+                }
+                    window.lastAckTime = incomingAck;
+                    if (isFocusModeActive && typeof confirmCheckInLocalOnly === 'function') {
+                        confirmCheckInLocalOnly(); // Instantly clears the screen if phone confirms!
+                    }
+                }
                 let incomingEventId = doc.data().activeFocusEventId || null;
                 let incomingCourse = doc.data().activeCourse || "";
                 let incomingTitle = doc.data().activeTitle || "";
@@ -1286,11 +1305,28 @@
         }
 
         window.confirmCheckIn = function() {
-            if (checkInFailTimeout) clearTimeout(checkInFailTimeout);
-            if (pipWindow && !pipWindow.closed) { const ui = pipWindow.document.getElementById('checkin-ui'); if (ui) ui.style.display = 'none'; }
-            if (fallbackTimerUI) { const ui = document.getElementById('fb-checkin-ui'); if (ui) ui.style.display = 'none'; }
+            // Pushes the check-in to Firebase so the phone knows!
+            db.collection("userStats").doc("player").set({ lastCheckInAck: Date.now() / 1000 }, { merge: true });
+            window.confirmCheckInLocalOnly();
         };
 
+        window.confirmCheckInLocalOnly = function() {
+            // Instantly cancels the website's 3-minute fail timer!
+            if (checkInFailTimeout) { 
+                clearTimeout(checkInFailTimeout); 
+                checkInFailTimeout = null; 
+            }
+            
+            // Hides the "Are you still studying?" UI
+            if (pipWindow && !pipWindow.closed) { 
+                const ui = pipWindow.document.getElementById('checkin-ui'); 
+                if (ui) ui.style.display = 'none'; 
+            }
+            if (fallbackTimerUI) { 
+                const ui = document.getElementById('fb-checkin-ui'); 
+                if (ui) ui.style.display = 'none'; 
+            }
+        };
         async function openFocusMode() {
             initializeNotifications(); if (!currentFocusEventId) return;
             let ev = events.find(e => e.id === currentFocusEventId);
