@@ -1129,7 +1129,6 @@
                     if (!isFocusModeActive) {
                         launchFocusUIFromCloud(incomingTitle, incomingCourse);
                     } else {
-                        // Updates phase UI dynamically if it flipped!
                         let uiTitle = isWorkPhase ? (isFreeFocusMode ? "🌊 Free Focus" : "🔥 Deep Work") : "☕ Rest & Recharge";
                         let color = isWorkPhase ? (isFreeFocusMode ? "#00e5ff" : "#ff9800") : "#4caf50";
                         updateUIStyles(uiTitle, isWorkPhase ? "Back to the grind." : "Step away from the screen.", isWorkPhase ? "work-phase" : "break-phase", color);
@@ -1146,6 +1145,126 @@
             loaders.userStats = true; renderXP();
             if (typeof renderRewardStore === 'function') renderRewardStore(); checkLoaders();
         });
+
+        // --- RESTORED: XP SYSTEM ---
+        function updateXP(change) {
+            if(!loaders.userStats) return; 
+            userXP += change;
+            if (userXP < 0) userXP = 0; 
+            db.collection("userStats").doc("player").set({ xp: userXP }, { merge: true });
+            showToast(change > 0 ? `+${change} XP` : `${change} XP`, change > 0 ? '#00e5ff' : '#ff5252');
+        }
+
+        function renderXP() {
+            const xpText = document.getElementById('player-xp-text');
+            if(xpText) xpText.innerText = `${userXP} XP`;
+            let fillPct = (userXP % 300) / 300 * 100;
+            if(userXP > 0 && userXP % 300 === 0) fillPct = 100;
+            const xpFill = document.getElementById('xp-bar-fill');
+            if(xpFill) xpFill.style.width = `${fillPct}%`;
+        }
+
+        function showToast(msg, color) {
+            const toast = document.getElementById('toast');
+            if(!toast) return;
+            toast.innerText = msg; toast.style.borderColor = color; toast.style.color = color; toast.style.opacity = 1;
+            setTimeout(() => { toast.style.opacity = 0; }, 3000);
+        }
+
+        // --- RESTORED: HOVER TOOLTIP ENGINE ---
+        function showTooltip(e, desc, notes) {
+            if (typeof isDragging !== 'undefined' && isDragging) return;
+            const tooltip = document.getElementById('global-tooltip');
+            const descPanel = document.getElementById('tooltip-desc-panel');
+            const notesPanel = document.getElementById('tooltip-notes-panel');
+            const descText = document.getElementById('tooltip-desc-text');
+            const notesText = document.getElementById('tooltip-notes-text');
+            if (!tooltip || !descPanel || !notesPanel) return;
+
+            let hasContent = false;
+            if (desc && desc.trim() !== '') { descText.innerText = desc; descPanel.style.display = 'block'; hasContent = true; } 
+            else { descPanel.style.display = 'none'; }
+
+            let cleanNotes = notes ? notes.replace(/<[^>]*>?/gm, '').trim() : '';
+            if (cleanNotes !== '') { notesText.innerHTML = notes; notesPanel.style.display = 'block'; hasContent = true; } 
+            else { notesPanel.style.display = 'none'; }
+
+            if (hasContent) {
+                if (descPanel.style.display === 'block' && notesPanel.style.display === 'block') { notesPanel.style.borderLeft = '1px solid rgba(0, 229, 255, 0.2)'; notesPanel.style.paddingLeft = '15px'; } 
+                else { notesPanel.style.borderLeft = 'none'; notesPanel.style.paddingLeft = '0'; }
+                tooltip.style.display = 'flex'; moveTooltip(e);
+            }
+        }
+
+        function moveTooltip(e) {
+            const tooltip = document.getElementById('global-tooltip');
+            if (!tooltip || tooltip.style.display === 'none') return;
+            let x = e.pageX + 15; let y = e.pageY + 15;
+            const rect = tooltip.getBoundingClientRect();
+            if (x + rect.width > window.innerWidth) x = e.pageX - rect.width - 15;
+            if (y + rect.height > window.innerHeight + window.scrollY) y = e.pageY - rect.height - 15;
+            tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('global-tooltip');
+            if(tooltip) tooltip.style.display = 'none';
+        }
+
+        // --- RESTORED: REWARD BANK SYSTEM ---
+        let selectedRewardMins = 0; let selectedRewardCost = 0;
+        function selectRewardPkg(btn) {
+            document.querySelectorAll('.btn-reward-pkg').forEach(b => b.style.borderColor = 'var(--outline)');
+            btn.style.borderColor = '#ffd700'; selectedRewardMins = parseInt(btn.dataset.mins); selectedRewardCost = parseInt(btn.dataset.cost);
+        }
+        function cashInReward() {
+            if(selectedRewardCost === 0) { showToast("Select a time package first.", "#ff5252"); return; }
+            if(userXP < selectedRewardCost) { showToast(`Not enough XP. Need ${selectedRewardCost} XP.`, "#ff5252"); return; }
+            if(confirm(`Exchange ${selectedRewardCost} XP for ${selectedRewardMins} minutes of Free Time?`)) {
+                updateXP(-selectedRewardCost); bankedFreeTimeMins += selectedRewardMins;
+                db.collection("userStats").doc("player").set({ bankedFreeTimeMins: bankedFreeTimeMins }, { merge: true }).then(() => { showToast(`Banked ${selectedRewardMins} mins of Free Time!`, "#ffd700"); renderRewardStore(); });
+            }
+        }
+        function renderRewardStore() {
+            let h = Math.floor(bankedFreeTimeMins / 60); let m = bankedFreeTimeMins % 60;
+            let display = document.getElementById('banked-time-display'); if(display) display.innerText = `${h}h ${m}m`;
+        }
+
+        // --- RESTORED: PENDING MISSIONS & BADGE ---
+        function getPendingMissions() {
+            const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return [];
+            const now = new Date();
+            const timeOptions = { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: false };
+            const parts = new Intl.DateTimeFormat('en-AU', timeOptions).formatToParts(now);
+            let currentH = parseInt(parts.find(p => p.type === 'hour').value); if (currentH === 24) currentH = 0; 
+            const currentTotalMinutes = (currentH * 60) + parseInt(parts.find(p => p.type === 'minute').value);
+            const currentWeek = getCurrentCalendarWeek();
+            const daysArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            let currentDayIdx = daysArr.indexOf(new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(now));
+            let pending = [];
+
+            events.forEach(ev => {
+                if(ev.termId !== currentTermId || ev.isReward) return; 
+                const evDayIdx = daysArr.indexOf(ev.day); const evEndMins = ev.isReminder ? timeToMinutes(ev.start) : timeToMinutes(ev.end);
+                let weeksToCheck = [];
+                if (ev.weeks === "All") { for(let w = 1; w <= currentWeek; w++) weeksToCheck.push(w); } 
+                else { let w = parseInt(ev.weeks); if (w <= currentWeek) weeksToCheck.push(w); }
+                
+                weeksToCheck.forEach(w => {
+                    let wStr = w.toString(); 
+                    if ((ev.skippedWeeks && ev.skippedWeeks.includes(wStr)) || (ev.resolvedWeeks && (ev.resolvedWeeks.includes(wStr) || ev.resolvedWeeks.includes("All"))) || (ev.missionSkippedWeeks && ev.missionSkippedWeeks.includes(wStr))) return;
+                    let isPast = false;
+                    if (w < currentWeek) { isPast = true; } else if (w === currentWeek) { if (evDayIdx < currentDayIdx) { isPast = true; } else if (evDayIdx === currentDayIdx && currentTotalMinutes >= evEndMins) { isPast = true; } }
+                    if (isPast) pending.push({ ev, week: w });
+                });
+            });
+            return pending;
+        }
+
+        function updateMissionsBadge() {
+            const pending = getPendingMissions(); const badge = document.getElementById('missions-badge'); if(!badge) return;
+            if(pending.length > 0) { badge.innerText = pending.length; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+        }
 
         // --- NEW FOCUS MODE STATE & ENGINE (CLOUD MASTERED) ---
         let focusInterval = null; let checkInInterval = null; let checkInFailTimeout = null;
@@ -1199,20 +1318,15 @@
             const ffEventId = currentTermId + "_FF_" + selectedCourseId.replace(/\s+/g, '_') + "_" + dayName;
             
             if (!events.find(e => e.id === ffEventId)) {
-                db.collection('events').doc(ffEventId).set({
-                    id: ffEventId, termId: currentTermId, courseId: selectedCourseId, title: "Ad-hoc Session", day: dayName, weeks: "All", start: "00:00", end: "23:59", requiresFocus: true, isReward: false, resolvedWeeks: ["All"], isAdHoc: true
-                });
+                db.collection('events').doc(ffEventId).set({ id: ffEventId, termId: currentTermId, courseId: selectedCourseId, title: "Ad-hoc Session", day: dayName, weeks: "All", start: "00:00", end: "23:59", requiresFocus: true, isReward: false, resolvedWeeks: ["All"], isAdHoc: true });
             }
 
             const endTimer = Date.now() + (50 * 60 * 1000);
-            db.collection("userStats").doc("player").set({
-                globalFocusState: "free", focusTargetEndTime: endTimer / 1000, isWorkPhase: true, activeFocusEventId: ffEventId, activeCourse: selectedCourseId, activeTitle: "Ad-hoc Session", activeWeekStr: getCurrentCalendarWeek().toString()
-            }, { merge: true });
+            db.collection("userStats").doc("player").set({ globalFocusState: "free", focusTargetEndTime: endTimer / 1000, isWorkPhase: true, activeFocusEventId: ffEventId, activeCourse: selectedCourseId, activeTitle: "Ad-hoc Session", activeWeekStr: getCurrentCalendarWeek().toString() }, { merge: true });
         }
 
         async function launchFocusUIFromCloud(title, course) {
             isFocusModeActive = true; focusFailedThisSession = false; focusStrikeCount = 0; lastFocusMinuteSync = Date.now(); broadcastFocusState(true); 
-            
             const btn = isFreeFocusMode ? document.getElementById('btn-free-focus') : document.getElementById('btn-focus-mode');
             if (btn) { btn.classList.add('active-pulse'); btn.innerText = isFreeFocusMode ? "🌊 Free Focus Active" : "🔥 Focus Active"; }
             if (isFreeFocusMode) { const regBtn = document.getElementById('btn-focus-mode'); if (regBtn) regBtn.disabled = true; }
@@ -1256,8 +1370,7 @@
             if (isFocusModeActive && currentFocusEventId && isWorkPhase) {
                 let elapsed = Date.now() - lastFocusMinuteSync;
                 if (elapsed >= 60000) {
-                    let minsToAdd = Math.floor(elapsed / 60000);
-                    lastFocusMinuteSync += minsToAdd * 60000; 
+                    let minsToAdd = Math.floor(elapsed / 60000); lastFocusMinuteSync += minsToAdd * 60000; 
                     let weekNum = getCurrentCalendarWeek().toString();
                     db.collection('events').doc(currentFocusEventId).set({ actualFocusMins: { [weekNum]: firebase.firestore.FieldValue.increment(minsToAdd) } }, { merge: true }).catch(e => console.log(e));
                 }
@@ -1265,24 +1378,16 @@
             
             if (diff <= 0) {
                 if (typeof playBeep === 'function') playBeep();
-                let nextPhaseIsWork = !isWorkPhase;
-                let newDuration = nextPhaseIsWork ? (50 * 60 * 1000) : (10 * 60 * 1000);
-                let newTarget = Date.now() + newDuration;
-                
+                let nextPhaseIsWork = !isWorkPhase; let newDuration = nextPhaseIsWork ? (50 * 60 * 1000) : (10 * 60 * 1000); let newTarget = Date.now() + newDuration;
                 db.collection("userStats").doc("player").set({ isWorkPhase: nextPhaseIsWork, focusTargetEndTime: newTarget / 1000 }, { merge: true });
-                
                 isWorkPhase = nextPhaseIsWork; targetEndTime = newTarget; diff = newDuration;
-                let title = isWorkPhase ? (isFreeFocusMode ? "🌊 Free Focus" : "🔥 Deep Work") : "☕ Rest & Recharge";
-                let color = isWorkPhase ? (isFreeFocusMode ? "#00e5ff" : "#ff9800") : "#4caf50";
+                let title = isWorkPhase ? (isFreeFocusMode ? "🌊 Free Focus" : "🔥 Deep Work") : "☕ Rest & Recharge"; let color = isWorkPhase ? (isFreeFocusMode ? "#00e5ff" : "#ff9800") : "#4caf50";
                 updateUIStyles(title, isWorkPhase ? "Back to the grind." : "Step away from the screen.", isWorkPhase ? "work-phase" : "break-phase", color);
-                
-                if (checkInInterval) clearInterval(checkInInterval);
-                if (nextPhaseIsWork) checkInInterval = setInterval(triggerCheckIn, 10 * 60 * 1000);
+                if (checkInInterval) clearInterval(checkInInterval); if (nextPhaseIsWork) checkInInterval = setInterval(triggerCheckIn, 10 * 60 * 1000);
             }
 
             let totalSeconds = Math.max(0, Math.ceil(diff / 1000));
-            let m = Math.floor(totalSeconds / 60).toString().padStart(2, '0'); let s = (totalSeconds % 60).toString().padStart(2, '0');
-            let timeString = `${m}:${s}`;
+            let m = Math.floor(totalSeconds / 60).toString().padStart(2, '0'); let s = (totalSeconds % 60).toString().padStart(2, '0'); let timeString = `${m}:${s}`;
             if (pipWindow && !pipWindow.closed) { const t = pipWindow.document.getElementById('timer'); if (t) t.innerText = timeString; } 
             else if (fallbackTimerUI) { const t = document.getElementById('fb-timer'); if (t) t.innerText = timeString; }
         }
@@ -1292,8 +1397,7 @@
                 pipWindow.document.body.className = phaseClass; pipWindow.document.getElementById('phase-title').innerText = title; pipWindow.document.getElementById('status-text').innerText = status;
                 pipWindow.document.getElementById('phase-title').style.color = color; pipWindow.document.getElementById('timer').style.color = color;
             } else if (fallbackTimerUI) {
-                fallbackTimerUI.className = phaseClass; document.getElementById('fb-phase-title').innerText = title; document.getElementById('fb-phase-title').style.color = color;
-                document.getElementById('fb-timer').style.color = color; fallbackTimerUI.style.borderColor = color; document.getElementById('fb-status-text').innerText = status;
+                fallbackTimerUI.className = phaseClass; document.getElementById('fb-phase-title').innerText = title; document.getElementById('fb-phase-title').style.color = color; document.getElementById('fb-timer').style.color = color; fallbackTimerUI.style.borderColor = color; document.getElementById('fb-status-text').innerText = status;
             }
         }
 
@@ -1324,8 +1428,7 @@
             if (!isFreeFocusMode && currentFocusEventId) {
                 let ev = events.find(e => e.id === currentFocusEventId);
                 if(ev) {
-                    let weekNum = getCurrentCalendarWeek().toString();
-                    let failedWeeks = [...(ev.focusFailedWeeks || [])];
+                    let weekNum = getCurrentCalendarWeek().toString(); let failedWeeks = [...(ev.focusFailedWeeks || [])];
                     if(!failedWeeks.includes(weekNum)) { failedWeeks.push(weekNum); db.collection('events').doc(ev.id).update({ focusFailedWeeks: failedWeeks }); }
                 }
                 showToast("Focus Mode Failed! Penalty pending.", "#ff5252");
