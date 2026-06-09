@@ -3691,9 +3691,19 @@
                 block.onmousemove = moveTooltip;
                 block.onmouseleave = () => { block.style.filter = isPast ? 'grayscale(100%)' : 'none'; hideTooltip(); };
                 
+                // Safely hide extra details if the block is less than 45 minutes long
+                let timeAndLocHtml = "";
+                if (duration >= 45) {
+                    timeAndLocHtml += `<div style="font-family: 'Share Tech Mono'; font-size: 10px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${format12Hour(ev.start)} - ${format12Hour(ev.end)}</div>`;
+                    if (ev.location && ev.location.trim() !== "") {
+                        timeAndLocHtml += `<div style="font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 ${ev.location}</div>`;
+                    }
+                }
+
                 block.innerHTML = `
                     <div style="font-weight: bold; font-size: 11px; margin-bottom: 2px; color: ${isPast ? '#999' : cColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.isReward ? `🏆 ` : ''}${ev.isCritical ? `🚨 ` : ''}${ev.courseId && !ev.isReward ? ev.courseId : ev.title}</div>
                     <div style="font-size: 10px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.courseId && !ev.isReward ? ev.title : ''}</div>
+                    ${timeAndLocHtml}
                     ${statusText}
                 `;
                 col.appendChild(block);
