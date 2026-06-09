@@ -1104,6 +1104,7 @@
                 let incomingFocusState = doc.data().globalFocusState || "none";
                 let incomingEndTime = doc.data().focusTargetEndTime || 0;
                 // --- THE CHECK-IN SYNC FIX ---
+                // --- THE CHECK-IN SYNC FIX ---
                 let incomingAck = doc.data().lastCheckInAck || 0;
                 
                 // Safely initialize the tracker to whatever the database currently says
@@ -1116,11 +1117,6 @@
                     window.globalLastAck = incomingAck;
                     if (isFocusModeActive && typeof window.confirmCheckInLocalOnly === 'function') {
                         window.confirmCheckInLocalOnly(); 
-                    }
-                }
-                    window.lastAckTime = incomingAck;
-                    if (isFocusModeActive && typeof confirmCheckInLocalOnly === 'function') {
-                        confirmCheckInLocalOnly(); // Instantly clears the screen if phone confirms!
                     }
                 }
                 let incomingEventId = doc.data().activeFocusEventId || null;
