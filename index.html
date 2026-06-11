@@ -3050,39 +3050,88 @@
         }
 
         function updateKeyDates() {
-            const container = document.getElementById('key-dates-container'); if(!container) return; container.innerHTML = '';
-            const currentTerm = terms.find(t => t.id === currentTermId); if(!currentTerm) return;
-            const totalWeeks = currentTerm.totalWeeks || 10; let keyDatesList = [];
-            const termEvents = events.filter(e => e.termId === currentTermId && !e.isReward); const today = new Date(); today.setHours(0,0,0,0);
+            const container = document.getElementById('key-dates-container'); 
+            if(!container) return; 
+            container.innerHTML = '';
+            
+            const currentTerm = terms.find(t => t.id === currentTermId); 
+            if(!currentTerm) return;
+            
+            const totalWeeks = currentTerm.totalWeeks || 10; 
+            let keyDatesList = [];
+            const termEvents = events.filter(e => e.termId === currentTermId && !e.isReward); 
+            const today = new Date(); today.setHours(0,0,0,0);
+            
+            const currentWeekNum = getCurrentCalendarWeek();
 
+            // 1. Calculate Target Dates and assign a "weekNum" to every hurdle
             termEvents.forEach(ev => {
                 if(ev.weeks !== "All") {
-                    const targetDate = getSpecificDate(currentTerm.startDate, parseInt(ev.weeks), ev.day);
+                    const w = parseInt(ev.weeks);
+                    const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
                     const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                    if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) keyDatesList.push({ ev, targetDate, diffDays });
+                    if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) {
+                        keyDatesList.push({ ev, targetDate, diffDays, weekNum: w });
+                    }
                 } else {
                     for(let w=1; w<=totalWeeks; w++) {
                         if(!ev.skippedWeeks.includes(w.toString())) {
                             const targetDate = getSpecificDate(currentTerm.startDate, w, ev.day);
                             const diffDays = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                            if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) keyDatesList.push({ ev, targetDate, diffDays });
+                            if (diffDays >= 0 && (ev.isCritical || (ev.isReminder && diffDays <= 1))) {
+                                keyDatesList.push({ ev, targetDate, diffDays, weekNum: w });
+                            }
                         }
                     }
                 }
             });
 
-            keyDatesList.sort((a,b) => a.diffDays - b.diffDays);
-            if(keyDatesList.length === 0) { container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; return; }
+            // 2. Sort by Week Number first, then by exact date within that week
+            keyDatesList.sort((a,b) => {
+                if (a.weekNum !== b.weekNum) return a.weekNum - b.weekNum;
+                return a.targetDate - b.targetDate;
+            });
 
-            // Add this line to grab the courses!
+            if(keyDatesList.length === 0) { 
+                container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; 
+                return; 
+            }
+
             const termCourses = courses.filter(c => c.termId === currentTermId);
+            let currentGroupWeek = -1;
 
+            // 3. Render the list with Sticky Week Headers
             keyDatesList.forEach((kd) => {
-                // 1. Get the custom Course Color
+                
+                // Inject a Header if the week changes
+                if (kd.weekNum !== currentGroupWeek) {
+                    currentGroupWeek = kd.weekNum;
+                    
+                    const isCurrentWeek = (currentGroupWeek === currentWeekNum);
+                    const header = document.createElement('div');
+                    
+                    header.style.cssText = `
+                        display: flex; align-items: center; justify-content: space-between;
+                        padding: 8px 12px; margin: 15px 0 10px 0; border-radius: 4px;
+                        background: ${isCurrentWeek ? 'var(--accent)' : 'rgba(255,255,255,0.05)'};
+                        color: ${isCurrentWeek ? 'var(--bg-dark)' : 'var(--accent)'};
+                        font-weight: bold; text-transform: uppercase; font-size: 14px; letter-spacing: 1px;
+                        position: sticky; top: 0; z-index: 10; backdrop-filter: blur(5px);
+                    `;
+                    
+                    header.innerHTML = `
+                        <span>WEEK ${currentGroupWeek}</span>
+                        ${isCurrentWeek ? `<span style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px; font-size: 11px;">CURRENT</span>` : ''}
+                    `;
+                    
+                    if (container.children.length === 0) header.style.marginTop = '0';
+                    container.appendChild(header);
+                }
+
+                // Build the Event Card
                 const cColor = kd.ev.courseId ? (termCourses.find(c => c.id === kd.ev.courseId)?.color || "var(--accent)") : "var(--accent)";
 
-                // 2. Urgency Colors (Faint Backgrounds)
-                let urgencyColor = '#4caf50'; // Green
+                let urgencyColor = '#4caf50'; 
                 let urgencyBg = 'rgba(76, 175, 80, 0.12)';
                 let urgencyText = `In ${kd.diffDays} days`;
 
