@@ -1930,23 +1930,34 @@
                 const kdDate = new Date(kd.targetDate); kdDate.setHours(0,0,0,0);
                 const dayDiff = Math.floor((kdDate - today) / (1000 * 60 * 60 * 24));
                 
-                let timeStr = "";
-                if(dayDiff === 0) timeStr = "Today";
-                else if(dayDiff === 1) timeStr = "Tomorrow";
-                else if(dayDiff < 0) timeStr = `${Math.abs(dayDiff)}d ago`;
-                else timeStr = `In ${dayDiff}d`;
+                let urgencyColor = '#4caf50'; // Green
+                let urgencyBg = 'rgba(76, 175, 80, 0.12)';
+                let timeStr = `In ${dayDiff}d`;
+
+                if(dayDiff === 0) { urgencyColor = '#ff5252'; urgencyBg = 'rgba(255, 82, 82, 0.15)'; timeStr = "TODAY"; }
+                else if(dayDiff === 1) { urgencyColor = '#ff5252'; urgencyBg = 'rgba(255, 82, 82, 0.15)'; timeStr = "Tomorrow"; }
+                else if(dayDiff < 0) { urgencyColor = '#555555'; urgencyBg = 'rgba(255, 255, 255, 0.05)'; timeStr = `${Math.abs(dayDiff)}d ago`; }
+                else if (dayDiff <= 3) { urgencyColor = '#ff5252'; urgencyBg = 'rgba(255, 82, 82, 0.15)'; }
+                else if (dayDiff <= 7) { urgencyColor = '#ffd700'; urgencyBg = 'rgba(255, 215, 0, 0.15)'; }
         
                 const item = document.createElement('div');
-                item.style.cssText = `border-left: 4px solid ${cColor}; background: rgba(0,0,0,0.3); padding: 12px; margin-bottom: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);`;
+                item.style.cssText = `display: flex; flex-direction: column; padding: 12px; margin-bottom: 10px; border-radius: 6px; position: relative; border-left: 4px solid ${cColor}; background: ${urgencyBg}; border-top: 1px solid rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.03); box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s;`;
                 
+                item.onmouseenter = () => item.style.filter = 'brightness(1.2)';
+                item.onmouseleave = () => item.style.filter = 'none';
+                item.onclick = () => { if (typeof openInstanceModal === 'function') openInstanceModal(kd.ev.id, kd.ev.weeks === "All" ? getCurrentCalendarWeek() : parseInt(kd.ev.weeks)); };
+
                 item.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <strong style="color: ${cColor}; font-size: 15px; line-height: 1.2;">${kd.ev.courseId ? kd.ev.courseId + ' | ' : ''}<span style="color: var(--text-main);">${kd.ev.title}</span></strong>
+                        <span style="line-height: 1.2;">
+                            <span style="color: ${cColor}; font-size: 12px; display: block; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">${kd.ev.courseId || ''}</span>
+                            <strong style="color: var(--text-main); font-size: 15px;">${kd.ev.title}</strong>
+                        </span>
                         <span style="font-family: 'Share Tech Mono'; font-size: 13px; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'})}</span>
                     </div>
-                    <div style="font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 4px;">
-                        <span>${kd.ev.day} • ${format12Hour(kd.ev.start)}</span>
-                        <span style="font-weight: bold; color: ${dayDiff === 0 ? '#ff5252' : (dayDiff < 0 ? '#555' : 'var(--text-muted)')};">${timeStr}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span style="font-size: 12px; color: rgba(255,255,255,0.6); font-family: 'Share Tech Mono', monospace;">${kd.ev.day} • ${format12Hour(kd.ev.start)}</span>
+                        <span style="padding: 2px 8px; border-radius: 4px; border: 1px solid ${urgencyColor}; color: ${urgencyColor}; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.3); white-space: nowrap;">${timeStr}</span>
                     </div>
                 `;
                 container.appendChild(item);
@@ -3062,18 +3073,50 @@
             keyDatesList.sort((a,b) => a.diffDays - b.diffDays);
             if(keyDatesList.length === 0) { container.innerHTML = `<span style="color:var(--text-muted); font-size: 14px;">No upcoming critical hurdles.</span>`; return; }
 
+            // Add this line to grab the courses!
+            const termCourses = courses.filter(c => c.termId === currentTermId);
+
             keyDatesList.forEach((kd) => {
-                const item = document.createElement('div'); let colorClass = 'kd-green'; let urgencyText = `In ${kd.diffDays} days`;
-                if (kd.diffDays === 0) { colorClass = 'kd-red'; urgencyText = (kd.ev.isReminder && kd.ev.isCritical) ? `<span class="kd-countdown" data-time="${kd.ev.start}">Calculating...</span>` : "TODAY"; } 
-                else if (kd.diffDays <= 3) { colorClass = 'kd-red'; } else if (kd.diffDays <= 7) { colorClass = 'kd-yellow'; }
+                // 1. Get the custom Course Color
+                const cColor = kd.ev.courseId ? (termCourses.find(c => c.id === kd.ev.courseId)?.color || "var(--accent)") : "var(--accent)";
+
+                // 2. Urgency Colors (Faint Backgrounds)
+                let urgencyColor = '#4caf50'; // Green
+                let urgencyBg = 'rgba(76, 175, 80, 0.12)';
+                let urgencyText = `In ${kd.diffDays} days`;
+
+                if (kd.diffDays < 0) {
+                    urgencyColor = '#555555'; urgencyBg = 'rgba(255, 255, 255, 0.05)'; urgencyText = 'Passed';
+                } else if (kd.diffDays === 0) {
+                    urgencyColor = '#ff5252'; urgencyBg = 'rgba(255, 82, 82, 0.15)'; urgencyText = 'TODAY';
+                } else if (kd.diffDays <= 3) {
+                    urgencyColor = '#ff5252'; urgencyBg = 'rgba(255, 82, 82, 0.15)';
+                } else if (kd.diffDays <= 7) {
+                    urgencyColor = '#ffd700'; urgencyBg = 'rgba(255, 215, 0, 0.15)';
+                }
 
                 const weightText = kd.ev.weight ? `<span style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 5px;">${kd.ev.weight}%</span>` : '';
                 let badges = ""; if (kd.ev.isReminder) badges += "🔔 "; if (kd.ev.isCritical) badges += "🚨 ";
 
-                item.className = `key-date-item ${colorClass}`;
+                const item = document.createElement('div');
+                item.style.cssText = `display: flex; flex-direction: column; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-weight: 600; font-size: 15px; position: relative; border-left: 4px solid ${cColor}; background: ${urgencyBg}; border-top: 1px solid rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.03); box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; transition: 0.2s;`;
+                
+                item.onmouseenter = () => item.style.filter = 'brightness(1.2)';
+                item.onmouseleave = () => item.style.filter = 'none';
+                item.onclick = () => { if (typeof openInstanceModal === 'function') openInstanceModal(kd.ev.id, kd.ev.weeks === "All" ? getCurrentCalendarWeek() : parseInt(kd.ev.weeks)); };
+
                 item.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;"><span>${badges}${kd.ev.courseId ? kd.ev.courseId + ' ' : ''}${kd.ev.title} ${weightText}</span><span style="font-family:'Share Tech Mono'; font-size:14px;">${kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'})}</span></div>
-                    <div style="font-size: 13px; margin-top:4px; font-weight:normal;">${urgencyText}</div>`;
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <span style="line-height: 1.2;">
+                            <span style="color: ${cColor}; font-size: 12px; display: block; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">${badges}${kd.ev.courseId || ''}</span>
+                            <span style="color: var(--text-main); font-size: 14px;">${kd.ev.title}</span> ${weightText}
+                        </span>
+                        <span style="font-family:'Share Tech Mono'; font-size:12px; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${kd.targetDate.toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit'})}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span style="font-size: 12px; color: rgba(255,255,255,0.6); font-family: 'Share Tech Mono', monospace;">${kd.ev.day} • ${format12Hour(kd.ev.start)}</span>
+                        <span style="padding: 2px 8px; border-radius: 4px; border: 1px solid ${urgencyColor}; color: ${urgencyColor}; font-size: 11px; background: rgba(0,0,0,0.3); white-space: nowrap;">${urgencyText}</span>
+                    </div>`;
                 container.appendChild(item);
             });
         }
