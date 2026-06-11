@@ -1103,7 +1103,11 @@
                 // --- THE CROSS-DEVICE CLOCK SYNC ---
                 let incomingFocusState = doc.data().globalFocusState || "none";
                 let incomingEndTime = doc.data().focusTargetEndTime || 0;
-                // --- THE CHECK-IN SYNC FIX ---
+                let incomingIsWork = doc.data().isWorkPhase ?? true; // <-- THIS LINE WAS MISSING!
+                let incomingEventId = doc.data().activeFocusEventId || null;
+                let incomingCourse = doc.data().activeCourse || "";
+                let incomingTitle = doc.data().activeTitle || "";
+                
                 // --- THE CHECK-IN SYNC FIX ---
                 let incomingAck = doc.data().lastCheckInAck || 0;
                 
@@ -1119,9 +1123,6 @@
                         window.confirmCheckInLocalOnly(); 
                     }
                 }
-                let incomingEventId = doc.data().activeFocusEventId || null;
-                let incomingCourse = doc.data().activeCourse || "";
-                let incomingTitle = doc.data().activeTitle || "";
                 
                 if (globalFocusActive !== (incomingFocusState !== "none")) {
                     globalFocusActive = (incomingFocusState !== "none");
