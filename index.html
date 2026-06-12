@@ -1330,7 +1330,8 @@
             const endTimer = Date.now() + (50 * 60 * 1000);
             db.collection("userStats").doc("player").set({
                 globalFocusState: "routine", focusTargetEndTime: endTimer / 1000, isWorkPhase: true,
-                activeFocusEventId: currentFocusEventId, activeCourse: ev ? ev.courseId : "", activeTitle: ev ? ev.title : "Deep Work", activeWeekStr: getCurrentCalendarWeek().toString()
+                activeFocusEventId: currentFocusEventId, activeCourse: ev ? ev.courseId : "", activeTitle: ev ? ev.title : "Deep Work", activeWeekStr: getCurrentCalendarWeek().toString(),
+                focusInitiator: "web" // <--- ADD THIS
             }, { merge: true });
         }
         
@@ -1355,7 +1356,7 @@
             }
 
             const endTimer = Date.now() + (50 * 60 * 1000);
-            db.collection("userStats").doc("player").set({ globalFocusState: "free", focusTargetEndTime: endTimer / 1000, isWorkPhase: true, activeFocusEventId: ffEventId, activeCourse: selectedCourseId, activeTitle: "Ad-hoc Session", activeWeekStr: getCurrentCalendarWeek().toString() }, { merge: true });
+            db.collection("userStats").doc("player").set({ globalFocusState: "free", focusTargetEndTime: endTimer / 1000, isWorkPhase: true, activeFocusEventId: ffEventId, activeCourse: selectedCourseId, activeTitle: "Ad-hoc Session", activeWeekStr: getCurrentCalendarWeek().toString(), focusInitiator: "web" }, { merge: true }); // <--- ADDED TO THE END OF THIS LINE
         }
 
         async function launchFocusUIFromCloud(title, course) {
