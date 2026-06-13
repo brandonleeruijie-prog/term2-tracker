@@ -1095,7 +1095,12 @@
         let lastReportWeek = 0;
         let bankedFreeTimeMins = 0; 
         let globalFocusActive = false;
-
+        // --- NEW FOCUS MODE STATE & ENGINE (CLOUD MASTERED) ---
+        let focusInterval = null; let checkInInterval = null; let checkInFailTimeout = null;
+        let targetEndTime = 0; let isWorkPhase = true; let pipWindow = null; let fallbackTimerUI = null;
+        let isFocusModeActive = false; let currentFocusEventId = null; let focusFailedThisSession = false;
+        let focusStrikeCount = 0; let lastNotifiedEventId = null; let lastNotifiedTime = 0; 
+        let lastFocusMinuteSync = 0; let isFreeFocusMode = false;
         db.collection("userStats").doc("player").onSnapshot(doc => {
             if(doc.exists) {
                 userXP = doc.data().xp || 0;
@@ -1233,12 +1238,20 @@
         }
 
         // Auto-save typing to Firebase (waits 1 second after you stop typing to avoid spamming the database)
+        // Auto-save typing to Firebase (waits 1 second after you stop typing to avoid spamming the database)
         let notesSaveTimeout = null;
-        document.getElementById('global-notes-input').addEventListener('input', (e) => {
-            if (notesSaveTimeout) clearTimeout(notesSaveTimeout);
-            notesSaveTimeout = setTimeout(() => {
-                db.collection("userStats").doc("player").set({ globalNotes: e.target.value }, { merge: true });
-            }, 1000); 
+        
+        // Wait for the HTML to fully load before attaching the listener
+        document.addEventListener('DOMContentLoaded', () => {
+            const notesInput = document.getElementById('global-notes-input');
+            if (notesInput) {
+                notesInput.addEventListener('input', (e) => {
+                    if (notesSaveTimeout) clearTimeout(notesSaveTimeout);
+                    notesSaveTimeout = setTimeout(() => {
+                        db.collection("userStats").doc("player").set({ globalNotes: e.target.value }, { merge: true });
+                    }, 1000); 
+                });
+            }
         });
 
         function moveTooltip(e) {
@@ -1312,11 +1325,7 @@
         }
 
         // --- NEW FOCUS MODE STATE & ENGINE (CLOUD MASTERED) ---
-        let focusInterval = null; let checkInInterval = null; let checkInFailTimeout = null;
-        let targetEndTime = 0; let isWorkPhase = true; let pipWindow = null; let fallbackTimerUI = null;
-        let isFocusModeActive = false; let currentFocusEventId = null; let focusFailedThisSession = false;
-        let focusStrikeCount = 0; let lastNotifiedEventId = null; let lastNotifiedTime = 0; 
-        let lastFocusMinuteSync = 0; let isFreeFocusMode = false;
+        
 
         function playBeep() { try { const audio = new Audio('alert.mp3'); audio.play(); } catch(e) { } }
         
