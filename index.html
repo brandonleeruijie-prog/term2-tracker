@@ -873,7 +873,8 @@
             if (!currentTerm) return;
         
             const termCourses = courses.filter(c => c.termId === currentTermId);
-            const academicCourses = termCourses.filter(c => c.isAcademic);
+            // FIX: Includes older courses missing the checkbox, but explicitly excludes Rewards!
+            const academicCourses = termCourses.filter(c => c.isAcademic !== false && c.id !== "Free Time");
         
             ctx.style.display = 'block';
         
@@ -933,7 +934,9 @@
                     backgroundColor: course.color,
                     data: last7Days.map(targetDate => {
                         const termStart = new Date(currentTerm.startDate.split('-')[0], currentTerm.startDate.split('-')[1] - 1, currentTerm.startDate.split('-')[2]);
-                        const diffDays = Math.floor((targetDate - termStart) / (1000 * 60 * 60 * 24));
+                        
+                        // FIX: Use the robust getDaysDiff function to prevent timezone math errors
+                        const diffDays = getDaysDiff(termStart, targetDate);
                         const weekNum = Math.floor(diffDays / 7) + 1;
                         const dayName = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', weekday: 'long' }).format(targetDate);
         
@@ -1098,7 +1101,7 @@
         // --- NEW FOCUS MODE STATE & ENGINE (CLOUD MASTERED) ---
         let focusInterval = null; let checkInInterval = null; let checkInFailTimeout = null;
         let targetEndTime = 0; let isWorkPhase = true; let pipWindow = null; let fallbackTimerUI = null;
-        let isFocusModeActive = false; let currentFocusEventId = null; let focusFailedThisSession = false;
+        let isFocusModeActive = false; let currentFocusEventId = null; let focusFailedThisSession = false; let focusInitiator = "web";
         let focusStrikeCount = 0; let lastNotifiedEventId = null; let lastNotifiedTime = 0; 
         let lastFocusMinuteSync = 0; let isFreeFocusMode = false;
         db.collection("userStats").doc("player").onSnapshot(doc => {
@@ -1156,6 +1159,7 @@
                     isWorkPhase = incomingIsWork;
                     currentFocusEventId = incomingEventId;
                     isFreeFocusMode = (incomingFocusState === "free");
+                    focusInitiator = doc.data().focusInitiator || "web";
 
                     if (!isFocusModeActive) {
                         launchFocusUIFromCloud(incomingTitle, incomingCourse);
@@ -1439,7 +1443,8 @@
         function focusLoopTick() {
             let diff = targetEndTime - Date.now();
 
-            if (isFocusModeActive && currentFocusEventId && isWorkPhase) {
+            // ONLY push minutes if the website started the focus session!
+            if (isFocusModeActive && currentFocusEventId && isWorkPhase && focusInitiator === "web") {
                 let elapsed = Date.now() - lastFocusMinuteSync;
                 if (elapsed >= 60000) {
                     let minsToAdd = Math.floor(elapsed / 60000); lastFocusMinuteSync += minsToAdd * 60000; 
